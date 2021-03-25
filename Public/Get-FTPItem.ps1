@@ -24,16 +24,5 @@
             }
         }
         $Status
-        <#
-        if ($Status -eq 'Success') {
-            $true
-        } elseif ($Status -eq 'Failed') {
-            $false
-        } elseif ($Status -eq 'Error') {
-            $false
-        } else {
-            $Status
-        }
-        #>
     }
 }
