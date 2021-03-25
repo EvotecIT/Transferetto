@@ -1,4 +1,4 @@
-﻿function Remove-FTPItem {
+﻿function Rename-FTPFile {
     [cmdletBinding()]
     param(
 

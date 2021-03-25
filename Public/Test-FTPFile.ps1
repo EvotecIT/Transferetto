@@ -1,4 +1,4 @@
-﻿function Test-FTPItem {
+﻿function Test-FTPFile {
     [cmdletBinding()]
     param(
 

@@ -1,4 +1,4 @@
-﻿function Add-FTPItem {
+﻿function Add-FTPFile {
     [cmdletBinding()]
     param(
         [Parameter(Mandatory)][FluentFTP.FtpClient] $Client,

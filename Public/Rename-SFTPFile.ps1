@@ -1,4 +1,4 @@
-﻿function Rename-SFTPItem {
+﻿function Rename-SFTPFile {
     [cmdletBinding()]
     param(
         [Parameter(Mandatory)][Renci.SshNet.SftpClient] $SftpClient,
@@ -27,7 +27,7 @@
                 Write-Error $_
                 return
             } else {
-                Write-Warning "Rename-SFTPItem - Error: $($_.Exception.Message)"
+                Write-Warning "Rename-SFTPFile - Error: $($_.Exception.Message)"
             }
         }
         if (-not $Suppress) {

@@ -1,4 +1,4 @@
-﻿function Get-FTPItem {
+﻿function Get-FTPFile {
     [cmdletBinding(DefaultParameterSetName = 'Text')]
     param(
         [Parameter(ParameterSetName = 'Text')]

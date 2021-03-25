@@ -1,4 +1,4 @@
-﻿function Remove-SFTPItem {
+﻿function Remove-SFTPFile {
     [cmdletBinding()]
     param(
         [Parameter(Mandatory)][Renci.SshNet.SftpClient] $SftpClient,
@@ -23,7 +23,7 @@
                 Write-Error $_
                 return
             } else {
-                Write-Warning "Remove-SFTPItem - Error: $($_.Exception.Message)"
+                Write-Warning "Remove-SFTPFile - Error: $($_.Exception.Message)"
             }
         }
         if (-not $Suppress) {

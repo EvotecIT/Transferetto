@@ -1,4 +1,4 @@
-﻿function Get-SFTPItem {
+﻿function Get-SFTPFile {
     [cmdletBinding()]
     param(
         [Parameter(Mandatory)][Renci.SshNet.SftpClient] $SftpClient,
@@ -28,12 +28,12 @@
                 Write-Error $_
                 return
             } else {
-                Write-Warning "Get-SFTPItem - Error: $($_.Exception.Message)"
+                Write-Warning "Get-SFTPFile - Error: $($_.Exception.Message)"
             }
         } finally {
             $FileStream.Close()
             if ($Status.Status -eq $false) {
-                Remove-Item -LiteralPath $LocalPath
+                Remove-File -LiteralPath $LocalPath
             }
         }
         $Status
