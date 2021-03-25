@@ -5,14 +5,6 @@
         [FluentFTP.FtpListOption] $Options,
         [Parameter(Mandatory)][FluentFTP.FtpClient] $Client
     )
-    <#
-    FluentFTP.FtpListItem[] GetListing()
-    FluentFTP.FtpListItem[] GetListing(string path)
-    FluentFTP.FtpListItem[] GetListing(string path, FluentFTP.FtpListOption options)
-    FluentFTP.FtpListItem[] IFtpClient.GetListing()
-    FluentFTP.FtpListItem[] IFtpClient.GetListing(string path)
-    FluentFTP.FtpListItem[] IFtpClient.GetListing(string path, FluentFTP.FtpListOption options)
-    #>
     if ($Client -and $Client.IsConnected -and -not $Client.Error) {
         try {
             if ($Path -and $Options) {

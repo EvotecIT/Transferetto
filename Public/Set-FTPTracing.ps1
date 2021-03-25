@@ -3,7 +3,12 @@
     param(
         [string] $LogPath,
         [switch] $Enable,
-        [switch] $Disable
+        [switch] $Disable,
+        [switch] $ShowPassword,
+        [switch] $ShowUsername,
+        [switch] $HideIP,
+        [switch] $HideFunctions,
+        [switch] $DisplayConsole
     )
     if ($Enable) {
         [FluentFTP.FtpTrace]::EnableTracing = $true;
