@@ -6,7 +6,7 @@
     CompatiblePSEditions = @('Desktop', 'Core')
     Copyright            = '(c) 2011 - 2021 Przemyslaw Klys @ Evotec. All rights reserved.'
     Description          = 'Module with transfer functionality'
-    FunctionsToExport    = @('Add-FTPItem', 'Compare-FTPItem', 'Connect-FTP', 'Disconnect-FTP', 'Get-FTPItem', 'Get-FTPList', 'Remove-FTPItem', 'Rename-FTPItem', 'Set-FTPTracing', 'Test-FTPItem')
+    FunctionsToExport    = @('Add-FTPItem', 'Compare-FTPItem', 'Connect-FTP', 'Connect-SFTP', 'Disconnect-FTP', 'Get-FTPItem', 'Get-FTPList', 'Get-SFTPList', 'Remove-FTPItem', 'Rename-FTPItem', 'Set-FTPTracing', 'Test-FTPItem')
     GUID                 = '7d61db15-9efe-41d1-a1c0-81d738975dec'
     ModuleVersion        = '0.0.1'
     PowerShellVersion    = '5.1'
