@@ -6,11 +6,11 @@
         [Parameter(Mandatory)][FluentFTP.FtpClient] $Client,
 
         [Parameter(ParameterSetName = 'Native')]
-        [FluentFTP.FtpListItem] $RemoteFile,
+        [FluentFTP.FtpListItem[]] $RemoteFile,
 
         [Parameter(ParameterSetName = 'Text')]
         [Parameter(ParameterSetName = 'Native')]
-        [string] $RemotePath,
+        [string[]] $RemotePath,
 
         [Parameter(ParameterSetName = 'Text')]
         [Parameter(ParameterSetName = 'Native')]
@@ -26,61 +26,44 @@
 
         [Parameter(ParameterSetName = 'Text')]
         [Parameter(ParameterSetName = 'Native')]
-        [FluentFTP.FtpError[]] $FtpError = [FluentFTP.FtpError]::Stop,
+        [FluentFTP.FtpError] $FtpError = [FluentFTP.FtpError]::Stop,
 
         [Parameter(ParameterSetName = 'Text')]
         [Parameter(ParameterSetName = 'Native')]
         [switch] $Suppress
     )
-
-    if ($RemoteFile) {
-        if ($RemoteFile.Type -eq 'File') {
-            $FileToDownload = $RemoteFile.FullName
+    if ($Client -and $Client.IsConnected) {
+        $Path = Get-Item -LiteralPath $LocalPath -ErrorAction SilentlyContinue
+        if ($Path -is [System.IO.DirectoryInfo]) {
+            Get-PrivateFTPFiles -LocalPath $LocalPath -RemoteFile $RemoteFile -RemotePath $RemotePath -LocalExists $LocalExists -VerifyOptions $VerifyOptions -FtpError $FtpError
         } else {
-            if (-not $Suppress) {
-                return [PSCustomObject] @{
+            if ($RemoteFile.Count -gt 1 -or $RemotePath.Count -gt 1) {
+                Write-Warning "Get-FTPFile - Multiple files detected, but $LocalPath is not a directory or it doesn't exists. "
+                if ($RemoteFile) {
+                    $FileToDownload = $RemoteFile.FullName
+                } else {
+                    $FileToDownload = $RemotePath
+                }
+                $Status = [PSCustomObject] @{
                     Action     = 'DownloadFile'
                     Status     = $false
                     LocalPath  = $LocalPath
-                    RemotePath = $RemoteFile.FullName
-                    Message    = "Get-FTPFile - Given path $($RemoteFile.FullName) is $($RemoteFile.Type). Skipping."
+                    RemotePath = $FileToDownload
+                    Message    = "Not connected."
                 }
             } else {
-                Write-Warning "Get-FTPFile - Given path $($RemoteFile.FullName) is a directory. Skipping."
-                return
-            }
-        }
-    } else {
-        $FileToDownload = $RemotePath
-    }
-    if ($Client -and $Client.IsConnected) {
-        try {
-            $Message = $Client.DownloadFile($LocalPath, $FileToDownload, $LocalExists, $VerifyOptions)
-            if ($Message -eq 'success') {
-                $State = $true
-            } else {
-                $State = $false
-            }
-            $Status = [PSCustomObject] @{
-                Action     = 'DownloadFile'
-                Status     = $State
-                LocalPath  = $LocalPath
-                RemotePath = $FileToDownload
-                Message    = $Message
-            }
-        } catch {
-            $Status = [PSCustomObject] @{
-                Action     = 'DownloadFile'
-                Status     = $false
-                LocalPath  = $LocalPath
-                RemotePath = $FileToDownload
-                Message    = "Error: $($_.Exception.Message)"
-            }
-            if ($PSBoundParameters.ErrorAction -eq 'Stop') {
-                Write-Error $_
-                return
-            } else {
-                Write-Warning "Get-FTPFile - Error: $($_.Exception.Message)"
+                $Splat = @{
+                    LocalExists   = $LocalExists
+                    VerifyOptions = $VerifyOptions
+                    FtpError      = $FtpError
+                    LocalPath     = $LocalPath
+                }
+                if ($RemoteFile) {
+                    $Splat.RemoteFile = $RemoteFile[0]
+                } else {
+                    $Splat.RemotePath = $RemotePath[0]
+                }
+                Get-PrivateFTPFile @Splat
             }
         }
     } else {
