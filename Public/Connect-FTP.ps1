@@ -52,7 +52,11 @@
 
         [Parameter(ParameterSetName = 'ClearText')]
         [Parameter(ParameterSetName = 'Password')]
-        [switch] $SocketKeepAlive
+        [switch] $SocketKeepAlive,
+
+        [Parameter(ParameterSetName = 'ClearText')]
+        [Parameter(ParameterSetName = 'Password')]
+        [switch] $AutoConnect
     )
     if ($FtpProfile) {
         $Client = [FluentFTP.FtpClient]::new()
@@ -95,7 +99,17 @@
         $Client.SslBuffering = $SslBuffering
     }
     try {
-        $Client.Connect()
+        if ($AutoConnect) {
+            $TempFtpProfile = $Client.AutoConnect()
+            if ($TempFtpProfile -and $Client.IsConnected) {
+                Write-Verbose "Following options where used to autoconnect: "
+                foreach ($Name in $TempFtpProfile.PSObject.Properties.Name) {
+                    Write-Verbose "[x] $Name -> $($TempFtpProfile.$Name)"
+                }
+            }
+        } else {
+            $Client.Connect()
+        }
         $Client | Add-Member -Name 'Error' -Value $null -Force -MemberType NoteProperty
     } catch {
         $Client | Add-Member -Name 'Error' -Value $($_.Exception.Message) -Force -MemberType NoteProperty
