@@ -33,18 +33,17 @@
         [switch] $Suppress
     )
 
-
     if ($RemoteFile) {
-        if ($RemoteFile.Type -ne 'Directory') {
+        if ($RemoteFile.Type -eq 'File') {
             $FileToDownload = $RemoteFile.FullName
         } else {
             if (-not $Suppress) {
-                [PSCustomObject] @{
+                return [PSCustomObject] @{
                     Action     = 'DownloadFile'
                     Status     = $false
                     LocalPath  = $LocalPath
                     RemotePath = $RemoteFile.FullName
-                    Message    = 'Get-FTPFile - Given path $($RemoteFile.FullName) is a directory. Skipping.'
+                    Message    = "Get-FTPFile - Given path $($RemoteFile.FullName) is $($RemoteFile.Type). Skipping."
                 }
             } else {
                 Write-Warning "Get-FTPFile - Given path $($RemoteFile.FullName) is a directory. Skipping."
