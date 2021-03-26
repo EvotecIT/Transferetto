@@ -6,7 +6,7 @@
         [Parameter(Mandatory)][FluentFTP.FtpClient] $Client,
 
         [Parameter(ParameterSetName = 'Native')]
-        [FtpListItem] $RemoteFile,
+        [FluentFTP.FtpListItem] $RemoteFile,
 
         [Parameter(ParameterSetName = 'Text')]
         [Parameter(ParameterSetName = 'Native')]
@@ -22,11 +22,11 @@
 
         [Parameter(ParameterSetName = 'Text')]
         [Parameter(ParameterSetName = 'Native')]
-        [FluentFTP.FtpVerify] $VerifyOptions = [FluentFTP.FtpVerify]::None,
+        [FluentFTP.FtpVerify[]] $VerifyOptions = [FluentFTP.FtpVerify]::None,
 
         [Parameter(ParameterSetName = 'Text')]
         [Parameter(ParameterSetName = 'Native')]
-        [FluentFTP.FtpError] $FtpError = [FluentFTP.FtpError]::Stop,
+        [FluentFTP.FtpError[]] $FtpError = [FluentFTP.FtpError]::Stop,
 
         [Parameter(ParameterSetName = 'Text')]
         [Parameter(ParameterSetName = 'Native')]

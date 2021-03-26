@@ -1,6 +1,9 @@
 ﻿function Connect-FTP {
     [cmdletBinding(DefaultParameterSetName = 'Password')]
     param(
+        [Parameter(ParameterSetName = 'FtpProfile')]
+        [FluentFTP.FtpProfile] $FtpProfile,
+
         [Parameter(ParameterSetName = 'ClearText')]
         [Parameter(ParameterSetName = 'Password')]
         [string] $Server,
@@ -51,13 +54,18 @@
         [Parameter(ParameterSetName = 'Password')]
         [switch] $SocketKeepAlive
     )
-    $Client = [FluentFTP.FtpClient]::new($Server)
-    if ($Username -and $Password) {
-        $Client.Credentials = [System.Net.NetworkCredential]::new($Username, $Password)
-    } elseif ($Credential) {
-        $Client.Credentials = [System.Net.NetworkCredential]::new($Credential.Username, $Credential.Password)
+    if ($FtpProfile) {
+        $Client = [FluentFTP.FtpClient]::new()
+        $Client.LoadProfile($FtpProfile)
     } else {
-        # anonymous
+        $Client = [FluentFTP.FtpClient]::new($Server)
+        if ($Username -and $Password) {
+            $Client.Credentials = [System.Net.NetworkCredential]::new($Username, $Password)
+        } elseif ($Credential) {
+            $Client.Credentials = [System.Net.NetworkCredential]::new($Credential.Username, $Credential.Password)
+        } else {
+            # anonymous
+        }
     }
     if ($Port) {
         $Client.Port = $Port
