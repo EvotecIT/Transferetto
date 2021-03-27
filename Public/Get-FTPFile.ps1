@@ -38,7 +38,7 @@
             Get-PrivateFTPFiles -LocalPath $LocalPath -RemoteFile $RemoteFile -RemotePath $RemotePath -LocalExists $LocalExists -VerifyOptions $VerifyOptions -FtpError $FtpError
         } else {
             if ($RemoteFile.Count -gt 1 -or $RemotePath.Count -gt 1) {
-                Write-Warning "Get-FTPFile - Multiple files detected, but $LocalPath is not a directory or it doesn't exists. "
+                Write-Warning "Get-FTPFile - Multiple files detected, but $LocalPath is not a directory or directory doesn't exists. "
                 if ($RemoteFile) {
                     $FileToDownload = $RemoteFile.FullName
                 } else {
