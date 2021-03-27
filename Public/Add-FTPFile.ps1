@@ -29,7 +29,7 @@
                 LocalPath  = $LocalPath
                 RemotePath = $RemotePath
                 Status     = $false
-                Message    = Error: $($_.Exception.Message)
+                Message    = "Error: $($_.Exception.Message)"
             }
             if ($PSBoundParameters.ErrorAction -eq 'Stop') {
                 Write-Error $_

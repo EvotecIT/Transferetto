@@ -16,7 +16,7 @@
                     Status     = $true
                     LocalPath  = $LocalPath
                     RemotePath = $RemotePath
-                    Message    = "Error: $($_.Exception.Message)"
+                    Message    = ""
                 }
             } catch {
                 $Status = [PSCustomObject] @{
