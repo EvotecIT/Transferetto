@@ -30,7 +30,9 @@ Both libraries are MIT license.
 ## Features
 
 - FTP functionality
-  - [x] Connect to FTP, FTPS
+  - [x] Connect to FTP, FTPS, SFTP
+  - [x] Upload/Download files from FTP/FTPS/SFTP
+  - [x] Rename SFTP files
 
 ## Documentation
 

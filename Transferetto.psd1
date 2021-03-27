@@ -16,10 +16,5 @@
             ProjectUri = 'https://github.com/EvotecIT/Transferetto'
         }
     }
-    RequiredModules      = @(@{
-            ModuleVersion = '0.0.198'
-            ModuleName    = 'PSSharedGoods'
-            Guid          = 'ee272aa8-baaa-4edf-9f45-b6d6f7d844fe'
-        })
     RootModule           = 'Transferetto.psm1'
 }
