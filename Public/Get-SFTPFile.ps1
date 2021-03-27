@@ -33,7 +33,7 @@
         } finally {
             $FileStream.Close()
             if ($Status.Status -eq $false) {
-                Remove-File -LiteralPath $LocalPath
+                Remove-Item -LiteralPath $LocalPath
             }
         }
         $Status
