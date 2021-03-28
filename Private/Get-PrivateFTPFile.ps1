@@ -1,6 +1,7 @@
 ﻿function Get-PrivateFTPFile {
     [cmdletBinding()]
     param(
+        [Parameter(Mandatory)][FluentFTP.FtpClient] $Client,
         [string] $LocalPath,
         [FluentFTP.FtpListItem]  $RemoteFile,
         [string] $RemotePath,

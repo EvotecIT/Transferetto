@@ -3,41 +3,41 @@
     param(
         [Parameter(Mandatory)][FluentFTP.FtpClient] $Client,
         [string] $RemotePath,
-        [string] $LocalPath,
+        [System.IO.FileInfo[]] $LocalFile,
+        [string[]] $LocalPath,
         [FluentFTP.FtpRemoteExists] $RemoteExists = [FluentFTP.FtpRemoteExists]::Skip,
         [FluentFTP.FtpVerify] $VerifyOptions = [FluentFTP.FtpVerify]::None,
+        [FluentFTP.FtpError] $ErrorHandling = [FluentFTP.FtpError]::None,
         [switch] $CreateRemoteDirectory
     )
     if ($Client -and $Client.IsConnected) {
-        try {
-            $Message = $Client.UploadFile($LocalPath, $RemotePath, $RemoteExists, $CreateRemoteDirectory.IsPresent, $VerifyOptions)
-            if ($Message -eq 'success') {
-                $State = $true
-            } else {
-                $State = $false
+        if ($LocalPath.Count -gt 1 -or $LocalFile.Count -gt 1) {
+            $Splat = @{
+                Client                = $Client
+                RemoteExists          = $RemoteExists
+                VerifyOptions         = $VerifyOptions
+                LocalPath             = $LocalPath
+                LocalFile             = $LocalFile
+                RemotePath            = $RemotePath
+                CreateRemoteDirectory = $CreateRemoteDirectory.IsPresent
+                ErrorHandling         = $ErrorHandling
             }
-            $Status = [PSCustomObject] @{
-                Action     = 'UploadFile'
-                LocalPath  = $LocalPath
-                RemotePath = $RemotePath
-                Status     = $State
-                Message    = $Message
-            }
-        } catch {
-            $Status = [PSCustomObject] @{
-                Action     = 'UploadFile'
-                LocalPath  = $LocalPath
-                RemotePath = $RemotePath
-                Status     = $false
-                Message    = "Error: $($_.Exception.Message)"
-            }
-            if ($PSBoundParameters.ErrorAction -eq 'Stop') {
-                Write-Error $_
-                return
-            } else {
-                Write-Warning "Get-FTPFile - Error: $($_.Exception.Message)"
+            Remove-EmptyValue -Hashtable $Splat
+            $Status = Add-PrivateFTPFiles @Splat
+            $Status
+        } else {
+            foreach ($Path in $LocalPath) {
+                $Splat = @{
+                    Client                = $Client
+                    RemoteExists          = $RemoteExists
+                    VerifyOptions         = $VerifyOptions
+                    LocalPath             = $Path
+                    RemotePath            = $RemotePath
+                    CreateRemoteDirectory = $CreateRemoteDirectory.IsPresent
+                }
+                $Status = Add-PrivateFTPFile @Splat
+                $Status
             }
         }
-        $Status
     }
 }

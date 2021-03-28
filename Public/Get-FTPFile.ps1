@@ -35,7 +35,7 @@
     if ($Client -and $Client.IsConnected) {
         $Path = Get-Item -LiteralPath $LocalPath -ErrorAction SilentlyContinue
         if ($Path -is [System.IO.DirectoryInfo]) {
-            Get-PrivateFTPFiles -LocalPath $LocalPath -RemoteFile $RemoteFile -RemotePath $RemotePath -LocalExists $LocalExists -VerifyOptions $VerifyOptions -FtpError $FtpError
+            Get-PrivateFTPFiles -Client $Client -LocalPath $LocalPath -RemoteFile $RemoteFile -RemotePath $RemotePath -LocalExists $LocalExists -VerifyOptions $VerifyOptions -FtpError $FtpError
         } else {
             if ($RemoteFile.Count -gt 1 -or $RemotePath.Count -gt 1) {
                 Write-Warning "Get-FTPFile - Multiple files detected, but $LocalPath is not a directory or directory doesn't exists. "
@@ -53,6 +53,7 @@
                 }
             } else {
                 $Splat = @{
+                    Client        = $Client
                     LocalExists   = $LocalExists
                     VerifyOptions = $VerifyOptions
                     FtpError      = $FtpError
