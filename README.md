@@ -56,5 +56,7 @@ That's it. Whenever there's a new version, you run the command, and you can enjo
 
 ## Changelog
 
+- 0.0.2 - 29.03.2021
+  - [x] Fixed issues with autoloading libraries
 - 0.0.1 - 29.03.2021
   - [x] First edition
