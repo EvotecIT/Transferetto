@@ -6,7 +6,7 @@ Get-SFTPList -SftpClient $SftpClient -Path "/Temporary" | Format-Table *
 
 $ListFiles = Get-ChildItem -LiteralPath $PSScriptRoot\Upload
 foreach ($File in $ListFiles) {
-    Add-SFTPFile -SftpClient $SftpClient -LocalPath $File.FullName -RemotePath "/Temporary/$($File.Name)" -AllowOverride
+    Send-SFTPFile -SftpClient $SftpClient -LocalPath $File.FullName -RemotePath "/Temporary/$($File.Name)" -AllowOverride
 }
 
 Disconnect-SFTP -SftpClient $SftpClient

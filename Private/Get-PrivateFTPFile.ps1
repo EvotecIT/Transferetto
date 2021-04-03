@@ -19,10 +19,10 @@
                     Status     = $false
                     LocalPath  = $LocalPath
                     RemotePath = $RemoteFile.FullName
-                    Message    = "Get-FTPFile - Given path $($RemoteFile.FullName) is $($RemoteFile.Type). Skipping."
+                    Message    = "Receive-FTPFile - Given path $($RemoteFile.FullName) is $($RemoteFile.Type). Skipping."
                 }
             } else {
-                Write-Warning "Get-FTPFile - Given path $($RemoteFile.FullName) is a directory. Skipping."
+                Write-Warning "Receive-FTPFile - Given path $($RemoteFile.FullName) is a directory. Skipping."
                 return
             }
         }
@@ -55,7 +55,7 @@
             Write-Error $_
             return
         } else {
-            Write-Warning "Get-FTPFile - Error: $($_.Exception.Message)"
+            Write-Warning "Receive-FTPFile - Error: $($_.Exception.Message)"
         }
     }
     $Status

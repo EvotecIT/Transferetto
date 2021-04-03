@@ -1,4 +1,5 @@
-﻿function Get-SFTPFile {
+﻿function Receive-SFTPFile {
+    [alias('Get-SFTPFile')]
     [cmdletBinding()]
     param(
         [Parameter(Mandatory)][Renci.SshNet.SftpClient] $SftpClient,
@@ -28,7 +29,7 @@
                 Write-Error $_
                 return
             } else {
-                Write-Warning "Get-SFTPFile - Error: $($_.Exception.Message)"
+                Write-Warning "Receive-SFTPFile - Error: $($_.Exception.Message)"
             }
         } finally {
             $FileStream.Close()

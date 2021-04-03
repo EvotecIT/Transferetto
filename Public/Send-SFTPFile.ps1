@@ -1,4 +1,5 @@
-﻿function Add-SFTPFile {
+﻿function Send-SFTPFile {
+    [alias('Add-SFTPFile')]
     [cmdletBinding()]
     param(
         [Parameter(Mandatory)][Renci.SshNet.SftpClient] $SftpClient,
@@ -30,13 +31,13 @@
                     Write-Error $_
                     return
                 } else {
-                    Write-Warning "Add-SFTPFile - Error: $($_.Exception.Message)"
+                    Write-Warning "Send-SFTPFile - Error: $($_.Exception.Message)"
                 }
             } finally {
                 $FileStream.Close()
             }
         } else {
-            Write-Warning "Add-SFTPFile - File $LocalPath doesn't exists."
+            Write-Warning "Send-SFTPFile - File $LocalPath doesn't exists."
             $Status = [PSCustomObject] @{
                 Action     = 'UploadFile'
                 Status     = $false

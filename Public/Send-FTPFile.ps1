@@ -1,4 +1,5 @@
-﻿function Add-FTPFile {
+﻿function Send-FTPFile {
+    [alias('Add-FTPFile')]
     [cmdletBinding()]
     param(
         [Parameter(Mandatory)][FluentFTP.FtpClient] $Client,
@@ -10,7 +11,7 @@
         [FluentFTP.FtpError] $ErrorHandling = [FluentFTP.FtpError]::None,
         [switch] $CreateRemoteDirectory
     )
-    if ($Client -and $Client.IsConnected) {
+    if ($Client -and $Client.IsConnected -and -not $Client.Error) {
         if ($LocalPath.Count -gt 1 -or $LocalFile.Count -gt 1) {
             $Splat = @{
                 Client                = $Client

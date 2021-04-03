@@ -1,10 +1,10 @@
-﻿function Remove-FTPFile {
+﻿function Get-FTPChmod {
     [cmdletBinding()]
     param(
         [Parameter(Mandatory)][FluentFTP.FtpClient] $Client,
-        [Parameter(Mandatory)][string] $RemotePath
+        [string] $RemotePath
     )
     if ($Client -and $Client.IsConnected -and -not $Client.Error) {
-        $Client.DeleteFile($RemotePath)
+        $Client.GetChmod($RemotePath)
     }
 }

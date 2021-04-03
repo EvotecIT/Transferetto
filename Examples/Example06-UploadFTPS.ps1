@@ -14,12 +14,12 @@ $ListFiles = Get-ChildItem -LiteralPath $PSScriptRoot\Upload
 # Upload file by file
 foreach ($File in $ListFiles) {
     # To temporary
-    Add-FTPFile -Client $Client -LocalPath $File.FullName -RemotePath "/Temporary/$($File.Name)" -RemoteExists Overwrite
+    Send-FTPFile -Client $Client -LocalPath $File.FullName -RemotePath "/Temporary/$($File.Name)" -RemoteExists Overwrite
     # to directory within Temporary that may not exists
-    Add-FTPFile -Client $Client -LocalPath $File.FullName -RemotePath "/Temporary/CreateDir/$($File.Name)" -RemoteExists Skip -CreateRemoteDirectory
+    Send-FTPFile -Client $Client -LocalPath $File.FullName -RemotePath "/Temporary/CreateDir/$($File.Name)" -RemoteExists Skip -CreateRemoteDirectory
 }
 
 # Upload all files at once to FTP
-Add-FTPFile -Client $Client -LocalPath $ListFiles.FullName -RemotePath "/Temporary" -RemoteExists Overwrite
+Send-FTPFile -Client $Client -LocalPath $ListFiles.FullName -RemotePath "/Temporary" -RemoteExists Overwrite
 
 Disconnect-FTP -Client $Client
