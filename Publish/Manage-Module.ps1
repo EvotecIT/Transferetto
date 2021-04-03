@@ -22,14 +22,14 @@ $Configuration = @{
             # Copyright statement for this module
             Copyright                  = "(c) 2011 - $((Get-Date).Year) Przemyslaw Klys @ Evotec. All rights reserved."
             # Description of the functionality provided by this module
-            Description                = 'Module with transfer functionality'
+            Description                = 'Module which allows ftp, ftps, sftp file transfers with advanced features.'
             # Minimum version of the Windows PowerShell engine required by this module
             PowerShellVersion          = '5.1'
             # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
             # Private data to pass to the module specified in RootModule/ModuleToProcess. This may also contain a PSData hashtable with additional module metadata used by PowerShell.
-            Tags                       = @('Windows', 'Linux', 'MacOs')
+            Tags                       = @('Windows', 'Linux', 'MacOs', 'ftp', 'sftp', 'ftps', 'scp', 'winscp', 'ssh')
 
-            #IconUri              = 'https://evotec.xyz/wp-content/uploads/2018/10/PSSharedGoods-Alternative.png'
+            IconUri                    = 'https://evotec.xyz/wp-content/uploads/2021/03/Transferetto.png'
 
             ProjectUri                 = 'https://github.com/EvotecIT/Transferetto'
 
@@ -154,7 +154,7 @@ $Configuration = @{
             SignMerged       = $true
             Releases         = $true
             ReleasesUnpacked = $false
-            RefreshPSD1Only  = $false
+            RefreshPSD1Only  = $true
         }
         BuildDocumentation = $false
         ImportModules      = @{
@@ -163,10 +163,10 @@ $Configuration = @{
             Verbose         = $false
         }
         PublishModule      = @{  # requires Enable to be on to process all of that
-            Enabled      = $true
+            Enabled      = $false
             Prerelease   = ''
             RequireForce = $false
-            GitHub       = $true
+            GitHub       = $false
         }
     }
 }
