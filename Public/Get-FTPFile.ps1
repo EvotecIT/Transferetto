@@ -32,7 +32,7 @@
         [Parameter(ParameterSetName = 'Native')]
         [switch] $Suppress
     )
-    if ($Client -and $Client.IsConnected) {
+    if ($Client -and $Client.IsConnected -and -not $Client.Error) {
         $Path = Get-Item -LiteralPath $LocalPath -ErrorAction SilentlyContinue
         if ($Path -is [System.IO.DirectoryInfo]) {
             Get-PrivateFTPFiles -Client $Client -LocalPath $LocalPath -RemoteFile $RemoteFile -RemotePath $RemotePath -LocalExists $LocalExists -VerifyOptions $VerifyOptions -FtpError $FtpError
@@ -49,7 +49,7 @@
                     Status     = $false
                     LocalPath  = $LocalPath
                     RemotePath = $FileToDownload
-                    Message    = "Not connected."
+                    Message    = "Multiple files detected, but $LocalPath is not a directory or directory doesn't exists."
                 }
             } else {
                 $Splat = @{
