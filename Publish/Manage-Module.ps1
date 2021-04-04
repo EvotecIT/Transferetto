@@ -154,7 +154,7 @@ $Configuration = @{
             SignMerged       = $true
             Releases         = $true
             ReleasesUnpacked = $false
-            RefreshPSD1Only  = $true
+            RefreshPSD1Only  = $false
         }
         BuildDocumentation = $false
         ImportModules      = @{
@@ -163,10 +163,10 @@ $Configuration = @{
             Verbose         = $false
         }
         PublishModule      = @{  # requires Enable to be on to process all of that
-            Enabled      = $false
+            Enabled      = $true
             Prerelease   = ''
             RequireForce = $false
-            GitHub       = $false
+            GitHub       = $true
         }
     }
 }
