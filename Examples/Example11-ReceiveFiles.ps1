@@ -14,7 +14,7 @@ foreach ($RemoteFile in $FindLatestFile) {
     Receive-FTPFile -Client $Client -RemoteFile $RemoteFile -LocalPath "$PSScriptRoot\Download\$($RemoteFile.Name)" -LocalExists Overwrite -VerifyOptions Retry, None
 }
 # Download multiple files into directory
-#Receive-FTPFile -Client $Client -RemoteFile $FindLatestFile -LocalPath "$PSScriptRoot\Download" -LocalExists Overwrite -VerifyOptions Retry, None
+Receive-FTPFile -Client $Client -RemoteFile $FindLatestFile -LocalPath "$PSScriptRoot\Download" -LocalExists Overwrite -VerifyOptions Retry, None
 
 # Disconnect
 Disconnect-FTP -Client $Client
