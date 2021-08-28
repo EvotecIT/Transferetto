@@ -36,6 +36,8 @@ Both libraries are MIT license.
   - Remove FTP/FTPS files
   - And some more
 
+Check examples to see how to use it. 
+
 ## To install
 
 ```powershell
