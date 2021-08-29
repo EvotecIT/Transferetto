@@ -3,9 +3,11 @@
     param(
         [Parameter(ParameterSetName = 'ClearText')]
         [Parameter(ParameterSetName = 'Password')]
+        [Parameter(ParameterSetName = 'PrivateKey')]
         [string] $Server,
 
         [Parameter(ParameterSetName = 'ClearText')]
+        [Parameter(ParameterSetName = 'PrivateKey')]
         [string] $Username,
 
         [Parameter(ParameterSetName = 'ClearText')]
@@ -13,9 +15,13 @@
 
         [Parameter(ParameterSetName = 'Password')]
         [pscredential] $Credential,
+        
+        [Parameter(Mandatory, ParameterSetName = 'PrivateKey')]
+        [string] $PrivateKey,
 
         [Parameter(ParameterSetName = 'ClearText')]
         [Parameter(ParameterSetName = 'Password')]
+        [Parameter(ParameterSetName = 'PrivateKey')]
         [int] $Port
     )
 
@@ -23,8 +29,11 @@
         $SftpClient = [Renci.SshNet.SftpClient]::new($Server, $Username, $Password)
     } elseif ($Credential) {
         $SftpClient = [Renci.SshNet.SftpClient]::new($Server, $Credential.Username, $Credential.GetNetworkCredential().Password)
+    } elseif ($PrivateKey) {
+        [string]$PrivateKey = Resolve-Path $PrivateKey
+        $SshClient = [Renci.SshNet.SshClient]::new($Server, $Username, [Renci.SshNet.PrivateKeyFile]$PrivateKey )
     } else {
-        throw 'Not implemented. Add certificate'
+        throw 'Not implemented and unexepected.'
     }
     if ($Port) {
         $SftpClient.Port = $Port
