@@ -3,9 +3,11 @@
     param(
         [Parameter(Mandatory, ParameterSetName = 'ClearText')]
         [Parameter(Mandatory, ParameterSetName = 'Password')]
+        [Parameter(Mandatory, ParameterSetName = 'PrivateKey')]
         [string] $Server,
 
         [Parameter(Mandatory, ParameterSetName = 'ClearText')]
+        [Parameter(Mandatory, ParameterSetName = 'PrivateKey')]
         [string] $Username,
 
         [Parameter(Mandatory, ParameterSetName = 'ClearText')]
@@ -13,9 +15,13 @@
 
         [Parameter(Mandatory, ParameterSetName = 'Password')]
         [pscredential] $Credential,
+        
+        [Parameter(Mandatory, ParameterSetName = 'PrivateKey')]
+        [string] $PrivateKey,
 
         [Parameter(ParameterSetName = 'ClearText')]
         [Parameter(ParameterSetName = 'Password')]
+        [Parameter(ParameterSetName = 'PrivateKey')]
         [int] $Port
     )
 
@@ -23,8 +29,11 @@
         $SshClient = [Renci.SshNet.SshClient]::new($Server, $Username, $Password)
     } elseif ($Credential) {
         $SshClient = [Renci.SshNet.SshClient]::new($Server, $Credential.Username, $Credential.GetNetworkCredential().Password)
+    } elseif ($PrivateKey) {
+        [string]$PrivateKey = Resolve-Path $PrivateKey
+        $SshClient = [Renci.SshNet.SshClient]::new($Server, $Username, [Renci.SshNet.PrivateKeyFile]$PrivateKey )
     } else {
-        throw 'Not implemented. Add certificate'
+        throw 'Not implemented and unexpected.'
     }
     if ($Port) {
         $SshClient.Port = $Port
