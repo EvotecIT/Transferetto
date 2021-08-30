@@ -20,7 +20,9 @@
   <a href="https://www.linkedin.com/in/pklys"><img src="https://img.shields.io/badge/LinkedIn-pklys-0077B5.svg?logo=LinkedIn&style=flat-square"></a>
 </p>
 
-Transferetto is a PowerShell module that aims to provide FTP, FTPS, SFTP functionality. It uses following .NET libraries to deliver this functionality:
+Transferetto is a PowerShell module that aims to provide FTP, FTPS, SFTP functionality. To find out more about it I've created blog post [Easy way to connect to FTPS and SFTP using PowerShell](https://evotec.xyz/easy-way-to-connect-to-ftps-and-sftp-using-powershell/).
+
+It uses following .NET libraries to deliver this functionality:
 
 - [FluentFTP](https://github.com/robinrodricks/FluentFTP)
 - [SSH.NET](https://github.com/sshnet/SSH.NET/)
@@ -36,7 +38,7 @@ Both libraries are MIT license.
   - Remove FTP/FTPS files
   - And some more
 
-Check examples to see how to use it. 
+Please make sure to read blog post or check examples to see how to use it.
 
 ## To install
 
