@@ -30,8 +30,8 @@
     } elseif ($Credential) {
         $SftpClient = [Renci.SshNet.SftpClient]::new($Server, $Credential.Username, $Credential.GetNetworkCredential().Password)
     } elseif ($PrivateKey) {
-        [string]$PrivateKey = Resolve-Path $PrivateKey
-        $SshClient = [Renci.SshNet.SshClient]::new($Server, $Username, [Renci.SshNet.PrivateKeyFile]$PrivateKey )
+        [string]$PrivateKey = Resolve-Path $PrivateKey | Select-Object -ExpandProperty ProviderPath
+        $SftpClient = [Renci.SshNet.SshClient]::new($Server, $Username, [Renci.SshNet.PrivateKeyFile]$PrivateKey )
     } else {
         throw 'Not implemented and unexepected.'
     }
