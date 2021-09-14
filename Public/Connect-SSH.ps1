@@ -30,7 +30,7 @@
     } elseif ($Credential) {
         $SshClient = [Renci.SshNet.SshClient]::new($Server, $Credential.Username, $Credential.GetNetworkCredential().Password)
     } elseif ($PrivateKey) {
-        [string]$PrivateKey = Resolve-Path $PrivateKey
+        [string]$PrivateKey = Resolve-Path $PrivateKey | Select-Object -ExpandProperty ProviderPath
         $SshClient = [Renci.SshNet.SshClient]::new($Server, $Username, [Renci.SshNet.PrivateKeyFile]$PrivateKey )
     } else {
         throw 'Not implemented and unexpected.'
