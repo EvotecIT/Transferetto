@@ -60,6 +60,9 @@ That's it. Whenever there's a new version, you run the command, and you can enjo
 
 ## Changelog
 
+- 0.0.6 - 2021.09.14
+  - Added support for key authentication in `Connect-SFTP` - thank you [Szeraax!](https://github.com/EvotecIT/Transferetto/pull/3)
+  - Improved error handling of `Connect-SFTP`
 - 0.0.5 - 2021.04.04
   - Small fixes
 - 0.0.4 - 2021.03.29
