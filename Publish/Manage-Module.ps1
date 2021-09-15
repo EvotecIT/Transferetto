@@ -147,14 +147,18 @@ $Configuration = @{
     }
     Steps       = @{
         BuildModule        = @{  # requires Enable to be on to process all of that
-            Enable           = $true
-            DeleteBefore     = $false
-            Merge            = $true
-            MergeMissing     = $true
-            SignMerged       = $true
-            Releases         = $true
-            ReleasesUnpacked = $false
-            RefreshPSD1Only  = $false
+            Enable              = $true
+            DeleteBefore        = $true
+            Merge               = $true
+            MergeMissing        = $true
+            LibrarySeparateFile = $true
+            LibraryDotSource    = $false
+            ClassesDotSource    = $false
+            SignMerged          = $true
+            CreateFileCatalog   = $false # not working
+            Releases            = $true
+            ReleasesUnpacked    = $false
+            RefreshPSD1Only     = $false
         }
         BuildDocumentation = $false
         ImportModules      = @{
