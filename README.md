@@ -60,6 +60,8 @@ That's it. Whenever there's a new version, you run the command, and you can enjo
 
 ## Changelog
 
+- 0.0.8 - 2021.09.15
+  - Added command `Test-FTPDirectory` - thank you [Sidewinder53](https://github.com/EvotecIT/Transferetto/pull/5)
 - 0.0.7 - 2021.09.15
   - Republished module to PowerShell Gallery
 - 0.0.6 - 2021.09.14
