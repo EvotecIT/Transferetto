@@ -9,10 +9,10 @@
     .PARAMETER SftpClient
     Parameter that contains the SFTP client object
 
-    .PARAMETER OldRemotePath
+    .PARAMETER SourcePath
     Path to file that is going to be renamed
 
-    .PARAMETER NewRemotePath
+    .PARAMETER DestinationPath
     New path to file, with new name
 
     .PARAMETER Suppress
@@ -20,7 +20,7 @@
 
     .EXAMPLE
     $SftpClient = Connect-SFTP -Server '192.168.240.29' -Username 'przemek' -Password 'Password'
-    Rename-SFTPFile -SftpClient $SftpClient -OldRemotePath '/home/przemek/mmm.txt' -NewRemotePath '/home/przemek/mmm1.txt'
+    Rename-SFTPFile -SftpClient $SftpClient -SourcePath '/home/przemek/mmm.txt' -DestinationPath '/home/przemek/mmm1.txt'
     Disconnect-SFTP -SftpClient $SftpClient
 
     .NOTES
@@ -29,26 +29,26 @@
     [cmdletBinding()]
     param(
         [Parameter(Mandatory)][Renci.SshNet.SftpClient] $SftpClient,
-        [alias('OldPath')][string] $OldRemotePath,
-        [alias('NewPaht')][string] $NewRemotePath,
+        [alias('OldPath')][string] $SourcePath,
+        [alias('NewPath')][string] $DestinationPath,
         [switch] $Suppress
     )
     if ($SftpClient -and $SftpClient.IsConnected) {
         try {
-            $SftpClient.RenameFile($OldRemotePath, $NewRemotePath)
+            $SftpClient.RenameFile($SourcePath, $DestinationPath)
             $Status = [PSCustomObject] @{
                 Action  = 'RenameFile'
                 Status  = $true
-                OldPath = $OldRemotePath
-                NewPath = $NewRemotePath
+                OldPath = $SourcePath
+                NewPath = $DestinationPath
                 Message = ""
             }
         } catch {
             $Status = [PSCustomObject] @{
                 Action  = 'RenameFile'
                 Status  = $false
-                OldPath = $OldRemotePath
-                NewPath = $NewRemotePath
+                OldPath = $SourcePath
+                NewPath = $DestinationPath
                 Message = "Error $($_.Exception.Message)"
             }
             if ($PSBoundParameters.ErrorAction -eq 'Stop') {
