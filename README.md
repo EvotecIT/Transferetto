@@ -57,17 +57,3 @@ Update-Module -Name Transferetto
 That's it. Whenever there's a new version, you run the command, and you can enjoy it. Remember that you may need to close, reopen PowerShell session if you have already used module before updating it.
 
 **The essential thing** is if something works for you on production, keep using it till you test the new version on a test computer. I do changes that may not be big, but big enough that auto-update may break your code. For example, a small rename to a parameter, and your code stops working! Be responsible!
-
-## Changelog
-
-- 0.0.8 - 2021.09.15
-  - Added command `Test-FTPDirectory` - thank you [Sidewinder53](https://github.com/EvotecIT/Transferetto/pull/5)
-- 0.0.7 - 2021.09.15
-  - Republished module to PowerShell Gallery
-- 0.0.6 - 2021.09.14
-  - Added support for key authentication in `Connect-SFTP` - thank you [Szeraax!](https://github.com/EvotecIT/Transferetto/pull/3)
-  - Improved error handling of `Connect-SFTP`
-- 0.0.5 - 2021.04.04
-  - Small fixes
-- 0.0.4 - 2021.03.29
-  - First edition
