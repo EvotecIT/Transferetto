@@ -1,5 +1,8 @@
 ﻿# Transferetto Release History
 
+## 0.0.10 - 2021.12.22
+  - Fixes `Connect-SFTP` port functionality
+  - Fixes `Connect-SSH` port functionality
 ## 0.0.9 - 2021.10.29
   - Fixes `Rename-SFTPFile` - reported [#7](https://github.com/EvotecIT/Transferetto/issues/7)
 
