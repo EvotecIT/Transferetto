@@ -26,13 +26,25 @@
     )
     try {
         if ($Username -and $Password) {
-            $SftpClient = [Renci.SshNet.SftpClient]::new($Server, $Username, $Password)
+            if ($Port) {
+                $SftpClient = [Renci.SshNet.SftpClient]::new($Server, $Port, $Username, $Password)
+            } else {
+                $SftpClient = [Renci.SshNet.SftpClient]::new($Server, $Username, $Password)
+            }
         } elseif ($Credential) {
-            $SftpClient = [Renci.SshNet.SftpClient]::new($Server, $Credential.Username, $Credential.GetNetworkCredential().Password)
+            if ($Port) {
+                $SftpClient = [Renci.SshNet.SftpClient]::new($Server, $Port, $Credential.Username, $Credential.GetNetworkCredential().Password)
+            } else {
+                $SftpClient = [Renci.SshNet.SftpClient]::new($Server, $Credential.Username, $Credential.GetNetworkCredential().Password)
+            }
         } elseif ($PrivateKey) {
             if (Test-Path -LiteralPath $PrivateKey) {
                 [string]$PrivateKey = Resolve-Path -LiteralPath $PrivateKey -ErrorAction Stop | Select-Object -ExpandProperty ProviderPath
-                $SftpClient = [Renci.SshNet.SftpClient]::new($Server, $Username, [Renci.SshNet.PrivateKeyFile]$PrivateKey )
+                if ($Port) {
+                    $SftpClient = [Renci.SshNet.SftpClient]::new($Server, $Port, $Username, [Renci.SshNet.PrivateKeyFile]$PrivateKey )
+                } else {
+                    $SftpClient = [Renci.SshNet.SftpClient]::new($Server, $Username, [Renci.SshNet.PrivateKeyFile]$PrivateKey )
+                }
             } else {
                 if ($PSBoundParameters.ErrorAction -eq 'Stop') {
                     throw "PrivateKey $PrivateKey doesn't exists."
@@ -53,10 +65,6 @@
         } else {
             Write-Warning "Connect-SFTP - Error: $($_.Exception.Message)"
         }
-    }
-
-    if ($Port) {
-        $SftpClient.Port = $Port
     }
 
     try {
