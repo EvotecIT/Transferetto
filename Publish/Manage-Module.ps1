@@ -44,6 +44,7 @@ $Configuration = @{
                 #"Microsoft.PowerShell.Management"
                 #"Microsoft.PowerShell.Security"
             )
+            DotNetFrameworkVersion     = '4.7.2'
         }
     }
     Options     = @{
