@@ -1,5 +1,8 @@
 ﻿# Transferetto Release History
 
+## 0.0.11 - 2022.04.10
+  - Small docs update to `Set-FTPTracing`
+  - Changed `ShowUsername` to `HideUsername` in `Set-FTPTracing`
 ## 0.0.10 - 2021.12.22
   - Fixes `Connect-SFTP` port functionality
   - Fixes `Connect-SSH` port functionality
