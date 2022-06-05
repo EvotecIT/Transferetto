@@ -48,28 +48,28 @@
         [switch] $DisplayConsole
     )
     if ($Enable) {
-        [FluentFTP.FtpTrace]::EnableTracing = $true
+        [FluentFTP.Helpers.FtpTrace]::EnableTracing = $true
     }
     if ($Disable) {
-        [FluentFTP.FtpTrace]::EnableTracing = $false
+        [FluentFTP.Helpers.FtpTrace]::EnableTracing = $false
     }
     if ($LogPath) {
-        [FluentFTP.FtpTrace]::LogToFile = $LogPath
+        [FluentFTP.Helpers.FtpTrace]::LogToFile = $LogPath
     }
 
     if (-not $HideFunctions) {
-        [FluentFTP.FtpTrace]::LogFunctions = $true
+        [FluentFTP.Helpers.FtpTrace]::LogFunctions = $true
     }
     if ($DisplayConsole) {
-        [FluentFTP.FtpTrace]::LogToConsole = $true
+        [FluentFTP.Helpers.FtpTrace]::LogToConsole = $true
     }
     if ($HideUserName) {
-        [FluentFTP.FtpTrace]::LogUserName = $false; # hide FTP user names
+        [FluentFTP.Helpers.FtpTrace]::LogUserName = $false; # hide FTP user names
     }
     if ($ShowPassword) {
-        [FluentFTP.FtpTrace]::LogPassword = $false; # hide FTP passwords
+        [FluentFTP.Helpers.FtpTrace]::LogPassword = $false; # hide FTP passwords
     }
     if (-not $HideIP) {
-        [FluentFTP.FtpTrace]::LogIP = $true; # hide FTP server IP addresses
+        [FluentFTP.Helpers.FtpTrace]::LogIP = $true; # hide FTP server IP addresses
     }
 }
