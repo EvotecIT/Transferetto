@@ -20,14 +20,14 @@
   <a href="https://www.linkedin.com/in/pklys"><img src="https://img.shields.io/badge/LinkedIn-pklys-0077B5.svg?logo=LinkedIn&style=flat-square"></a>
 </p>
 
-Transferetto is a PowerShell module that aims to provide FTP, FTPS, SFTP functionality. To find out more about it I've created blog post [Easy way to connect to FTPS and SFTP using PowerShell](https://evotec.xyz/easy-way-to-connect-to-ftps-and-sftp-using-powershell/).
-
-It uses following .NET libraries to deliver this functionality:
+Transferetto is a PowerShell module that aims to provide FTP, FTPS, and SFTP functionality.
+To find out more about it I've created a blog post [Easy](https://evotec.xyz/easy-way-to-connect-to-ftps-and-sftp-using-powershell/) way to connect to FTPS and SFTP using PowerShell](https://evotec.xyz/easy-way-to-connect-to-ftps-and-sftp-using-powershell/).
+It uses the following .NET libraries to deliver this functionality:
 
 - [FluentFTP](https://github.com/robinrodricks/FluentFTP)
 - [SSH.NET](https://github.com/sshnet/SSH.NET/)
 
-Both libraries are MIT license.
+Both libraries are MIT licenses.
 
 ## Features
 
