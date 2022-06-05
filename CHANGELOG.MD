@@ -1,5 +1,7 @@
 ﻿#### 0.0.12 - 2022.06.05
 - Upgraded `SSH.NET` to `2020.0.2` which fixes weak private key generation - [SSH.NET Advisory](https://github.com/sshnet/SSH.NET/security/advisories/GHSA-72p8-v4hg-v45p)
+- Upgraded `FluentFTP` to `37.0.3.0`
+- Fixes `Set-FTPTracing`
 
 #### 0.0.11 - 2022.04.10
 - Small docs update to `Set-FTPTracing`
