@@ -9,7 +9,7 @@
     DotNetFrameworkVersion = '4.7.2'
     FunctionsToExport      = @('Compare-FTPFile', 'Connect-FTP', 'Connect-SFTP', 'Connect-SSH', 'Disconnect-FTP', 'Disconnect-SFTP', 'Get-FTPChecksum', 'Get-FTPChmod', 'Get-FTPList', 'Get-SFTPList', 'Move-FTPDirectory', 'Move-FTPFile', 'Receive-FTPDirectory', 'Receive-FTPFile', 'Receive-SFTPFile', 'Remove-FTPDirectory', 'Remove-FTPFile', 'Remove-SFTPFile', 'Rename-FTPFile', 'Rename-SFTPFile', 'Request-FTPConfiguration', 'Send-FTPDirectory', 'Send-FTPFile', 'Send-SFTPFile', 'Send-SSHCommand', 'Set-FTPChmod', 'Set-FTPOption', 'Set-FTPTracing', 'Start-FXPDirectoryTransfer', 'Start-FXPFileTransfer', 'Test-FTPDirectory', 'Test-FTPFile')
     GUID                   = '7d61db15-9efe-41d1-a1c0-81d738975dec'
-    ModuleVersion          = '0.0.12'
+    ModuleVersion          = '0.0.13'
     PowerShellVersion      = '5.1'
     PrivateData            = @{
         PSData = @{
@@ -19,7 +19,7 @@
         }
     }
     RequiredModules        = @(@{
-            ModuleVersion = '0.0.226'
+            ModuleVersion = '0.0.231'
             ModuleName    = 'PSSharedGoods'
             Guid          = 'ee272aa8-baaa-4edf-9f45-b6d6f7d844fe'
         })
