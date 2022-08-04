@@ -1,4 +1,7 @@
-﻿#### 0.0.13 - 2022.07.11
+﻿#### 0.0.14 - 2022.08.04
+- Fixes problem with missing function in PSGallery
+
+#### 0.0.13 - 2022.07.11
 - Upgraded `FluentFTP` to `37.0.6`
 
 #### 0.0.12 - 2022.06.17
