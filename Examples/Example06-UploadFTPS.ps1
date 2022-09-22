@@ -9,17 +9,19 @@ $List = Get-FTPList -Client $Client -Path '/Temporary'
 $List | Format-Table
 
 # Get local files
-$ListFiles = Get-ChildItem -LiteralPath $PSScriptRoot\Upload
+$ListFiles = Get-ChildItem -LiteralPath $PSScriptRoot\Upload -File
 
 # Upload file by file
-foreach ($File in $ListFiles) {
+$Output = foreach ($File in $ListFiles) {
     # To temporary
     Send-FTPFile -Client $Client -LocalPath $File.FullName -RemotePath "/Temporary/$($File.Name)" -RemoteExists Overwrite
     # to directory within Temporary that may not exists
     Send-FTPFile -Client $Client -LocalPath $File.FullName -RemotePath "/Temporary/CreateDir/$($File.Name)" -RemoteExists Skip -CreateRemoteDirectory
 }
 
+$Output | Format-Table
+
 # Upload all files at once to FTP
-Send-FTPFile -Client $Client -LocalPath $ListFiles.FullName -RemotePath "/Temporary" -RemoteExists Overwrite
+Send-FTPFile -Client $Client -LocalPath $ListFiles.FullName -RemotePath "/Temporary" -RemoteExists Overwrite | Format-Table
 
 Disconnect-FTP -Client $Client
