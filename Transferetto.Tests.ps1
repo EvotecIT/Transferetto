@@ -10,7 +10,6 @@ $PSDInformation = Import-PowerShellDataFile -Path $PrimaryModule.FullName
 $RequiredModules = @(
     'Pester'
     'PSWriteColor'
-    'PSParseHTML'
     if ($PSDInformation.RequiredModules) {
         $PSDInformation.RequiredModules
     }
@@ -20,12 +19,12 @@ foreach ($Module in $RequiredModules) {
         $Exists = Get-Module -ListAvailable -Name $Module.ModuleName
         if (-not $Exists) {
             Write-Warning "$ModuleName - Downloading $($Module.ModuleName) from PSGallery"
-            Install-Module -Name $Module.ModuleName -Force -SkipPublisherCheck
+            Install-Module -Name $Module.ModuleName -Force -SkipPublisherCheck -AllowClobber
         }
     } else {
         $Exists = Get-Module -ListAvailable $Module -ErrorAction SilentlyContinue
         if (-not $Exists) {
-            Install-Module -Name $Module -Force -SkipPublisherCheck
+            Install-Module -Name $Module -Force -SkipPublisherCheck -AllowClobber
         }
     }
 }
@@ -44,7 +43,7 @@ foreach ($Module in $PSDInformation.RequiredModules) {
 Write-Color
 
 Import-Module $PSScriptRoot\*.psd1 -Force
-$result = Invoke-Pester -Script $PSScriptRoot\Tests -Verbose -EnableExit
+$result = Invoke-Pester -Script $PSScriptRoot\Tests -Verbose -PassThru
 
 if ($result.FailedCount -gt 0) {
     throw "$($result.FailedCount) tests failed."
