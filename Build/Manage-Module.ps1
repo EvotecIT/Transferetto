@@ -1,12 +1,11 @@
 ﻿Clear-Host
-Import-Module "C:\Support\GitHub\PSPublishModule\PSPublishModule.psm1" -Force
 
 $Configuration = @{
     Information = @{
         ModuleName        = 'Transferetto'
         DirectoryProjects = 'C:\Support\GitHub'
-        LibrariesCore     = 'Lib\Standard'
-        LibrariesDefault  = 'Lib\Standard'
+        #LibrariesCore     = 'Lib\Standard'
+        #LibrariesDefault  = 'Lib\Standard'
 
         Manifest          = @{
             # Version number of this module.
@@ -168,10 +167,10 @@ $Configuration = @{
             Verbose         = $false
         }
         PublishModule      = @{  # requires Enable to be on to process all of that
-            Enabled      = $true
+            Enabled      = $false
             Prerelease   = ''
             RequireForce = $false
-            GitHub       = $true
+            GitHub       = $false
         }
     }
 }
