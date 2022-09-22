@@ -10,7 +10,6 @@ $PSDInformation = Import-PowerShellDataFile -Path $PrimaryModule.FullName
 $RequiredModules = @(
     'Pester'
     'PSWriteColor'
-    'PSParseHTML'
     if ($PSDInformation.RequiredModules) {
         $PSDInformation.RequiredModules
     }
@@ -20,12 +19,12 @@ foreach ($Module in $RequiredModules) {
         $Exists = Get-Module -ListAvailable -Name $Module.ModuleName
         if (-not $Exists) {
             Write-Warning "$ModuleName - Downloading $($Module.ModuleName) from PSGallery"
-            Install-Module -Name $Module.ModuleName -Force -SkipPublisherCheck
+            Install-Module -Name $Module.ModuleName -Force -SkipPublisherCheck -AllowClobber
         }
     } else {
         $Exists = Get-Module -ListAvailable $Module -ErrorAction SilentlyContinue
         if (-not $Exists) {
-            Install-Module -Name $Module -Force -SkipPublisherCheck
+            Install-Module -Name $Module -Force -SkipPublisherCheck -AllowClobber
         }
     }
 }
