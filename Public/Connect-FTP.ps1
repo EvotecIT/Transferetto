@@ -162,6 +162,13 @@
             # anonymous
         }
     }
+    if ($Script:GlobalFTPLogging) {
+        $ClientInternal.Config.LogHost = $Script:GlobalFTPLogging.LogHost
+        $ClientInternal.Config.LogUsername = $Script:GlobalFTPLogging.LogUsername
+        $ClientInternal.Config.LogPassword = $Script:GlobalFTPLogging.LogPassword
+        $ClientInternal.Config.LogToConsole = $Script:GlobalFTPLogging.LogToConsole
+    }
+
     if ($Port) {
         $ClientInternal.Port = $Port
     }
