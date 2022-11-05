@@ -6,9 +6,6 @@
     .DESCRIPTION
     Allows enabling/disabling tracing ftp commands being sent and received during communucation with the server.
 
-    .PARAMETER LogPath
-    Set this to a file path to append all FTP communication to it. Default: false.
-
     .PARAMETER Enable
     Enable tracing
 
@@ -24,52 +21,43 @@
     .PARAMETER HideIP
     Hide server IP addresses in logs? Default: true.
 
-    .PARAMETER HideFunctions
-    Hide high-level function calls in logs? Default: false.
-
-    .PARAMETER DisplayConsole
-    Should FTP communication be be logged to the console? Default: false.
-
     .EXAMPLE
-    Set-FTPTracing -Enable -DisplayConsole
+    Set-FTPTracing -Enable
 
     .NOTES
     General notes
     #>
     [cmdletBinding()]
     param(
-        [string] $LogPath,
         [switch] $Enable,
         [switch] $Disable,
         [switch] $ShowPassword,
         [switch] $HideUserName,
-        [switch] $HideIP,
-        [switch] $HideFunctions,
-        [switch] $DisplayConsole
+        [switch] $HideIP
     )
+    $Script:GlobalFTPLogging = [ordered] @{}
     if ($Enable) {
-        [FluentFTP.Helpers.FtpTrace]::EnableTracing = $true
-    }
-    if ($Disable) {
-        [FluentFTP.Helpers.FtpTrace]::EnableTracing = $false
-    }
-    if ($LogPath) {
-        [FluentFTP.Helpers.FtpTrace]::LogToFile = $LogPath
-    }
-
-    if (-not $HideFunctions) {
-        [FluentFTP.Helpers.FtpTrace]::LogFunctions = $true
-    }
-    if ($DisplayConsole) {
-        [FluentFTP.Helpers.FtpTrace]::LogToConsole = $true
+        $Script:GlobalFTPLogging.LogToConsole = $true
+    } elseif ($Disable) {
+        #$Script:GlobalFTPLogging.LogToConsole = $false
+        $Script:GlobalFTPLogging = $null
+    } else {
+        Write-Warning -Message 'Please specify either -Enable or -Disable'
+        return
     }
     if ($HideUserName) {
-        [FluentFTP.Helpers.FtpTrace]::LogUserName = $false; # hide FTP user names
+        $Script:GlobalFTPLogging.LogUserName = $false; # hide FTP user names
+    } else {
+        $Script:GlobalFTPLogging.LogUserName = $true; # show FTP user names
     }
     if ($ShowPassword) {
-        [FluentFTP.Helpers.FtpTrace]::LogPassword = $false; # hide FTP passwords
+        $Script:GlobalFTPLogging.LogPassword = $false; # hide FTP passwords
+    } else {
+        $Script:GlobalFTPLogging.LogPassword = $true; # show FTP passwords
     }
     if (-not $HideIP) {
-        [FluentFTP.Helpers.FtpTrace]::LogIP = $true; # hide FTP server IP addresses
+        $Script:GlobalFTPLogging.LogHost = $true; # hide FTP server IP addresses
+    } else {
+        $Script:GlobalFTPLogging.LogHost = $false; # show FTP server IP addresses
     }
 }
