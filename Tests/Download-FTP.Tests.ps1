@@ -8,7 +8,7 @@
         $List.Count | Should -BeGreaterThan 5
         $ListVideo = Get-FTPList -Client $Client -Path "/video"
         $ListVideo.Count | Should -BeGreaterThan 20
-        $TestPath = "$($TestDrive)\$($ListVideo[0].Name)"
+        $TestPath = [io.path]::Combine("$($TestDrive), $($ListVideo[0].Name)")
 
         Receive-FTPFile -Client $Client -RemotePath $ListVideo[0].FullName -LocalPath $TestPath
 
