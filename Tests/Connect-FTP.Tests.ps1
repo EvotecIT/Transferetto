@@ -14,7 +14,7 @@
     }
     It 'Given login and password and Encryption Mode it should connect to FTP and list' {
         # Anonymous login
-        $Client = Connect-FTP -Server 'test.rebex.net' -Verbose -Username 'demo' -Password 'password' -EncryptionMode Auto
+        $Client = Connect-FTP -Server 'test.rebex.net' -Verbose -Username 'demo' -Password 'password' -EncryptionMode Auto -SslBuffering Auto -SocketKeepAlive
         $Client.IsConnected | Should -Be $True
         $List = Get-FTPList -Client $Client
         $List.Count | Should -Be 2
