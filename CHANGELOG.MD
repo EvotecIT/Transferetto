@@ -2,6 +2,7 @@
 - Fixes `Connect-FTP` options due to new version change of FLuentFTP
 - Upgraded `FluentFTP` to `40.0.0` to `42.0.0`
 - Added additional tests to try and be proactive!
+- Added basic support for Proxy (maybe works)
 
 #### 0.0.15 - 2022.09.22
 - Upgraded `FluentFTP` to `40.0.0`
