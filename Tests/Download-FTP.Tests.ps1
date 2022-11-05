@@ -1,6 +1,7 @@
 ﻿Describe 'Connect-FTP / Disconnect-FTP' {
     It 'Given FTP server should be able to download at least one file' {
         # Anonymous login
+        $Client = $Null
         $Client = Connect-FTP -Server 'ftp.gnu.org' -Verbose
         $Client.IsConnected | Should -Be $True
         $List = Get-FTPList -Client $Client
