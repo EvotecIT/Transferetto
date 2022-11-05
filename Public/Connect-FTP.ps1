@@ -81,7 +81,7 @@
         $Client.DataConnectionEncryption = $false
     }
     if ($EncryptionMode) {
-        $Client.EncryptionMode = $EncryptionMode
+        $Client.Config.EncryptionMode  = $EncryptionMode
     }
     if ($ValidateAnyCertificate) {
         $Client.ValidateAnyCertificate = $true
