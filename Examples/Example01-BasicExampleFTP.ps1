@@ -1,7 +1,7 @@
 ﻿Import-Module .\Transferetto.psd1 -Force
 
 # Login via UserName/Password
-$Client = Connect-FTP -Server 'test.rebex.net' -Verbose -Username 'demo' -Password 'password'
+$Client = Connect-FTP -Server 'test.rebex.net' -Verbose -Username 'demo' -Password 'password' -EncryptionMode Auto
 $List = Get-FTPList -Client $Client
 $List | Format-Table
 Disconnect-FTP -Client $Client
