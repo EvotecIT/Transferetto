@@ -41,6 +41,7 @@
     } elseif ($Disable) {
         #$Script:GlobalFTPLogging.LogToConsole = $false
         $Script:GlobalFTPLogging = $null
+        return
     } else {
         Write-Warning -Message 'Please specify either -Enable or -Disable'
         return
