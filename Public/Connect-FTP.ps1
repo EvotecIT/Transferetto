@@ -75,28 +75,28 @@
         $Client.Port = $Port
     }
     if ($DataConnectionType) {
-        $Client.DataConnectionType = $DataConnectionType
+        $Client.Config.DataConnectionType = $DataConnectionType
     }
     if ($DisableDataConnectionEncryption) {
-        $Client.DataConnectionEncryption = $false
+        $Client.Config.DataConnectionEncryption = $false
     }
     if ($EncryptionMode) {
         $Client.Config.EncryptionMode  = $EncryptionMode
     }
     if ($ValidateAnyCertificate) {
-        $Client.ValidateAnyCertificate = $true
+        $Client.Config.ValidateAnyCertificate = $true
     }
     if ($DisableValidateCertificateRevocation) {
-        $Client.ValidateCertificateRevocation = $false
+        $Client.Config.ValidateCertificateRevocation = $false
     }
     if ($SendHost) {
-        $Client.SendHost = $true
+        $Client.Config.SendHost = $true
     }
     if ($SocketKeepAlive) {
-        $Client.SocketKeepAlive = $true
+        $Client.Config.SocketKeepAlive = $true
     }
     if ($FtpsBuffering) {
-        $Client.SslBuffering = $SslBuffering
+        $Client.Config.SslBuffering = $SslBuffering
     }
     try {
         if ($AutoConnect) {
