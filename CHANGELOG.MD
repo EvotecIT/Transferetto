@@ -1,4 +1,7 @@
-﻿#### 0.0.16 - 2022.11.05
+﻿#### 0.0.17
+- Upgraded `FluentFTP` to `42.1.0`
+
+#### 0.0.16 - 2022.11.05
 - Fixes `Connect-FTP` options due to new version change of FLuentFTP
 - Upgraded `FluentFTP` to `40.0.0` to `42.0.0`
 - Added additional tests to try and be proactive!
