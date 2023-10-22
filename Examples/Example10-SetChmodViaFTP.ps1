@@ -1,7 +1,7 @@
 ﻿Import-Module .\Transferetto.psd1 -Force
 
 # If you want to track responses from FTP
-Set-FTPTracing -Enable -DisplayConsole
+Set-FTPTracing -Enable
 
 $Client = Connect-FTP -Server '192.168.241.187' -Verbose -Username 'test' -Password 'BiPassword90A' -EncryptionMode Explicit -ValidateAnyCertificate
 # List files
