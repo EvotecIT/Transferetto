@@ -58,7 +58,10 @@
         [FluentFTP.Rules.FtpRule[]] $Rules
     )
     if ($Client -and $Client.IsConnected -and -not $Client.Error) {
-        #$Client.UploadDirectory($LocalPath, $RemotePath, $FolderSyncMode)
-        $Client.UploadDirectory($LocalPath, $RemotePath, $FolderSyncMode, $RemoteExists, $VerifyOptions, @($Rules))
+        if ($Rules) {
+            $Client.UploadDirectory($LocalPath, $RemotePath, $FolderSyncMode, $RemoteExists, $VerifyOptions, @($Rules))
+        } else {
+            $Client.UploadDirectory($LocalPath, $RemotePath, $FolderSyncMode, $RemoteExists, $VerifyOptions)
+        }
     }
 }
