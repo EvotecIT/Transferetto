@@ -4,8 +4,8 @@
 $Client = Connect-FTP -Server 'test.rebex.net' -Verbose -Username 'demo' -Password 'password' -EncryptionMode Auto
 $List = Get-FTPList -Client $Client
 $List | Format-Table
+Get-FTPDirectory -Client $Client -LocalPath 'C:\Temp\FTP' -RemotePath "/" -Verbose
 Disconnect-FTP -Client $Client
-
 
 # Login via UserName/Password
 $Client = Connect-FTP -Server 'ftp.dlptest.com' -Verbose -Username 'dlpuser' -Password 'rNrKYTX9g7z3RgJRmxWuGHbeu'
