@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <AssemblyName>Transferetto</AssemblyName>
+
+    <Copyright>(c) 2011 - 2022 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
+    <LangVersion>10.0</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentFTP" Version="48.0.1" />
+    <PackageReference Include="FluentFTP.Logging" Version="1.0.0" />
+    <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" />
+    <PackageReference Include="SSH.NET" Version="2023.0.0" />
+  </ItemGroup>
+
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net472' ">
+    <DefineConstants>$(DefineConstants);FRAMEWORK</DefineConstants>
+  </PropertyGroup>
+
+</Project>
