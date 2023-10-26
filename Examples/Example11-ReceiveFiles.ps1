@@ -1,5 +1,7 @@
 ﻿Import-Module .\Transferetto.psd1 -Force
 
+Set-FTPTracing -Enable
+
 # Connect to FTP
 $Client = Connect-FTP -Server 'test.rebex.net' -Verbose -Username 'demo' -Password 'password'
 
@@ -14,7 +16,7 @@ foreach ($RemoteFile in $FindLatestFile) {
     Receive-FTPFile -Client $Client -RemoteFile $RemoteFile -LocalPath "$PSScriptRoot\Download\$($RemoteFile.Name)" -LocalExists Overwrite -VerifyOptions Retry, None
 }
 # Download multiple files into directory
-Receive-FTPFile -Client $Client -RemoteFile $FindLatestFile -LocalPath "$PSScriptRoot\Download" -LocalExists Overwrite -VerifyOptions Retry, None
+Receive-FTPFile -Client $Client -RemoteFile $FindLatestFile -LocalPath "$PSScriptRoot\Download" -LocalExists Overwrite -VerifyOptions Retry, None | Format-Table
 
 # Disconnect
 Disconnect-FTP -Client $Client
