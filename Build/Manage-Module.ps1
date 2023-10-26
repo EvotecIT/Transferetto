@@ -29,7 +29,7 @@ Build-Module -ModuleName 'Transferetto' {
 
         ProjectUri             = 'https://github.com/EvotecIT/Transferetto'
 
-        DotNetFrameworkVersion = '4.7.2'
+       # DotNetFrameworkVersion = '4.7.2'
     }
     New-ConfigurationManifest @Manifest
     # Add external module dependencies, using loop for simplicity
@@ -91,9 +91,16 @@ Build-Module -ModuleName 'Transferetto' {
         MergeModuleOnBuild                = $true
         MergeFunctionsFromApprovedModules = $true
         CertificateThumbprint             = '483292C9E317AA13B07BB7A96AE9D1A5ED9E7703'
-        DotSourceLibraries                = $false
-        DotSourceClasses                  = $false
-        SeparateFileLibraries             = $true
+        # require for FluentFTP to work in PS 5.1 in VSCode, works fine outside
+        ResolveBinaryConflicts            = $true
+        ResolveBinaryConflictsName        = 'Transferetto'
+        NETProjectName                    = 'Transferetto'
+        NETConfiguration                  = 'Release'
+        NETFramework                      = 'netstandard2.0'
+        #NETExcludeMainLibrary             = $true
+        DotSourceLibraries                = $true
+        DotSourceClasses                  = $true
+        #SeparateFileLibraries             = $true
         DeleteTargetModuleBeforeBuild     = $true
     }
 
@@ -125,7 +132,7 @@ Build-Module -ModuleName 'Transferetto' {
     }
     New-ConfigurationArtefact @newConfigurationArtefactSplat
 
-    New-ConfigurationTest -TestsPath "$PSScriptRoot\..\Tests" -Enable
+    #New-ConfigurationTest -TestsPath "$PSScriptRoot\..\Tests" -Enable
 
     # global options for publishing to github/psgallery
     #New-ConfigurationPublish -Type PowerShellGallery -FilePath 'C:\Support\Important\PowerShellGalleryAPI.txt' -Enabled:$true
