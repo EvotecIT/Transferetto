@@ -37,19 +37,27 @@
             $State = $false
         }
         $Status = [PSCustomObject] @{
-            Action     = 'DownloadFile'
-            Status     = $State
-            LocalPath  = $LocalPath
-            RemotePath = $FileToDownload
-            Message    = $Message
+            Action          = 'DownloadFile'
+            Status          = $State
+            IsSuccess       = if ($State) { $true } else { $false }
+            IsSkipped       = $false
+            IsSkippedByRule = $false
+            IsFailed        = if ($State) { $false } else { $true }
+            LocalPath       = $LocalPath
+            RemotePath      = $FileToDownload
+            Message         = $Message
         }
     } catch {
         $Status = [PSCustomObject] @{
-            Action     = 'DownloadFile'
-            Status     = $false
-            LocalPath  = $LocalPath
-            RemotePath = $FileToDownload
-            Message    = "Error: $($_.Exception.Message)"
+            Action          = 'DownloadFile'
+            Status          = $false
+            IsSuccess       = $false
+            IsSkipped       = $false
+            IsSkippedByRule = $false
+            IsFailed        = $true
+            LocalPath       = $LocalPath
+            RemotePath      = $FileToDownload
+            Message         = "Error: $($_.Exception.Message)"
         }
         if ($PSBoundParameters.ErrorAction -eq 'Stop') {
             Write-Error $_
