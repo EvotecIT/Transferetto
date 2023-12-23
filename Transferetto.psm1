@@ -75,6 +75,16 @@ $FoundErrors = @(
     $Library = "$LibraryName.dll"
     $Class = "$LibraryName.Initialize"
 
+    # Ignore DLL files that are not NET Libraries
+    $IgnoreLibraryFiles = @(
+        'libgcc_s_seh-1.dll'
+        'libgmp-10.dll'
+        'libgnutls-30.dll'
+        'libhogweed-6.dll'
+        'libnettle-8.dll'
+        'libwinpthread-1.dll'
+    )
+
     try {
         $ImportModule = Get-Command -Name Import-Module -Module Microsoft.PowerShell.Core
 
@@ -90,6 +100,9 @@ $FoundErrors = @(
     }
 
     Foreach ($Import in @($Assembly)) {
+        if ($IgnoreLibraryFiles -contains $Import.Name) {
+            continue
+        }
         try {
             Add-Type -Path $Import.Fullname -ErrorAction Stop
         } catch [System.Reflection.ReflectionTypeLoadException] {
