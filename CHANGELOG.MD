@@ -1,4 +1,8 @@
-﻿#### 0.0.18
+﻿#### 0.0.19 - Alpha 1
+- Updated `FluentFTP` to `48.0.3`
+- Added `TLS 1.3` support
+
+#### 0.0.18
 - Upgraded `FluentFTP` to `48.0.1`
 - Upgraded `SSH.NET` to `2023.0.0`
 
