@@ -15,6 +15,7 @@
         PSData = @{
             ExternalModuleDependencies = @('Microsoft.PowerShell.Management', 'Microsoft.PowerShell.Utility')
             IconUri                    = 'https://evotec.xyz/wp-content/uploads/2021/03/Transferetto.png'
+            Prerelease                 = 'Alpha1'
             ProjectUri                 = 'https://github.com/EvotecIT/Transferetto'
             Tags                       = @('Windows', 'Linux', 'MacOs', 'ftp', 'sftp', 'ftps', 'scp', 'winscp', 'ssh')
         }
