@@ -13,11 +13,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FluentFTP" Version="48.0.3" />
-    <PackageReference Include="FluentFTP.GnuTLS" Version="1.0.27" />
+    <PackageReference Include="FluentFTP" Version="49.0.2" />
+    <PackageReference Include="FluentFTP.GnuTLS" Version="1.0.29" />
     <PackageReference Include="FluentFTP.Logging" Version="1.0.0" />
     <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" PrivateAssets="all" />
-    <PackageReference Include="SSH.NET" Version="2023.0.0" />
+    <PackageReference Include="SSH.NET" Version="2023.0.1" />
   </ItemGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' == 'net472' ">
