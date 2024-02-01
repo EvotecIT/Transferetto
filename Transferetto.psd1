@@ -4,7 +4,7 @@
     CmdletsToExport        = @()
     CompanyName            = 'Evotec'
     CompatiblePSEditions   = @('Desktop', 'Core')
-    Copyright              = '(c) 2011 - 2023 Przemyslaw Klys @ Evotec. All rights reserved.'
+    Copyright              = '(c) 2011 - 2024 Przemyslaw Klys @ Evotec. All rights reserved.'
     Description            = 'Module which allows ftp, ftps, sftp file transfers with advanced features. It also allows to transfer files and directorires between servers using fxp protocol. As a side feature it allows to conenct to SSH and executes commands on it. '
     DotNetFrameworkVersion = '4.7.2'
     FunctionsToExport      = @('Compare-FTPFile', 'Connect-FTP', 'Connect-SFTP', 'Connect-SSH', 'Disconnect-FTP', 'Disconnect-SFTP', 'Get-FTPChecksum', 'Get-FTPChmod', 'Get-FTPList', 'Get-SFTPList', 'Move-FTPDirectory', 'Move-FTPFile', 'Receive-FTPDirectory', 'Receive-FTPFile', 'Receive-SFTPFile', 'Remove-FTPDirectory', 'Remove-FTPFile', 'Remove-SFTPFile', 'Rename-FTPFile', 'Rename-SFTPFile', 'Request-FTPConfiguration', 'Send-FTPDirectory', 'Send-FTPFile', 'Send-SFTPFile', 'Send-SSHCommand', 'Set-FTPChmod', 'Set-FTPOption', 'Set-FTPTracing', 'Start-FXPDirectoryTransfer', 'Start-FXPFileTransfer', 'Test-FTPDirectory', 'Test-FTPFile')
@@ -15,7 +15,6 @@
         PSData = @{
             ExternalModuleDependencies = @('Microsoft.PowerShell.Management', 'Microsoft.PowerShell.Utility')
             IconUri                    = 'https://evotec.xyz/wp-content/uploads/2021/03/Transferetto.png'
-            Prerelease                 = 'Alpha1'
             ProjectUri                 = 'https://github.com/EvotecIT/Transferetto'
             Tags                       = @('Windows', 'Linux', 'MacOs', 'ftp', 'sftp', 'ftps', 'scp', 'winscp', 'ssh')
         }
