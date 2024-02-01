@@ -75,9 +75,16 @@
 
         [Parameter(ParameterSetName = 'ClearText')]
         [Parameter(ParameterSetName = 'Password')]
+        [int] $Port,
+
+        [Parameter(ParameterSetName = 'ClearText')]
+        [Parameter(ParameterSetName = 'Password')]
         [switch] $FirstOnly
     )
     $Client = [FluentFTP.FtpClient]::new($Server)
+    if ($Port) {
+        $Client.Port = $Port
+    }
     if ($Username -and $Password) {
         $Client.Credentials = [System.Net.NetworkCredential]::new($Username, $Password)
     } elseif ($Credential) {
