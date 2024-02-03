@@ -15,11 +15,14 @@
         } else {
             if (-not $Suppress) {
                 return [PSCustomObject] @{
-                    Action     = 'DownloadFile'
-                    Status     = $false
-                    LocalPath  = $LocalPath
-                    RemotePath = $RemoteFile.FullName
-                    Message    = "Receive-FTPFile - Given path $($RemoteFile.FullName) is $($RemoteFile.Type). Skipping."
+                    Action          = 'DownloadFile'
+                    Status          = $false
+                    IsSuccess       = $false
+                    IsSkipped       = $true
+                    IsSkippedByRule = $false
+                    LocalPath       = $LocalPath
+                    RemotePath      = $RemoteFile.FullName
+                    Message         = "Receive-FTPFile - Given path $($RemoteFile.FullName) is $($RemoteFile.Type). Skipping."
                 }
             } else {
                 Write-Warning "Receive-FTPFile - Given path $($RemoteFile.FullName) is a directory. Skipping."

@@ -10,40 +10,47 @@
         [FluentFTP.FtpError] $ErrorHandling = [FluentFTP.FtpError]::None,
         [switch] $CreateRemoteDirectory
     )
+    $ErrorFound = $null
     try {
-        #int UploadFiles(System.Collections.Generic.IEnumerable[string] localPaths, string remoteDir, FluentFTP.FtpRemoteExists existsMode, bool createRemoteDir, FluentFTP.FtpVerify verifyOptions, FluentFTP.FtpError errorHandling, System.Action[FluentFTP.FtpProgress] progress)
-        #int UploadFiles(System.Collections.Generic.IEnumerable[System.IO.FileInfo] localFiles, string remoteDir, FluentFTP.FtpRemoteExists existsMode, bool createRemoteDir, FluentFTP.FtpVerify verifyOptions, FluentFTP.FtpError errorHandling, System.Action[FluentFTP.FtpProgress] progress)
         if ($LocalFile) {
             $Message = $Client.UploadFiles([System.IO.FileInfo[]] $LocalFile, $RemotePath, $RemoteExists, $CreateRemoteDirectory.IsPresent, $VerifyOptions, $ErrorHandling)
         } else {
             $Message = $Client.UploadFiles([string[]] $LocalPath, $RemotePath, $RemoteExists, $CreateRemoteDirectory.IsPresent, $VerifyOptions, $ErrorHandling)
         }
-        if ($Message -gt 1) {
-            $State = $true
-        } else {
-            $State = $false
-        }
-        $Status = [PSCustomObject] @{
-            Action     = 'UploadFile'
-            LocalPath  = $LocalPath
-            RemotePath = $RemotePath
-            Status     = $State
-            Message    = $Message
-        }
     } catch {
-        $Status = [PSCustomObject] @{
-            Action     = 'UploadFile'
-            LocalPath  = $LocalPath
-            RemotePath = $RemotePath
-            Status     = $false
-            Message    = "Error: $($_.Exception.Message)"
-        }
         if ($PSBoundParameters.ErrorAction -eq 'Stop') {
             Write-Error $_
             return
         } else {
             Write-Warning "Add-PrivateFTPFiles - Error: $($_.Exception.Message)"
         }
+        $ErrorFound = $($_.Exception.Message)
     }
-    $Status
+    if (-not $ErrorFound) {
+        foreach ($M in $Message) {
+            [PSCustomObject] @{
+                Action          = 'UploadFile'
+                Status          = $M.IsSuccess
+                IsSuccess       = $M.IsSuccess
+                IsSkipped       = $M.IsSkipped
+                IsSkippedByRule = $M.IsSkippedByRule
+                IsFailed        = $M.IsFailed
+                LocalPath       = $M.LocalPath
+                RemotePath      = $M.RemotePath
+                Message         = if ($M.IsSkipped -eq $true) { "Skipped" } else { 'Success' }
+            }
+        }
+    } else {
+        [PSCustomObject] @{
+            Action          = 'UploadFile'
+            Status          = $false
+            IsSuccess       = $false
+            IsSkipped       = $false
+            IsSkippedByRule = $false
+            IsFailed        = $true
+            LocalPath       = $LocalPath
+            RemotePath      = $RemotePath
+            Message         = $ErrorFound
+        }
+    }
 }

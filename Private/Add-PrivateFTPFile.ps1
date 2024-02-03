@@ -13,22 +13,34 @@
         if ($Message -eq 'success') {
             $State = $true
         } else {
-            $State = $false
+            if ($Message -eq 'Skipped') {
+                $State = $true
+            } else {
+                $State = $false
+            }
         }
         $Status = [PSCustomObject] @{
-            Action     = 'UploadFile'
-            LocalPath  = $LocalPath
-            RemotePath = $RemotePath
-            Status     = $State
-            Message    = $Message
+            Action          = 'UploadFile'
+            Status          = $State
+            IsSuccess       = if ($State) { $true } else { $false }
+            IsSkipped       = $Message -eq 'Skipped'
+            IsSkippedByRule = $false
+            IsFailed        = if ($State) { $false } else { $true }
+            LocalPath       = $LocalPath
+            RemotePath      = $RemotePath
+            Message         = $Message
         }
     } catch {
         $Status = [PSCustomObject] @{
-            Action     = 'UploadFile'
-            LocalPath  = $LocalPath
-            RemotePath = $RemotePath
-            Status     = $false
-            Message    = "Error: $($_.Exception.Message)"
+            Action          = 'UploadFile'
+            Status          = $false
+            IsSuccess       = $false
+            IsSkipped       = $false
+            IsSkippedByRule = $false
+            IsFailed        = $true
+            LocalPath       = $LocalPath
+            RemotePath      = $RemotePath
+            Message         = "Error: $($_.Exception.Message)"
         }
         if ($PSBoundParameters.ErrorAction -eq 'Stop') {
             Write-Error $_
