@@ -5,15 +5,15 @@ using System.Reflection;
 
 public class OnModuleImportAndRemove : IModuleAssemblyInitializer, IModuleAssemblyCleanup {
     public void OnImport() {
-//#if FRAMEWORK
+        //#if FRAMEWORK
         AppDomain.CurrentDomain.AssemblyResolve += MyResolveEventHandler;
-//#endif
+        //#endif
     }
 
     public void OnRemove(PSModuleInfo module) {
-//#if FRAMEWORK
+        //#if FRAMEWORK
         AppDomain.CurrentDomain.AssemblyResolve -= MyResolveEventHandler;
-//#endif
+        //#endif
     }
 
     private static Assembly MyResolveEventHandler(object sender, ResolveEventArgs args) {
@@ -50,6 +50,9 @@ public class OnModuleImportAndRemove : IModuleAssemblyInitializer, IModuleAssemb
             return Assembly.LoadFile(binPath);
         } else if (args.Name.StartsWith("FluentFTP,")) {
             string binPath = Path.Combine(Path.GetDirectoryName(typeof(OnModuleImportAndRemove).Assembly.Location), "FluentFTP.dll");
+            return Assembly.LoadFile(binPath);
+        } else if (args.Name.StartsWith("Microsoft.Bcl.AsyncInterfaces,")) {
+            string binPath = Path.Combine(Path.GetDirectoryName(typeof(OnModuleImportAndRemove).Assembly.Location), "Microsoft.Bcl.AsyncInterfaces.dll");
             return Assembly.LoadFile(binPath);
         }
         return null;

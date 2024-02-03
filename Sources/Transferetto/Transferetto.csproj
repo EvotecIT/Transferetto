@@ -1,40 +1,39 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <Company>Evotec</Company>
-    <Authors>Przemyslaw Klys</Authors>
-    <VersionPrefix>1.0.0</VersionPrefix>
-    <TargetFrameworks>netstandard2.0</TargetFrameworks>
-    <AssemblyName>Transferetto</AssemblyName>
+	<PropertyGroup>
+		<Company>Evotec</Company>
+		<Authors>Przemyslaw Klys</Authors>
+		<VersionPrefix>1.0.0</VersionPrefix>
+		<TargetFrameworks>netstandard2.0</TargetFrameworks>
+		<AssemblyName>Transferetto</AssemblyName>
 
-    <Copyright>(c) 2011 - 2022 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
-    <LangVersion>10.0</LangVersion>
-    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
-  </PropertyGroup>
+		<Copyright>(c) 2011 - 2022 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
+		<LangVersion>10.0</LangVersion>
+		<ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="FluentFTP" Version="49.0.2" />
-    <PackageReference Include="FluentFTP.GnuTLS" Version="1.0.29" />
-    <PackageReference Include="FluentFTP.Logging" Version="1.0.0" />
-    <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" PrivateAssets="all" />
-    <PackageReference Include="SSH.NET" Version="2023.0.1" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="FluentFTP" Version="49.0.2" />
+		<PackageReference Include="FluentFTP.GnuTLS" Version="1.0.29" />
+		<PackageReference Include="PowerShellStandard.Library" Version="5.1.1" PrivateAssets="all" />
+		<PackageReference Include="SSH.NET" Version="2023.0.0" />
+	</ItemGroup>
 
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'net472' ">
-    <DefineConstants>$(DefineConstants);FRAMEWORK</DefineConstants>
-  </PropertyGroup>
+	<PropertyGroup Condition=" '$(TargetFramework)' == 'net472' ">
+		<DefineConstants>$(DefineConstants);FRAMEWORK</DefineConstants>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <Files Include="$(MSBuildThisFileDirectory)/../content/*.dll" />
-  </ItemGroup>
-  <Target Name="CopyFiles" AfterTargets="Build">
-    <Copy SourceFiles="@(Files)" DestinationFolder="$(TargetDir)" />
-  </Target>
-  <Target Name="CopyFilesPublish" AfterTargets="Publish">
-    <Copy SourceFiles="@(Files)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
-  </Target>
-  <Target Name="CopyFilesPublishFunctions" AfterTargets="Publish">
-    <Copy SourceFiles="@(Files)" DestinationFolder="$(PublishDir)/bin" SkipUnchangedFiles="true" />
-  </Target>
+	<ItemGroup>
+		<Files Include="$(MSBuildThisFileDirectory)/../content/*.dll" />
+	</ItemGroup>
+	<Target Name="CopyFiles" AfterTargets="Build">
+		<Copy SourceFiles="@(Files)" DestinationFolder="$(TargetDir)" />
+	</Target>
+	<Target Name="CopyFilesPublish" AfterTargets="Publish">
+		<Copy SourceFiles="@(Files)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+	</Target>
+	<Target Name="CopyFilesPublishFunctions" AfterTargets="Publish">
+		<Copy SourceFiles="@(Files)" DestinationFolder="$(PublishDir)/bin" SkipUnchangedFiles="true" />
+	</Target>
 
 </Project>
