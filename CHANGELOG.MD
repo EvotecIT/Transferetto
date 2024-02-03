@@ -1,4 +1,9 @@
-﻿#### 0.0.19 - 2024.02.01
+﻿#### 1.0.0 - 2024.02.03
+- Downgraded `SSH.NET` to `2023.0.0` as issues with PS 7
+- Improved `Send-FTPFile`, `Receive-FTPFile` output objects
+- Added `TLS 1.3` support for `Connect-FTP` - hopefully it works
+
+#### 0.0.19 - 2024.02.01
 - Updated `FluentFTP` to `49.0.2`
 - Updated `SSH.NET` to `2023.0.1`
 - Added `TLS 1.3` support
