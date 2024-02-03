@@ -6,7 +6,7 @@ Build-Module -ModuleName 'Transferetto' {
     # Usual defaults as per standard module
     $Manifest = [ordered] @{
         # Version number of this module.
-        ModuleVersion        = '0.0.X'
+        ModuleVersion        = '1.0.0'
         # Supported PSEditions
         CompatiblePSEditions = @('Desktop', 'Core')
         # ID used to uniquely identify this module
@@ -109,6 +109,7 @@ Build-Module -ModuleName 'Transferetto' {
             'libhogweed-6.dll'
             'libnettle-8.dll'
             'libwinpthread-1.dll'
+            #'Microsoft.Bcl.AsyncInterfaces.dll'
         )
     }
 
