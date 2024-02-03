@@ -38,18 +38,22 @@
         $Message = $Client.DownloadFiles($LocalPath, ([string[]] $FileToDownload), $LocalExists, $VerifyOptions, $FtpError)
     } catch {
         $Status = [PSCustomObject] @{
-            Action     = 'DownloadFile'
-            Status     = $false
-            LocalPath  = $LocalPath
-            RemotePath = $FileToDownload
-            Message    = "Error: $($_.Exception.Message)"
+            Action          = 'DownloadFile'
+            Status          = $false
+            IsSuccess       = $false
+            IsSkipped       = $false
+            IsSkippedByRule = $false
+            IsFailed        = $true
+            LocalPath       = $LocalPath
+            RemotePath      = $FileToDownload
+            Message         = "Error: $($_.Exception.Message)"
         }
-        $Status
         if ($PSBoundParameters.ErrorAction -eq 'Stop') {
             Write-Error $_
             return
         } else {
             Write-Warning "Receive-FTPFile - Error: $($_.Exception.Message)"
+            return $Status
         }
     }
     if (-not $Status) {
