@@ -83,6 +83,7 @@ $FoundErrors = @(
         'libhogweed-6.dll'
         'libnettle-8.dll'
         'libwinpthread-1.dll'
+        #ą 'Microsoft.Bcl.AsyncInterfaces.dll'
     )
 
     try {
