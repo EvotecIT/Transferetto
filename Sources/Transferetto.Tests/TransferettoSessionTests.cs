@@ -18,6 +18,210 @@ public sealed class TransferettoSessionTests {
     }
 
     [Fact]
+    public void FtpConnectionOptionsStoreCertificatePinningSettings() {
+        TransferettoFtpConnectionOptions options = new() {
+            Server = "ftps.example.com",
+            ExpectedCertificateThumbprints = new[] { "SHA256:ABCDEF", "aa:bb:cc" },
+            ValidateAnyCertificate = false,
+            CertificatePolicy = TransferettoFtpCertificatePolicy.KnownCertificates,
+            KnownCertificatesPath = "C:\\temp\\ftps-known-certificates.tsv"
+        };
+
+        Assert.Equal("ftps.example.com", options.Server);
+        Assert.Equal(2, options.ExpectedCertificateThumbprints!.Length);
+        Assert.False(options.ValidateAnyCertificate);
+        Assert.Equal(TransferettoFtpCertificatePolicy.KnownCertificates, options.CertificatePolicy);
+        Assert.Equal("C:\\temp\\ftps-known-certificates.tsv", options.KnownCertificatesPath);
+    }
+
+    [Fact]
+    public void FtpConnectionOptionsStoreAdvancedRuntimeSettings() {
+        TransferettoFtpConnectionOptions options = new() {
+            Server = "ftp.example.com",
+            ConnectTimeout = 15000,
+            ReadTimeout = 16000,
+            DataConnectionConnectTimeout = 17000,
+            DataConnectionReadTimeout = 18000,
+            RetryAttempts = 3,
+            TransferChunkSize = 65536,
+            LocalFileBufferSize = 32768,
+            InternetProtocolVersions = FtpIpVersion.ANY,
+            UploadRateLimit = 512,
+            DownloadRateLimit = 1024,
+            UploadDataType = FtpDataType.Binary,
+            DownloadDataType = FtpDataType.ASCII,
+            ListingDataType = FtpDataType.ASCII,
+            FXPDataType = FtpDataType.Binary,
+            FXPProgressInterval = 250,
+            ActivePorts = new[] { 50000, 50001 },
+            PassiveBlockedPorts = new[] { 60000, 60001 },
+            PassiveMaxAttempts = 4,
+            EncodingName = "utf-8"
+        };
+
+        Assert.Equal(15000, options.ConnectTimeout);
+        Assert.Equal(16000, options.ReadTimeout);
+        Assert.Equal(17000, options.DataConnectionConnectTimeout);
+        Assert.Equal(18000, options.DataConnectionReadTimeout);
+        Assert.Equal(3, options.RetryAttempts);
+        Assert.Equal(65536, options.TransferChunkSize);
+        Assert.Equal(32768, options.LocalFileBufferSize);
+        Assert.Equal(FtpIpVersion.ANY, options.InternetProtocolVersions);
+        Assert.Equal((uint) 512, options.UploadRateLimit);
+        Assert.Equal((uint) 1024, options.DownloadRateLimit);
+        Assert.Equal(FtpDataType.Binary, options.UploadDataType);
+        Assert.Equal(FtpDataType.ASCII, options.DownloadDataType);
+        Assert.Equal(FtpDataType.ASCII, options.ListingDataType);
+        Assert.Equal(FtpDataType.Binary, options.FXPDataType);
+        Assert.Equal(250, options.FXPProgressInterval);
+        Assert.Equal(new[] { 50000, 50001 }, options.ActivePorts);
+        Assert.Equal(new[] { 60000, 60001 }, options.PassiveBlockedPorts);
+        Assert.Equal(4, options.PassiveMaxAttempts);
+        Assert.Equal("utf-8", options.EncodingName);
+    }
+
+    [Fact]
+    public void ConfigureFtpClientAppliesAdvancedRuntimeSettings() {
+        using FtpClient client = new("ftp.example.com");
+        TransferettoFtpConnectionOptions options = new() {
+            ConnectTimeout = 15000,
+            ReadTimeout = 16000,
+            DataConnectionConnectTimeout = 17000,
+            DataConnectionReadTimeout = 18000,
+            RetryAttempts = 3,
+            TransferChunkSize = 65536,
+            LocalFileBufferSize = 32768,
+            InternetProtocolVersions = FtpIpVersion.ANY,
+            UploadRateLimit = 512,
+            DownloadRateLimit = 1024,
+            UploadDataType = FtpDataType.Binary,
+            DownloadDataType = FtpDataType.ASCII,
+            ListingDataType = FtpDataType.ASCII,
+            FXPDataType = FtpDataType.Binary,
+            FXPProgressInterval = 250,
+            ActivePorts = new[] { 50000, 50001 },
+            PassiveBlockedPorts = new[] { 60000, 60001 },
+            PassiveMaxAttempts = 4,
+            EncodingName = "utf-8"
+        };
+        MethodInfo method = typeof(TransferettoClient).GetMethod("ConfigureFtpClient", BindingFlags.Static | BindingFlags.NonPublic)!;
+
+        method.Invoke(null, new object[] { client, options });
+
+        Assert.Equal(15000, client.Config.ConnectTimeout);
+        Assert.Equal(16000, client.Config.ReadTimeout);
+        Assert.Equal(17000, client.Config.DataConnectionConnectTimeout);
+        Assert.Equal(18000, client.Config.DataConnectionReadTimeout);
+        Assert.Equal(3, client.Config.RetryAttempts);
+        Assert.Equal(65536, client.Config.TransferChunkSize);
+        Assert.Equal(32768, client.Config.LocalFileBufferSize);
+        Assert.Equal(FtpIpVersion.ANY, client.Config.InternetProtocolVersions);
+        Assert.Equal((uint) 512, client.Config.UploadRateLimit);
+        Assert.Equal((uint) 1024, client.Config.DownloadRateLimit);
+        Assert.Equal(FtpDataType.Binary, client.Config.UploadDataType);
+        Assert.Equal(FtpDataType.ASCII, client.Config.DownloadDataType);
+        Assert.Equal(FtpDataType.ASCII, client.Config.ListingDataType);
+        Assert.Equal(FtpDataType.Binary, client.Config.FXPDataType);
+        Assert.Equal(250, client.Config.FXPProgressInterval);
+        Assert.Equal(new[] { 50000, 50001 }, client.Config.ActivePorts);
+        Assert.Equal(new[] { 60000, 60001 }, client.Config.PassiveBlockedPorts);
+        Assert.Equal(4, client.Config.PassiveMaxAttempts);
+        Assert.Equal("utf-8", client.Encoding.WebName);
+    }
+
+    [Fact]
+    public void FtpSessionExposesCertificateInfo() {
+        TransferettoFtpSession session = CreateSession(new FtpClient("ftps.example.com"), null);
+        TransferettoFtpCertificateInfo certificateInfo = new() {
+            Subject = "CN=ftps.example.com",
+            Issuer = "CN=Example CA",
+            ThumbprintSHA1 = "SHA1:001122",
+            ThumbprintSHA256 = "SHA256:AABBCC",
+            CanTrust = true,
+            TrustSource = TransferettoFtpCertificateTrustSource.ExpectedThumbprint,
+            KnownCertificatesPath = "C:\\temp\\ftps-known-certificates.tsv",
+            WasPersisted = true
+        };
+
+        PropertyInfo certificateInfoProperty = typeof(TransferettoFtpSession).GetProperty(nameof(TransferettoFtpSession.CertificateInfo))!;
+        certificateInfoProperty.SetValue(session, certificateInfo);
+
+        Assert.NotNull(session.CertificateInfo);
+        Assert.True(session.CertificateInfo!.CanTrust);
+        Assert.Equal("CN=ftps.example.com", session.CertificateInfo.Subject);
+        Assert.Equal(TransferettoFtpCertificateTrustSource.ExpectedThumbprint, session.CertificateInfo.TrustSource);
+        Assert.Equal("C:\\temp\\ftps-known-certificates.tsv", session.CertificateInfo.KnownCertificatesPath);
+        Assert.True(session.CertificateInfo.WasPersisted);
+    }
+
+    [Fact]
+    public void FtpCertificateThumbprintsNormalizeForComparison() {
+        MethodInfo method = typeof(TransferettoClient).GetMethod("NormalizeCertificateThumbprint", BindingFlags.Static | BindingFlags.NonPublic)!;
+
+        string sha1 = (string) method.Invoke(null, new object[] { "aa:bb cc-dd" })!;
+        string sha256 = (string) method.Invoke(null, new object[] { "SHA256:aa:bb cc-dd" })!;
+
+        Assert.Equal("AABBCCDD", sha1);
+        Assert.Equal("SHA256:AABBCCDD", sha256);
+    }
+
+    [Fact]
+    public void FxpPreflightReportsDisconnectedSessions() {
+        TransferettoFtpSession source = CreateSession(new FtpClient("source.example.com"), null);
+        TransferettoFtpSession destination = CreateSession(new FtpClient("destination.example.com"), null);
+
+        TransferettoFxpPreflightResult result = TransferettoClient.TestFxpTransfer(
+            source,
+            "/exports/file.zip",
+            destination,
+            "/imports/file.zip",
+            TransferettoFxpTransferKind.File,
+            createRemoteDirectory: true);
+
+        Assert.False(result.Status);
+        Assert.False(result.SourceConnected);
+        Assert.False(result.DestinationConnected);
+        Assert.Equal(TransferettoFxpTransferKind.File, result.TransferKind);
+        Assert.Contains(result.Messages, message => message.Contains("Source FTP session is not connected", StringComparison.Ordinal));
+        Assert.Contains(result.Messages, message => message.Contains("Destination FTP session is not connected", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void FtpKnownCertificateTrustOnFirstUsePersistsAndReusesCertificate() {
+        string path = Path.Combine(Path.GetTempPath(), "Transferetto.Tests", Guid.NewGuid().ToString("N"), "ftps-known-certificates.tsv");
+        TransferettoFtpConnectionOptions options = new() {
+            Server = "ftps.example.com",
+            Port = 990,
+            KnownCertificatesPath = path,
+            CertificatePolicy = TransferettoFtpCertificatePolicy.TrustOnFirstUse
+        };
+        TransferettoFtpCertificateInfo firstSeenCertificate = new() {
+            Subject = "CN=ftps.example.com",
+            Issuer = "CN=Example CA",
+            ThumbprintSHA1 = "SHA1:0011223344556677889900112233445566778899",
+            ThumbprintSHA256 = "SHA256:AABBCCDDEEFF0011223344556677889900112233445566778899001122334455"
+        };
+        MethodInfo method = typeof(TransferettoClient).GetMethod("EvaluateKnownCertificateTrust", BindingFlags.Static | BindingFlags.NonPublic)!;
+
+        TransferettoFtpCertificateInfo trustedFirstSeen = (TransferettoFtpCertificateInfo) method.Invoke(null, new object[] { options, firstSeenCertificate, true })!;
+        TransferettoFtpCertificateInfo knownCertificate = new() {
+            Subject = firstSeenCertificate.Subject,
+            Issuer = firstSeenCertificate.Issuer,
+            ThumbprintSHA1 = firstSeenCertificate.ThumbprintSHA1,
+            ThumbprintSHA256 = firstSeenCertificate.ThumbprintSHA256
+        };
+        TransferettoFtpCertificateInfo trustedKnownCertificate = (TransferettoFtpCertificateInfo) method.Invoke(null, new object[] { options, knownCertificate, false })!;
+
+        Assert.True(trustedFirstSeen.CanTrust);
+        Assert.True(trustedFirstSeen.WasPersisted);
+        Assert.Equal(TransferettoFtpCertificateTrustSource.TrustOnFirstUse, trustedFirstSeen.TrustSource);
+        Assert.True(File.Exists(path));
+        Assert.True(trustedKnownCertificate.CanTrust);
+        Assert.False(trustedKnownCertificate.WasPersisted);
+        Assert.Equal(TransferettoFtpCertificateTrustSource.KnownCertificates, trustedKnownCertificate.TrustSource);
+    }
+
+    [Fact]
     public void RuntimeSettingsStoresTraceOptions() {
         TransferettoFtpTraceOptions traceOptions = new() {
             LogToConsole = true,
@@ -171,6 +375,78 @@ public sealed class TransferettoSessionTests {
     }
 
     [Fact]
+    public void SftpConnectionOptionsUseSshTrustAndProxySettings() {
+        NetworkCredential credential = new("user", "password");
+        NetworkCredential proxyCredential = new("proxyUser", "proxyPassword");
+        TransferettoSftpConnectionOptions options = new() {
+            Server = "sftp.example.com",
+            UserName = "user",
+            Password = "password",
+            Credential = credential,
+            PrivateKeyPath = "C:\\keys\\id_ed25519",
+            PrivateKeyPassphrase = "secret",
+            Port = 2222,
+            EnableKeyboardInteractive = true,
+            AcceptAnyHostKey = false,
+            ExpectedHostKeyFingerprints = new[] { "SHA256:abc123=" },
+            HostKeyPolicy = TransferettoSshHostKeyPolicy.KnownHosts,
+            KnownHostsPath = "C:\\temp\\ssh-known-hosts.tsv",
+            KeepAliveIntervalSeconds = 30,
+            ConnectionTimeoutSeconds = 15,
+            RetryAttempts = 2,
+            ProxyType = TransferettoSshProxyType.Socks5,
+            ProxyHost = "proxy.example.com",
+            ProxyPort = 1080,
+            ProxyCredential = proxyCredential
+        };
+
+        Assert.Equal("sftp.example.com", options.Server);
+        Assert.Equal("user", options.UserName);
+        Assert.Equal("password", options.Password);
+        Assert.Same(credential, options.Credential);
+        Assert.Equal("C:\\keys\\id_ed25519", options.PrivateKeyPath);
+        Assert.Equal("secret", options.PrivateKeyPassphrase);
+        Assert.Equal(2222, options.Port);
+        Assert.True(options.EnableKeyboardInteractive);
+        Assert.Equal("SHA256:abc123=", Assert.Single(options.ExpectedHostKeyFingerprints!));
+        Assert.Equal(TransferettoSshHostKeyPolicy.KnownHosts, options.HostKeyPolicy);
+        Assert.Equal("C:\\temp\\ssh-known-hosts.tsv", options.KnownHostsPath);
+        Assert.Equal(30, options.KeepAliveIntervalSeconds);
+        Assert.Equal(15, options.ConnectionTimeoutSeconds);
+        Assert.Equal(2, options.RetryAttempts);
+        Assert.Equal(TransferettoSshProxyType.Socks5, options.ProxyType);
+        Assert.Equal("proxy.example.com", options.ProxyHost);
+        Assert.Equal(1080, options.ProxyPort);
+        Assert.Same(proxyCredential, options.ProxyCredential);
+    }
+
+    [Fact]
+    public void SftpSessionExposesHostKeyInfo() {
+        TransferettoSftpSession session = CreateSftpSession(new SftpClient("sftp.example.com", "user", "password"), "none");
+        TransferettoSshHostKeyInfo hostKeyInfo = new() {
+            HostKeyName = "ssh-ed25519",
+            KeyLength = 256,
+            FingerPrintMD5 = "aa:bb:cc",
+            FingerPrintSHA256 = "SHA256:def456=",
+            CanTrust = true,
+            TrustSource = TransferettoSshHostKeyTrustSource.KnownHosts,
+            KnownHostsPath = "C:\\temp\\ssh-known-hosts.tsv"
+        };
+
+        PropertyInfo hostKeyInfoProperty = typeof(TransferettoSftpSession).GetProperty(nameof(TransferettoSftpSession.HostKeyInfo))!;
+        hostKeyInfoProperty.SetValue(session, hostKeyInfo);
+
+        Assert.Equal("sftp.example.com", session.Host);
+        Assert.Equal(22, session.Port);
+        Assert.False(session.IsConnected);
+        Assert.Equal("none", session.Error);
+        Assert.NotNull(session.HostKeyInfo);
+        Assert.Equal("ssh-ed25519", session.HostKeyInfo!.HostKeyName);
+        Assert.Equal(TransferettoSshHostKeyTrustSource.KnownHosts, session.HostKeyInfo.TrustSource);
+        Assert.Equal("C:\\temp\\ssh-known-hosts.tsv", session.HostKeyInfo.KnownHostsPath);
+    }
+
+    [Fact]
     public void SftpStreamResultsExposeChunkMetadata() {
         TransferettoSftpStreamReadResult readResult = new() {
             Status = true,
@@ -232,6 +508,51 @@ public sealed class TransferettoSessionTests {
         string[] names = Enum.GetNames(typeof(TransferettoFtpStreamMode));
 
         Assert.Equal(new[] { "Read", "Write", "Append" }, names);
+    }
+
+    [Fact]
+    public void TransferResultExposesSizeAndElapsedMetadata() {
+        DateTime startedUtc = new(2026, 4, 17, 10, 0, 0, DateTimeKind.Utc);
+        DateTime completedUtc = startedUtc.AddSeconds(2);
+        TransferettoTransferResult result = new() {
+            Action = "UploadFile",
+            Status = true,
+            IsSuccess = true,
+            LocalPath = "C:\\temp\\artifact.zip",
+            RemotePath = "/incoming/artifact.zip",
+            BytesTransferred = 2048,
+            TotalBytes = 2048,
+            StartedUtc = startedUtc,
+            CompletedUtc = completedUtc
+        };
+
+        Assert.Equal(2048, result.BytesTransferred);
+        Assert.Equal(2048, result.TotalBytes);
+        Assert.Equal(TimeSpan.FromSeconds(2), result.Elapsed);
+    }
+
+    [Fact]
+    public void TransferProgressCalculatesPercentComplete() {
+        TransferettoTransferProgress progress = new() {
+            Action = "UploadFile",
+            Protocol = "SFTP",
+            Direction = TransferettoTransferDirection.Upload,
+            BytesTransferred = 512,
+            TotalBytes = 1024
+        };
+
+        Assert.Equal("SFTP", progress.Protocol);
+        Assert.Equal(TransferettoTransferDirection.Upload, progress.Direction);
+        Assert.Equal(50, progress.PercentComplete);
+    }
+
+    [Fact]
+    public void TransferOptionsExposeProgressAndCancellationDefaults() {
+        TransferettoTransferOptions options = new();
+
+        Assert.False(options.CancellationToken.IsCancellationRequested);
+        Assert.Null(options.Progress);
+        Assert.Equal(65536, options.ProgressIntervalBytes);
     }
 
     [Fact]
@@ -426,6 +747,12 @@ public sealed class TransferettoSessionTests {
         ConstructorInfo constructor = typeof(TransferettoScpSession).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic)
             .Single();
         return (TransferettoScpSession) constructor.Invoke(new object?[] { client, error });
+    }
+
+    private static TransferettoSftpSession CreateSftpSession(SftpClient client, string? error) {
+        ConstructorInfo constructor = typeof(TransferettoSftpSession).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic)
+            .Single();
+        return (TransferettoSftpSession) constructor.Invoke(new object?[] { client, error });
     }
 
     private static TransferettoSshTunnelSession CreateTunnelSession(

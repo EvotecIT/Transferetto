@@ -1,5 +1,6 @@
 using System;
 using System.Management.Automation;
+using System.Threading;
 using FluentFTP;
 
 namespace Transferetto.PowerShell;
@@ -11,6 +12,7 @@ namespace Transferetto.PowerShell;
 [Cmdlet("Start", "FXPFileTransfer")]
 public sealed class CmdletStartFxpFileTransfer : PSCmdlet
 {
+	private readonly CancellationTokenSource cancellationTokenSource = new();
 	/// <summary>
 	/// Gets or sets the session object used by the cmdlet.
 	/// </summary>
@@ -53,6 +55,18 @@ public sealed class CmdletStartFxpFileTransfer : PSCmdlet
 
 	[Parameter]
 	public FtpVerify[]? VerifyOptions { get; set; }
+	/// <summary>
+	/// Gets or sets a value indicating whether transfer progress is displayed.
+	/// </summary>
+
+	[Parameter]
+	public SwitchParameter ShowProgress { get; set; }
+	/// <summary>
+	/// Gets or sets the minimum number of bytes between progress updates.
+	/// </summary>
+
+	[Parameter]
+	public long ProgressIntervalBytes { get; set; } = 65536;
 
 	/// <inheritdoc/>
 	protected override void ProcessRecord()
@@ -63,12 +77,48 @@ public sealed class CmdletStartFxpFileTransfer : PSCmdlet
 		}
 		try
 		{
-			WriteObject(TransferettoClient.StartFxpFileTransfer(Client, SourcePath!, DestinationClient, DestinationPath!, CreateRemoteDirectory.IsPresent, RemoteExists, VerifyOptions.CombineFlags()));
+			TransferettoTransferOptions options = new()
+			{
+				CancellationToken = cancellationTokenSource.Token,
+				ProgressIntervalBytes = ProgressIntervalBytes,
+				Progress = ShowProgress.IsPresent ? new CmdletTransferProgress(this) : null
+			};
+			WriteObject(TransferettoClient.StartFxpFileTransfer(Client, SourcePath!, DestinationClient, DestinationPath!, CreateRemoteDirectory.IsPresent, RemoteExists, VerifyOptions.CombineFlags(), options));
 		}
 		catch (Exception exception)
 		{
 			WriteError(new ErrorRecord(exception, "StartFxpFileTransferFailed", ErrorCategory.WriteError, DestinationPath));
 		}
 	}
-}
 
+	/// <inheritdoc/>
+	protected override void StopProcessing()
+	{
+		cancellationTokenSource.Cancel();
+		base.StopProcessing();
+	}
+
+	private sealed class CmdletTransferProgress : IProgress<TransferettoTransferProgress>
+	{
+		private readonly PSCmdlet cmdlet;
+
+		public CmdletTransferProgress(PSCmdlet cmdlet)
+		{
+			this.cmdlet = cmdlet;
+		}
+
+		public void Report(TransferettoTransferProgress value)
+		{
+			int percentComplete = value.PercentComplete ?? -1;
+			string activity = $"{value.Protocol} {value.Direction}";
+			string status = value.TotalBytes.HasValue
+				? $"{value.BytesTransferred} of {value.TotalBytes.Value} bytes"
+				: $"{value.BytesTransferred} bytes";
+			cmdlet.WriteProgress(new ProgressRecord(0, activity, status)
+			{
+				PercentComplete = percentComplete,
+				CurrentOperation = value.RemotePath ?? value.LocalPath
+			});
+		}
+	}
+}

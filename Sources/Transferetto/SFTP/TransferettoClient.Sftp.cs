@@ -20,9 +20,18 @@ public static partial class TransferettoClient {
         EnsureNotNullOrWhiteSpace(options.Server, nameof(options.Server));
 
         SftpClient client = CreateSftpClient(options);
+        TransferettoSshHostKeyInfo? hostKeyInfo = null;
+        client.HostKeyReceived += (_, args) => {
+            hostKeyInfo = EvaluateHostKeyTrust(options, args);
+            args.CanTrust = hostKeyInfo.CanTrust;
+        };
+
         try {
+            ApplySftpClientOptions(client, options);
             client.Connect();
-            return new TransferettoSftpSession(client);
+            return new TransferettoSftpSession(client) {
+                HostKeyInfo = hostKeyInfo
+            };
         } catch {
             client.Dispose();
             throw;
@@ -240,12 +249,56 @@ public static partial class TransferettoClient {
     /// </summary>
 
     public static TransferettoTransferResult UploadSftpFile(TransferettoSftpSession session, string localPath, string remotePath, bool allowOverride) {
+        return UploadSftpFile(session, localPath, remotePath, allowOverride, null);
+    }
+    /// <summary>
+    /// Uploads a file over SFTP.
+    /// </summary>
+
+    public static TransferettoTransferResult UploadSftpFile(
+        TransferettoSftpSession session,
+        string localPath,
+        string remotePath,
+        bool allowOverride,
+        TransferettoTransferOptions? options) {
         EnsureNotNull(session, nameof(session));
         EnsureNotNullOrWhiteSpace(localPath, nameof(localPath));
         EnsureNotNullOrWhiteSpace(remotePath, nameof(remotePath));
 
+        TransferettoTransferOptions resolvedOptions = options ?? new TransferettoTransferOptions();
+        resolvedOptions.CancellationToken.ThrowIfCancellationRequested();
+        FileInfo fileInfo = new(localPath);
+        long totalBytes = fileInfo.Length;
+        DateTime startedUtc = DateTime.UtcNow;
+        long bytesTransferred = 0;
         using FileStream fileStream = new(localPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        session.Client.UploadFile(fileStream, remotePath, allowOverride);
+        session.Client.UploadFile(fileStream, remotePath, allowOverride, transferredBytes => {
+            bytesTransferred = ReportTransferProgress(
+                resolvedOptions,
+                "UploadFile",
+                "SFTP",
+                TransferettoTransferDirection.Upload,
+                localPath,
+                remotePath,
+                transferredBytes,
+                totalBytes,
+                bytesTransferred);
+        });
+        if (bytesTransferred < totalBytes) {
+            bytesTransferred = ReportTransferProgress(
+                resolvedOptions,
+                "UploadFile",
+                "SFTP",
+                TransferettoTransferDirection.Upload,
+                localPath,
+                remotePath,
+                (ulong) totalBytes,
+                totalBytes,
+                bytesTransferred,
+                force: true);
+        }
+
+        DateTime completedUtc = DateTime.UtcNow;
         return new TransferettoTransferResult {
             Action = "UploadFile",
             Status = true,
@@ -255,6 +308,10 @@ public static partial class TransferettoClient {
             IsFailed = false,
             LocalPath = localPath,
             RemotePath = remotePath,
+            BytesTransferred = bytesTransferred,
+            TotalBytes = totalBytes,
+            StartedUtc = startedUtc,
+            CompletedUtc = completedUtc,
             Message = string.Empty
         };
     }
@@ -263,12 +320,59 @@ public static partial class TransferettoClient {
     /// </summary>
 
     public static TransferettoTransferResult DownloadSftpFile(TransferettoSftpSession session, string remotePath, string localPath) {
+        return DownloadSftpFile(session, remotePath, localPath, null);
+    }
+    /// <summary>
+    /// Downloads a file over SFTP.
+    /// </summary>
+
+    public static TransferettoTransferResult DownloadSftpFile(
+        TransferettoSftpSession session,
+        string remotePath,
+        string localPath,
+        TransferettoTransferOptions? options) {
         EnsureNotNull(session, nameof(session));
         EnsureNotNullOrWhiteSpace(remotePath, nameof(remotePath));
         EnsureNotNullOrWhiteSpace(localPath, nameof(localPath));
 
+        TransferettoTransferOptions resolvedOptions = options ?? new TransferettoTransferOptions();
+        resolvedOptions.CancellationToken.ThrowIfCancellationRequested();
+        long totalBytes = session.Client.GetAttributes(remotePath).Size;
+        DateTime startedUtc = DateTime.UtcNow;
+        long bytesTransferred = 0;
+        string? directory = Path.GetDirectoryName(localPath);
+        if (!string.IsNullOrWhiteSpace(directory)) {
+            Directory.CreateDirectory(directory);
+        }
+
         using FileStream fileStream = new(localPath, FileMode.Create, FileAccess.Write, FileShare.None);
-        session.Client.DownloadFile(remotePath, fileStream);
+        session.Client.DownloadFile(remotePath, fileStream, transferredBytes => {
+            bytesTransferred = ReportTransferProgress(
+                resolvedOptions,
+                "DownloadFile",
+                "SFTP",
+                TransferettoTransferDirection.Download,
+                localPath,
+                remotePath,
+                transferredBytes,
+                totalBytes,
+                bytesTransferred);
+        });
+        if (bytesTransferred < totalBytes) {
+            bytesTransferred = ReportTransferProgress(
+                resolvedOptions,
+                "DownloadFile",
+                "SFTP",
+                TransferettoTransferDirection.Download,
+                localPath,
+                remotePath,
+                (ulong) totalBytes,
+                totalBytes,
+                bytesTransferred,
+                force: true);
+        }
+
+        DateTime completedUtc = DateTime.UtcNow;
         return new TransferettoTransferResult {
             Action = "DownloadFile",
             Status = true,
@@ -278,6 +382,10 @@ public static partial class TransferettoClient {
             IsFailed = false,
             LocalPath = localPath,
             RemotePath = remotePath,
+            BytesTransferred = bytesTransferred,
+            TotalBytes = totalBytes,
+            StartedUtc = startedUtc,
+            CompletedUtc = completedUtc,
             Message = string.Empty
         };
     }
@@ -290,18 +398,32 @@ public static partial class TransferettoClient {
         string localPath,
         string remotePath,
         bool allowOverride = false) {
+        return UploadSftpDirectory(session, localPath, remotePath, allowOverride, null);
+    }
+    /// <summary>
+    /// Uploads a directory over SFTP.
+    /// </summary>
+
+    public static IReadOnlyList<TransferettoTransferResult> UploadSftpDirectory(
+        TransferettoSftpSession session,
+        string localPath,
+        string remotePath,
+        bool allowOverride,
+        TransferettoTransferOptions? options) {
         EnsureNotNull(session, nameof(session));
         EnsureNotNullOrWhiteSpace(localPath, nameof(localPath));
         EnsureNotNullOrWhiteSpace(remotePath, nameof(remotePath));
 
+        TransferettoTransferOptions resolvedOptions = options ?? new TransferettoTransferOptions();
+        resolvedOptions.CancellationToken.ThrowIfCancellationRequested();
         if (!Directory.Exists(localPath)) {
             throw new DirectoryNotFoundException($"Directory {localPath} does not exist.");
         }
 
         List<TransferettoTransferResult> results = new();
         string normalizedRemotePath = NormalizeRemotePath(remotePath);
-        EnsureSftpDirectoryExists(session, normalizedRemotePath, results);
-        UploadSftpDirectoryInternal(session, new DirectoryInfo(localPath), normalizedRemotePath, allowOverride, results);
+        EnsureSftpDirectoryExists(session, normalizedRemotePath, results, resolvedOptions);
+        UploadSftpDirectoryInternal(session, new DirectoryInfo(localPath), normalizedRemotePath, allowOverride, resolvedOptions, results);
         return results;
     }
     /// <summary>
@@ -313,10 +435,24 @@ public static partial class TransferettoClient {
         string remotePath,
         string localPath,
         bool allowOverride = false) {
+        return DownloadSftpDirectory(session, remotePath, localPath, allowOverride, null);
+    }
+    /// <summary>
+    /// Downloads a directory over SFTP.
+    /// </summary>
+
+    public static IReadOnlyList<TransferettoTransferResult> DownloadSftpDirectory(
+        TransferettoSftpSession session,
+        string remotePath,
+        string localPath,
+        bool allowOverride,
+        TransferettoTransferOptions? options) {
         EnsureNotNull(session, nameof(session));
         EnsureNotNullOrWhiteSpace(remotePath, nameof(remotePath));
         EnsureNotNullOrWhiteSpace(localPath, nameof(localPath));
 
+        TransferettoTransferOptions resolvedOptions = options ?? new TransferettoTransferOptions();
+        resolvedOptions.CancellationToken.ThrowIfCancellationRequested();
         string normalizedRemotePath = NormalizeRemotePath(remotePath);
         if (!session.Client.Exists(normalizedRemotePath) || !session.Client.GetAttributes(normalizedRemotePath).IsDirectory) {
             throw new DirectoryNotFoundException($"Remote directory {normalizedRemotePath} does not exist.");
@@ -325,7 +461,7 @@ public static partial class TransferettoClient {
         List<TransferettoTransferResult> results = new();
         Directory.CreateDirectory(localPath);
         results.Add(CreateDirectoryTransferResult(localPath, normalizedRemotePath));
-        DownloadSftpDirectoryInternal(session, normalizedRemotePath, localPath, allowOverride, results);
+        DownloadSftpDirectoryInternal(session, normalizedRemotePath, localPath, allowOverride, resolvedOptions, results);
         return results;
     }
     /// <summary>
@@ -591,34 +727,52 @@ public static partial class TransferettoClient {
     }
 
     private static SftpClient CreateSftpClient(TransferettoSftpConnectionOptions options) {
-        if (!string.IsNullOrWhiteSpace(options.UserName) && options.Password is not null) {
-            string userName = options.UserName!;
-            return options.Port.HasValue
-                ? new SftpClient(options.Server, options.Port.Value, userName, options.Password)
-                : new SftpClient(options.Server, userName, options.Password);
+        return new SftpClient(CreateSshConnectionInfo(options));
+    }
+
+    private static long ReportTransferProgress(
+        TransferettoTransferOptions options,
+        string action,
+        string protocol,
+        TransferettoTransferDirection direction,
+        string? localPath,
+        string? remotePath,
+        ulong transferredBytes,
+        long? totalBytes,
+        long lastReportedBytes,
+        bool force = false) {
+        options.CancellationToken.ThrowIfCancellationRequested();
+
+        long currentBytes = transferredBytes > long.MaxValue ? long.MaxValue : (long) transferredBytes;
+        long interval = options.ProgressIntervalBytes > 0 ? options.ProgressIntervalBytes : 65536;
+        if (!force && (!totalBytes.HasValue || currentBytes < totalBytes.Value) && currentBytes - lastReportedBytes < interval) {
+            return lastReportedBytes;
         }
 
-        if (options.Credential is not null) {
-            return options.Port.HasValue
-                ? new SftpClient(options.Server, options.Port.Value, options.Credential.UserName, options.Credential.Password)
-                : new SftpClient(options.Server, options.Credential.UserName, options.Credential.Password);
+        options.Progress?.Report(new TransferettoTransferProgress {
+            Action = action,
+            Protocol = protocol,
+            Direction = direction,
+            LocalPath = localPath,
+            RemotePath = remotePath,
+            BytesTransferred = currentBytes,
+            TotalBytes = totalBytes
+        });
+        return currentBytes;
+    }
+
+    private static void ApplySftpClientOptions(SftpClient client, TransferettoSftpConnectionOptions options) {
+        if (options.KeepAliveIntervalSeconds.HasValue) {
+            client.KeepAliveInterval = TimeSpan.FromSeconds(options.KeepAliveIntervalSeconds.Value);
         }
 
-        if (!string.IsNullOrWhiteSpace(options.PrivateKeyPath)) {
-            if (string.IsNullOrWhiteSpace(options.UserName)) {
-                throw new InvalidOperationException("SFTP private key authentication requires UserName.");
-            }
-
-            string userName = options.UserName!;
-            string privateKeyPath = options.PrivateKeyPath ?? throw new InvalidOperationException("SFTP private key path was not provided.");
-            EnsureFileExists(privateKeyPath, nameof(options.PrivateKeyPath));
-            PrivateKeyFile privateKeyFile = new(privateKeyPath);
-            return options.Port.HasValue
-                ? new SftpClient(options.Server, options.Port.Value, userName, privateKeyFile)
-                : new SftpClient(options.Server, userName, privateKeyFile);
+        if (options.ConnectionTimeoutSeconds.HasValue) {
+            client.ConnectionInfo.Timeout = TimeSpan.FromSeconds(options.ConnectionTimeoutSeconds.Value);
         }
 
-        throw new InvalidOperationException("No SFTP authentication method was provided.");
+        if (options.RetryAttempts.HasValue) {
+            client.ConnectionInfo.RetryAttempts = options.RetryAttempts.Value;
+        }
     }
 
     private static void EnsureFileExists(string path, string paramName) {
@@ -657,16 +811,20 @@ public static partial class TransferettoClient {
         DirectoryInfo localDirectory,
         string remoteDirectoryPath,
         bool allowOverride,
+        TransferettoTransferOptions options,
         ICollection<TransferettoTransferResult> results) {
+        options.CancellationToken.ThrowIfCancellationRequested();
         foreach (FileInfo file in localDirectory.GetFiles()) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             string remoteFilePath = CombineRemotePath(remoteDirectoryPath, file.Name);
-            results.Add(UploadSftpFile(session, file.FullName, remoteFilePath, allowOverride));
+            results.Add(UploadSftpFile(session, file.FullName, remoteFilePath, allowOverride, options));
         }
 
         foreach (DirectoryInfo directory in localDirectory.GetDirectories()) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             string remoteChildPath = CombineRemotePath(remoteDirectoryPath, directory.Name);
-            EnsureSftpDirectoryExists(session, remoteChildPath, results);
-            UploadSftpDirectoryInternal(session, directory, remoteChildPath, allowOverride, results);
+            EnsureSftpDirectoryExists(session, remoteChildPath, results, options);
+            UploadSftpDirectoryInternal(session, directory, remoteChildPath, allowOverride, options, results);
         }
     }
 
@@ -675,14 +833,17 @@ public static partial class TransferettoClient {
         string remoteDirectoryPath,
         string localDirectoryPath,
         bool allowOverride,
+        TransferettoTransferOptions options,
         ICollection<TransferettoTransferResult> results) {
+        options.CancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<TransferettoSftpItem> items = GetSftpListing(session, remoteDirectoryPath);
         foreach (TransferettoSftpItem item in items.Where(static item => !IsSpecialSftpDirectory(item))) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             if (item.IsDirectory) {
                 string localChildPath = Path.Combine(localDirectoryPath, item.Name);
                 Directory.CreateDirectory(localChildPath);
                 results.Add(CreateDirectoryTransferResult(localChildPath, item.FullName));
-                DownloadSftpDirectoryInternal(session, item.FullName, localChildPath, allowOverride, results);
+                DownloadSftpDirectoryInternal(session, item.FullName, localChildPath, allowOverride, options, results);
                 continue;
             }
 
@@ -706,14 +867,16 @@ public static partial class TransferettoClient {
                 continue;
             }
 
-            results.Add(DownloadSftpFile(session, item.FullName, localFilePath));
+            results.Add(DownloadSftpFile(session, item.FullName, localFilePath, options));
         }
     }
 
     private static void EnsureSftpDirectoryExists(
         TransferettoSftpSession session,
         string path,
-        ICollection<TransferettoTransferResult>? results = null) {
+        ICollection<TransferettoTransferResult>? results = null,
+        TransferettoTransferOptions? options = null) {
+        options?.CancellationToken.ThrowIfCancellationRequested();
         string normalizedPath = NormalizeRemotePath(path);
         if (string.IsNullOrWhiteSpace(normalizedPath) || normalizedPath == "/" || normalizedPath == ".") {
             return;
@@ -729,9 +892,10 @@ public static partial class TransferettoClient {
 
         string parent = GetRemoteParent(normalizedPath);
         if (!string.IsNullOrWhiteSpace(parent) && parent != normalizedPath) {
-            EnsureSftpDirectoryExists(session, parent, results);
+            EnsureSftpDirectoryExists(session, parent, results, options);
         }
 
+        options?.CancellationToken.ThrowIfCancellationRequested();
         session.Client.CreateDirectory(normalizedPath);
         results?.Add(CreateDirectoryTransferResult(null, normalizedPath));
     }

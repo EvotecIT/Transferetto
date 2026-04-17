@@ -132,6 +132,182 @@ public sealed class CmdletConnectFtp : PSCmdlet
 	[Parameter(ParameterSetName = "Password")]
 	public SwitchParameter ValidateAnyCertificate { get; set; }
 	/// <summary>
+	/// Gets or sets expected FTPS certificate thumbprints.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public string[]? ExpectedCertificateThumbprint { get; set; }
+	/// <summary>
+	/// Gets or sets the FTPS certificate validation policy.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public TransferettoFtpCertificatePolicy CertificatePolicy { get; set; } = TransferettoFtpCertificatePolicy.PolicyChain;
+	/// <summary>
+	/// Gets or sets the known-certificate store path.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public string? KnownCertificatesPath { get; set; }
+	/// <summary>
+	/// Gets or sets the FTP control connection timeout, in milliseconds.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public int ConnectTimeout { get; set; }
+	/// <summary>
+	/// Gets or sets the FTP control socket read timeout, in milliseconds.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public int ReadTimeout { get; set; }
+	/// <summary>
+	/// Gets or sets the FTP data connection timeout, in milliseconds.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public int DataConnectionConnectTimeout { get; set; }
+	/// <summary>
+	/// Gets or sets the FTP data socket read timeout, in milliseconds.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public int DataConnectionReadTimeout { get; set; }
+	/// <summary>
+	/// Gets or sets the number of retry attempts for verified transfers.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public int RetryAttempts { get; set; }
+	/// <summary>
+	/// Gets or sets the number of bytes transferred in a single FTP transfer chunk.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public int TransferChunkSize { get; set; }
+	/// <summary>
+	/// Gets or sets the local file buffer size used by FTP transfers.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public int LocalFileBufferSize { get; set; }
+	/// <summary>
+	/// Gets or sets the internet protocol versions allowed for FTP connections.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public FtpIpVersion InternetProtocolVersions { get; set; }
+	/// <summary>
+	/// Gets or sets the upload rate limit in kilobytes per second.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public uint UploadRateLimit { get; set; }
+	/// <summary>
+	/// Gets or sets the download rate limit in kilobytes per second.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public uint DownloadRateLimit { get; set; }
+	/// <summary>
+	/// Gets or sets the data type used by high-level FTP uploads.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public FtpDataType UploadDataType { get; set; }
+	/// <summary>
+	/// Gets or sets the data type used by high-level FTP downloads.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public FtpDataType DownloadDataType { get; set; }
+	/// <summary>
+	/// Gets or sets the data type used by FTP directory listings.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public FtpDataType ListingDataType { get; set; }
+	/// <summary>
+	/// Gets or sets the data type used by FXP server-to-server transfers.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public FtpDataType FXPDataType { get; set; }
+	/// <summary>
+	/// Gets or sets how often FXP progress is reported.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public int FXPProgressInterval { get; set; }
+	/// <summary>
+	/// Gets or sets active-mode data ports.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public int[]? ActivePorts { get; set; }
+	/// <summary>
+	/// Gets or sets passive-mode ports to avoid.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public int[]? PassiveBlockedPorts { get; set; }
+	/// <summary>
+	/// Gets or sets the maximum number of passive-mode connection attempts.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public int PassiveMaxAttempts { get; set; }
+	/// <summary>
+	/// Gets or sets the text encoding name used by the FTP control channel.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public string? EncodingName { get; set; }
+	/// <summary>
 	/// Gets or sets the network port.
 	/// </summary>
 
@@ -177,6 +353,28 @@ public sealed class CmdletConnectFtp : PSCmdlet
 				DisableDataConnectionEncryption = DisableDataConnectionEncryption.IsPresent,
 				DisableValidateCertificateRevocation = DisableValidateCertificateRevocation.IsPresent,
 				ValidateAnyCertificate = ValidateAnyCertificate.IsPresent,
+				ExpectedCertificateThumbprints = ExpectedCertificateThumbprint,
+				CertificatePolicy = CertificatePolicy,
+				KnownCertificatesPath = KnownCertificatesPath,
+				ConnectTimeout = (base.MyInvocation.BoundParameters.ContainsKey("ConnectTimeout") ? new int?(ConnectTimeout) : ((int?)null)),
+				ReadTimeout = (base.MyInvocation.BoundParameters.ContainsKey("ReadTimeout") ? new int?(ReadTimeout) : ((int?)null)),
+				DataConnectionConnectTimeout = (base.MyInvocation.BoundParameters.ContainsKey("DataConnectionConnectTimeout") ? new int?(DataConnectionConnectTimeout) : ((int?)null)),
+				DataConnectionReadTimeout = (base.MyInvocation.BoundParameters.ContainsKey("DataConnectionReadTimeout") ? new int?(DataConnectionReadTimeout) : ((int?)null)),
+				RetryAttempts = (base.MyInvocation.BoundParameters.ContainsKey("RetryAttempts") ? new int?(RetryAttempts) : ((int?)null)),
+				TransferChunkSize = (base.MyInvocation.BoundParameters.ContainsKey("TransferChunkSize") ? new int?(TransferChunkSize) : ((int?)null)),
+				LocalFileBufferSize = (base.MyInvocation.BoundParameters.ContainsKey("LocalFileBufferSize") ? new int?(LocalFileBufferSize) : ((int?)null)),
+				InternetProtocolVersions = (base.MyInvocation.BoundParameters.ContainsKey("InternetProtocolVersions") ? new FtpIpVersion?(InternetProtocolVersions) : ((FtpIpVersion?)null)),
+				UploadRateLimit = (base.MyInvocation.BoundParameters.ContainsKey("UploadRateLimit") ? new uint?(UploadRateLimit) : ((uint?)null)),
+				DownloadRateLimit = (base.MyInvocation.BoundParameters.ContainsKey("DownloadRateLimit") ? new uint?(DownloadRateLimit) : ((uint?)null)),
+				UploadDataType = (base.MyInvocation.BoundParameters.ContainsKey("UploadDataType") ? new FtpDataType?(UploadDataType) : ((FtpDataType?)null)),
+				DownloadDataType = (base.MyInvocation.BoundParameters.ContainsKey("DownloadDataType") ? new FtpDataType?(DownloadDataType) : ((FtpDataType?)null)),
+				ListingDataType = (base.MyInvocation.BoundParameters.ContainsKey("ListingDataType") ? new FtpDataType?(ListingDataType) : ((FtpDataType?)null)),
+				FXPDataType = (base.MyInvocation.BoundParameters.ContainsKey("FXPDataType") ? new FtpDataType?(FXPDataType) : ((FtpDataType?)null)),
+				FXPProgressInterval = (base.MyInvocation.BoundParameters.ContainsKey("FXPProgressInterval") ? new int?(FXPProgressInterval) : ((int?)null)),
+				ActivePorts = ActivePorts,
+				PassiveBlockedPorts = PassiveBlockedPorts,
+				PassiveMaxAttempts = (base.MyInvocation.BoundParameters.ContainsKey("PassiveMaxAttempts") ? new int?(PassiveMaxAttempts) : ((int?)null)),
+				EncodingName = EncodingName,
 				SendHost = SendHost.IsPresent,
 				SocketKeepAlive = SocketKeepAlive.IsPresent,
 				AutoConnect = AutoConnect.IsPresent,
@@ -249,4 +447,3 @@ public sealed class CmdletConnectFtp : PSCmdlet
 		return ProxyCredential?.GetNetworkCredential();
 	}
 }
-

@@ -40,6 +40,11 @@ public sealed class TransferettoFtpSession : IDisposable {
 
     public FtpProfile? AutoDetectedProfile { get; }
     /// <summary>
+    /// Gets certificate information captured during FTPS validation.
+    /// </summary>
+
+    public TransferettoFtpCertificateInfo? CertificateInfo { get; internal set; }
+    /// <summary>
     /// Releases resources held by the FTP or FTPS session.
     /// </summary>
 

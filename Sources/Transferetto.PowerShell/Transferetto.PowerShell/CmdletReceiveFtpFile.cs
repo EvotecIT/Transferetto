@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Threading;
 using FluentFTP;
 
 namespace Transferetto.PowerShell;
@@ -14,6 +15,7 @@ namespace Transferetto.PowerShell;
 [Cmdlet("Receive", "FTPFile", DefaultParameterSetName = "Text")]
 public sealed class CmdletReceiveFtpFile : PSCmdlet
 {
+	private readonly CancellationTokenSource cancellationTokenSource = new();
 	/// <summary>
 	/// Gets or sets the session object used by the cmdlet.
 	/// </summary>
@@ -68,6 +70,20 @@ public sealed class CmdletReceiveFtpFile : PSCmdlet
 	[Parameter(ParameterSetName = "Text")]
 	[Parameter(ParameterSetName = "Native")]
 	public SwitchParameter Suppress { get; set; }
+	/// <summary>
+	/// Gets or sets a value indicating whether transfer progress is displayed.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "Text")]
+	[Parameter(ParameterSetName = "Native")]
+	public SwitchParameter ShowProgress { get; set; }
+	/// <summary>
+	/// Gets or sets the minimum number of bytes between progress updates.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "Text")]
+	[Parameter(ParameterSetName = "Native")]
+	public long ProgressIntervalBytes { get; set; } = 65536;
 
 	/// <inheritdoc/>
 	protected override void ProcessRecord()
@@ -83,7 +99,13 @@ public sealed class CmdletReceiveFtpFile : PSCmdlet
 			if (list.Count != 0)
 			{
 				bool flag = Directory.Exists(localPath);
-				IReadOnlyList<TransferettoTransferResult> sendToPipeline = ((!(list.Count > 1 || flag)) ? new TransferettoTransferResult[1] { TransferettoClient.DownloadFtpFile(Client, localPath, list[0], LocalExists, VerifyOptions) } : TransferettoClient.DownloadFtpFiles(Client, localPath, list, LocalExists, VerifyOptions, FtpError));
+				TransferettoTransferOptions options = new()
+				{
+					CancellationToken = cancellationTokenSource.Token,
+					ProgressIntervalBytes = ProgressIntervalBytes,
+					Progress = ShowProgress.IsPresent ? new CmdletTransferProgress(this) : null
+				};
+				IReadOnlyList<TransferettoTransferResult> sendToPipeline = ((!(list.Count > 1 || flag)) ? new TransferettoTransferResult[1] { TransferettoClient.DownloadFtpFile(Client, localPath, list[0], LocalExists, VerifyOptions, options) } : TransferettoClient.DownloadFtpFiles(Client, localPath, list, LocalExists, VerifyOptions, FtpError, options));
 				if (!Suppress.IsPresent)
 				{
 					WriteObject(sendToPipeline, enumerateCollection: true);
@@ -94,6 +116,13 @@ public sealed class CmdletReceiveFtpFile : PSCmdlet
 		{
 			WriteError(new ErrorRecord(exception, "ReceiveFtpFileFailed", ErrorCategory.ReadError, LocalPath));
 		}
+	}
+
+	/// <inheritdoc/>
+	protected override void StopProcessing()
+	{
+		cancellationTokenSource.Cancel();
+		base.StopProcessing();
 	}
 
 	private IEnumerable<string> ResolveRemotePaths()
@@ -127,6 +156,30 @@ public sealed class CmdletReceiveFtpFile : PSCmdlet
 		foreach (string item in RemotePath!.Where((string path) => !string.IsNullOrWhiteSpace(path)))
 		{
 			yield return item;
+		}
+	}
+
+	private sealed class CmdletTransferProgress : IProgress<TransferettoTransferProgress>
+	{
+		private readonly PSCmdlet cmdlet;
+
+		public CmdletTransferProgress(PSCmdlet cmdlet)
+		{
+			this.cmdlet = cmdlet;
+		}
+
+		public void Report(TransferettoTransferProgress value)
+		{
+			int percentComplete = value.PercentComplete ?? -1;
+			string activity = $"{value.Protocol} {value.Direction}";
+			string status = value.TotalBytes.HasValue
+				? $"{value.BytesTransferred} of {value.TotalBytes.Value} bytes"
+				: $"{value.BytesTransferred} bytes";
+			cmdlet.WriteProgress(new ProgressRecord(0, activity, status)
+			{
+				PercentComplete = percentComplete,
+				CurrentOperation = value.RemotePath ?? value.LocalPath
+			});
 		}
 	}
 }

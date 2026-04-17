@@ -1,4 +1,4 @@
-﻿$ModuleName = (Get-ChildItem $PSScriptRoot\*.psd1).BaseName
+$ModuleName = (Get-ChildItem $PSScriptRoot\*.psd1).BaseName
 $PrimaryModule = Get-ChildItem -Path $PSScriptRoot -Filter '*.psd1' -Recurse -ErrorAction SilentlyContinue -Depth 1
 if (-not $PrimaryModule) {
     throw "Path $PSScriptRoot doesn't contain PSD1 files. Failing tests."
@@ -43,7 +43,28 @@ foreach ($Module in $PSDInformation.RequiredModules) {
 Write-Color
 
 Import-Module $PSScriptRoot\*.psd1 -Force
-$result = Invoke-Pester -Script $PSScriptRoot\Tests -Verbose -PassThru
+
+$PesterCommand = Get-Command -Name Invoke-Pester
+$InvokePesterParameters = @{
+    Verbose = $true
+    PassThru = $true
+}
+if ($PesterCommand.Parameters.ContainsKey('Path')) {
+    $InvokePesterParameters.Path = "$PSScriptRoot\Tests"
+} else {
+    $InvokePesterParameters.Script = "$PSScriptRoot\Tests"
+}
+if ($env:TRANSFERETTO_RUN_LIVE_FTP_TESTS -ne '1') {
+    if ($PesterCommand.Parameters.ContainsKey('ExcludeTagFilter')) {
+        Write-Color 'Skipping live FTP tests. Set TRANSFERETTO_RUN_LIVE_FTP_TESTS=1 to include them.' -Color Yellow
+        $InvokePesterParameters.ExcludeTagFilter = 'LiveFTP'
+    } elseif ($PesterCommand.Parameters.ContainsKey('ExcludeTag')) {
+        Write-Color 'Skipping live FTP tests. Set TRANSFERETTO_RUN_LIVE_FTP_TESTS=1 to include them.' -Color Yellow
+        $InvokePesterParameters.ExcludeTag = 'LiveFTP'
+    }
+}
+
+$result = Invoke-Pester @InvokePesterParameters
 
 if ($result.FailedCount -gt 0) {
     throw "$($result.FailedCount) tests failed."

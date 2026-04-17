@@ -245,13 +245,42 @@ public static partial class TransferettoClient {
         FtpRemoteExists remoteExists = FtpRemoteExists.Skip,
         FtpVerify verifyOptions = FtpVerify.None,
         IEnumerable<FtpRule>? rules = null) {
+        return UploadFtpDirectory(session, localPath, remotePath, folderSyncMode, remoteExists, verifyOptions, rules, null);
+    }
+    /// <summary>
+    /// Uploads a local directory to an FTP or FTPS server.
+    /// </summary>
+
+    public static IReadOnlyList<TransferettoTransferResult> UploadFtpDirectory(
+        TransferettoFtpSession session,
+        string localPath,
+        string remotePath,
+        FtpFolderSyncMode folderSyncMode,
+        FtpRemoteExists remoteExists,
+        FtpVerify verifyOptions,
+        IEnumerable<FtpRule>? rules,
+        TransferettoTransferOptions? options) {
         EnsureNotNull(session, nameof(session));
         EnsureNotNullOrWhiteSpace(localPath, nameof(localPath));
         EnsureNotNullOrWhiteSpace(remotePath, nameof(remotePath));
+        options?.CancellationToken.ThrowIfCancellationRequested();
 
-        List<FtpResult> results = rules is not null
-            ? session.Client.UploadDirectory(localPath, remotePath, folderSyncMode, remoteExists, verifyOptions, rules.ToList())
-            : session.Client.UploadDirectory(localPath, remotePath, folderSyncMode, remoteExists, verifyOptions);
+        long lastReportedBytes = 0;
+        Action<FtpProgress>? progress = options is null
+            ? null
+            : ftpProgress => {
+                lastReportedBytes = ReportFtpTransferProgress(
+                    options,
+                    "UploadDirectory",
+                    TransferettoTransferDirection.Upload,
+                    localPath,
+                    remotePath,
+                    ftpProgress,
+                    null,
+                    lastReportedBytes);
+            };
+
+        List<FtpResult> results = session.Client.UploadDirectory(localPath, remotePath, folderSyncMode, remoteExists, verifyOptions, rules?.ToList(), progress);
 
         return results.Select(result => FromFtpResult("UploadDirectory", localPath, result)).ToArray();
     }
@@ -264,12 +293,98 @@ public static partial class TransferettoClient {
         string localPath,
         string remotePath,
         FtpFolderSyncMode folderSyncMode = FtpFolderSyncMode.Update) {
+        return DownloadFtpDirectory(session, localPath, remotePath, folderSyncMode, FtpLocalExists.Skip, FtpVerify.None, null, null);
+    }
+    /// <summary>
+    /// Downloads a remote directory from an FTP or FTPS server.
+    /// </summary>
+
+    public static IReadOnlyList<TransferettoTransferResult> DownloadFtpDirectory(
+        TransferettoFtpSession session,
+        string localPath,
+        string remotePath,
+        FtpFolderSyncMode folderSyncMode,
+        FtpLocalExists localExists,
+        FtpVerify verifyOptions,
+        IEnumerable<FtpRule>? rules,
+        TransferettoTransferOptions? options) {
         EnsureNotNull(session, nameof(session));
         EnsureNotNullOrWhiteSpace(localPath, nameof(localPath));
         EnsureNotNullOrWhiteSpace(remotePath, nameof(remotePath));
+        options?.CancellationToken.ThrowIfCancellationRequested();
 
-        List<FtpResult> results = session.Client.DownloadDirectory(localPath, remotePath, folderSyncMode);
+        long lastReportedBytes = 0;
+        Action<FtpProgress>? progress = options is null
+            ? null
+            : ftpProgress => {
+                lastReportedBytes = ReportFtpTransferProgress(
+                    options,
+                    "DownloadDirectory",
+                    TransferettoTransferDirection.Download,
+                    localPath,
+                    remotePath,
+                    ftpProgress,
+                    null,
+                    lastReportedBytes);
+            };
+
+        List<FtpResult> results = session.Client.DownloadDirectory(localPath, remotePath, folderSyncMode, localExists, verifyOptions, rules?.ToList(), progress);
         return results.Select(result => FromFtpResult("DownloadDirectory", localPath, result)).ToArray();
+    }
+    /// <summary>
+    /// Tests whether an FXP transfer is ready to run.
+    /// </summary>
+
+    public static TransferettoFxpPreflightResult TestFxpTransfer(
+        TransferettoFtpSession sourceSession,
+        string sourcePath,
+        TransferettoFtpSession destinationSession,
+        string destinationPath,
+        TransferettoFxpTransferKind transferKind = TransferettoFxpTransferKind.File,
+        bool createRemoteDirectory = false) {
+        EnsureNotNull(sourceSession, nameof(sourceSession));
+        EnsureNotNull(destinationSession, nameof(destinationSession));
+        EnsureNotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
+        EnsureNotNullOrWhiteSpace(destinationPath, nameof(destinationPath));
+
+        List<string> messages = new();
+        bool sourceConnected = sourceSession.Client.IsConnected;
+        bool destinationConnected = destinationSession.Client.IsConnected;
+        if (!sourceConnected) {
+            messages.Add("Source FTP session is not connected.");
+        }
+
+        if (!destinationConnected) {
+            messages.Add("Destination FTP session is not connected.");
+        }
+
+        bool sourcePathExists = sourceConnected && TestFxpSourcePath(sourceSession, sourcePath, transferKind, messages);
+        bool destinationParentExists = destinationConnected && TestFxpDestinationParent(destinationSession, destinationPath, createRemoteDirectory, messages);
+        bool isSuccess = sourceConnected && destinationConnected && sourcePathExists && destinationParentExists;
+        AddFxpCapabilityMessages(sourceSession, destinationSession, messages);
+
+        return new TransferettoFxpPreflightResult {
+            Status = isSuccess,
+            IsSuccess = isSuccess,
+            TransferKind = transferKind,
+            SourceHost = sourceSession.Host,
+            SourcePort = sourceSession.Port,
+            DestinationHost = destinationSession.Host,
+            DestinationPort = destinationSession.Port,
+            SourcePath = sourcePath,
+            DestinationPath = destinationPath,
+            SourceConnected = sourceConnected,
+            DestinationConnected = destinationConnected,
+            SourcePathExists = sourcePathExists,
+            DestinationParentExists = destinationParentExists,
+            SourceSupportsCpsv = SourceSupportsFxpCapability(sourceSession, FtpCapability.CPSV),
+            DestinationSupportsCpsv = SourceSupportsFxpCapability(destinationSession, FtpCapability.CPSV),
+            SourceSupportsSscn = SourceSupportsFxpCapability(sourceSession, FtpCapability.SSCN),
+            DestinationSupportsSscn = SourceSupportsFxpCapability(destinationSession, FtpCapability.SSCN),
+            SourceSupportsEpsv = SourceSupportsFxpCapability(sourceSession, FtpCapability.EPSV),
+            DestinationSupportsEpsv = SourceSupportsFxpCapability(destinationSession, FtpCapability.EPSV),
+            Messages = messages.ToArray()
+        };
     }
     /// <summary>
     /// Transfers a file directly between two FTP or FTPS sessions.
@@ -283,10 +398,47 @@ public static partial class TransferettoClient {
         bool createRemoteDirectory = false,
         FtpRemoteExists remoteExists = FtpRemoteExists.Skip,
         FtpVerify verifyOptions = FtpVerify.None) {
+        return StartFxpFileTransfer(sourceSession, sourcePath, destinationSession, destinationPath, createRemoteDirectory, remoteExists, verifyOptions, null);
+    }
+    /// <summary>
+    /// Transfers a file directly between two FTP or FTPS sessions.
+    /// </summary>
+
+    public static TransferettoTransferResult StartFxpFileTransfer(
+        TransferettoFtpSession sourceSession,
+        string sourcePath,
+        TransferettoFtpSession destinationSession,
+        string destinationPath,
+        bool createRemoteDirectory,
+        FtpRemoteExists remoteExists,
+        FtpVerify verifyOptions,
+        TransferettoTransferOptions? options) {
         EnsureNotNull(sourceSession, nameof(sourceSession));
         EnsureNotNull(destinationSession, nameof(destinationSession));
         EnsureNotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
         EnsureNotNullOrWhiteSpace(destinationPath, nameof(destinationPath));
+        options?.CancellationToken.ThrowIfCancellationRequested();
+
+        long sourceSize = GetFtpFileSize(sourceSession, sourcePath, -1);
+        long? totalBytes = sourceSize >= 0 ? sourceSize : null;
+        long bytesTransferred = 0;
+        DateTime startedUtc = DateTime.UtcNow;
+        long lastReportedBytes = 0;
+        Action<FtpProgress>? progress = options is null
+            ? null
+            : ftpProgress => {
+                bytesTransferred = Math.Max(bytesTransferred, NormalizeTransferredBytes(ftpProgress.TransferredBytes));
+                lastReportedBytes = ReportFtpTransferProgress(
+                    options,
+                    "TransferFile",
+                    TransferettoTransferDirection.Transfer,
+                    sourcePath,
+                    destinationPath,
+                    ftpProgress,
+                    totalBytes,
+                    lastReportedBytes,
+                    protocol: "FXP");
+            };
 
         FtpStatus status = sourceSession.Client.TransferFile(
             sourcePath,
@@ -294,7 +446,26 @@ public static partial class TransferettoClient {
             destinationPath,
             createRemoteDirectory,
             remoteExists,
-            verifyOptions);
+            verifyOptions,
+            progress,
+            null!);
+
+        if (status == FtpStatus.Success && totalBytes.HasValue) {
+            bytesTransferred = Math.Max(bytesTransferred, totalBytes.Value);
+            lastReportedBytes = ReportFtpTransferProgress(
+                options,
+                "TransferFile",
+                TransferettoTransferDirection.Transfer,
+                sourcePath,
+                destinationPath,
+                bytesTransferred,
+                totalBytes,
+                lastReportedBytes,
+                protocol: "FXP",
+                force: true);
+        }
+
+        DateTime completedUtc = DateTime.UtcNow;
 
         return new TransferettoTransferResult {
             Action = "TransferFile",
@@ -305,6 +476,10 @@ public static partial class TransferettoClient {
             IsFailed = status == FtpStatus.Failed,
             LocalPath = sourcePath,
             RemotePath = destinationPath,
+            BytesTransferred = bytesTransferred,
+            TotalBytes = totalBytes,
+            StartedUtc = startedUtc,
+            CompletedUtc = completedUtc,
             Message = status.ToString()
         };
     }
@@ -320,10 +495,43 @@ public static partial class TransferettoClient {
         FtpFolderSyncMode folderSyncMode = FtpFolderSyncMode.Update,
         FtpRemoteExists remoteExists = FtpRemoteExists.Skip,
         FtpVerify verifyOptions = FtpVerify.None) {
+        return StartFxpDirectoryTransfer(sourceSession, sourcePath, destinationSession, destinationPath, folderSyncMode, remoteExists, verifyOptions, null, null);
+    }
+    /// <summary>
+    /// Transfers a directory directly between two FTP or FTPS sessions.
+    /// </summary>
+
+    public static IReadOnlyList<TransferettoTransferResult> StartFxpDirectoryTransfer(
+        TransferettoFtpSession sourceSession,
+        string sourcePath,
+        TransferettoFtpSession destinationSession,
+        string destinationPath,
+        FtpFolderSyncMode folderSyncMode,
+        FtpRemoteExists remoteExists,
+        FtpVerify verifyOptions,
+        IEnumerable<FtpRule>? rules,
+        TransferettoTransferOptions? options) {
         EnsureNotNull(sourceSession, nameof(sourceSession));
         EnsureNotNull(destinationSession, nameof(destinationSession));
         EnsureNotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
         EnsureNotNullOrWhiteSpace(destinationPath, nameof(destinationPath));
+        options?.CancellationToken.ThrowIfCancellationRequested();
+
+        long lastReportedBytes = 0;
+        Action<FtpProgress>? progress = options is null
+            ? null
+            : ftpProgress => {
+                lastReportedBytes = ReportFtpTransferProgress(
+                    options,
+                    "TransferDirectory",
+                    TransferettoTransferDirection.Transfer,
+                    sourcePath,
+                    destinationPath,
+                    ftpProgress,
+                    null,
+                    lastReportedBytes,
+                    protocol: "FXP");
+            };
 
         List<FtpResult> results = sourceSession.Client.TransferDirectory(
             sourcePath,
@@ -331,7 +539,9 @@ public static partial class TransferettoClient {
             destinationPath,
             folderSyncMode,
             remoteExists,
-            verifyOptions);
+            verifyOptions,
+            rules?.ToList(),
+            progress);
 
         return results.Select(result => FromFtpResult("TransferDirectory", sourcePath, result)).ToArray();
     }
@@ -346,7 +556,76 @@ public static partial class TransferettoClient {
             IsFailed = result.IsFailed,
             LocalPath = result.LocalPath ?? localPath,
             RemotePath = result.RemotePath,
+            BytesTransferred = result.Size >= 0 && result.IsSuccess && !result.IsSkipped ? result.Size : null,
+            TotalBytes = result.Size >= 0 ? result.Size : null,
             Message = result.Exception?.Message ?? (result.IsSkipped ? "Skipped" : "Success")
         };
+    }
+
+    private static bool TestFxpSourcePath(
+        TransferettoFtpSession session,
+        string sourcePath,
+        TransferettoFxpTransferKind transferKind,
+        ICollection<string> messages) {
+        try {
+            bool exists = transferKind == TransferettoFxpTransferKind.Directory
+                ? session.Client.DirectoryExists(sourcePath)
+                : session.Client.FileExists(sourcePath);
+            if (!exists) {
+                messages.Add($"Source {transferKind.ToString().ToLowerInvariant()} path does not exist: {sourcePath}");
+            }
+
+            return exists;
+        } catch (Exception exception) {
+            messages.Add($"Could not test source path {sourcePath}: {exception.Message}");
+            return false;
+        }
+    }
+
+    private static bool TestFxpDestinationParent(
+        TransferettoFtpSession session,
+        string destinationPath,
+        bool createRemoteDirectory,
+        ICollection<string> messages) {
+        string parentPath = GetRemoteParent(destinationPath);
+        if (string.IsNullOrWhiteSpace(parentPath) || parentPath == "/" || parentPath == ".") {
+            return true;
+        }
+
+        try {
+            bool exists = session.Client.DirectoryExists(parentPath);
+            if (!exists && createRemoteDirectory) {
+                messages.Add($"Destination parent does not exist but create-remote-directory was requested: {parentPath}");
+                return true;
+            }
+
+            if (!exists) {
+                messages.Add($"Destination parent directory does not exist: {parentPath}");
+            }
+
+            return exists;
+        } catch (Exception exception) {
+            messages.Add($"Could not test destination parent {parentPath}: {exception.Message}");
+            return false;
+        }
+    }
+
+    private static void AddFxpCapabilityMessages(
+        TransferettoFtpSession sourceSession,
+        TransferettoFtpSession destinationSession,
+        ICollection<string> messages) {
+        bool sourceAdvertisesFxp = SourceSupportsFxpCapability(sourceSession, FtpCapability.CPSV) || SourceSupportsFxpCapability(sourceSession, FtpCapability.SSCN);
+        bool destinationAdvertisesFxp = SourceSupportsFxpCapability(destinationSession, FtpCapability.CPSV) || SourceSupportsFxpCapability(destinationSession, FtpCapability.SSCN);
+        if (!sourceAdvertisesFxp) {
+            messages.Add("Source server did not advertise CPSV or SSCN. FXP may still work, but server policy must allow passive/active negotiation.");
+        }
+
+        if (!destinationAdvertisesFxp) {
+            messages.Add("Destination server did not advertise CPSV or SSCN. FXP may still work, but server policy must allow passive/active negotiation.");
+        }
+    }
+
+    private static bool SourceSupportsFxpCapability(TransferettoFtpSession session, FtpCapability capability) {
+        return session.Client.IsConnected && session.Client.HasFeature(capability);
     }
 }

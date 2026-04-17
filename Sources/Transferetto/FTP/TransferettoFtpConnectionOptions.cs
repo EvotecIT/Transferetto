@@ -57,6 +57,116 @@ public sealed class TransferettoFtpConnectionOptions {
 
     public bool ValidateAnyCertificate { get; set; }
     /// <summary>
+    /// Gets or sets expected FTPS certificate thumbprints.
+    /// </summary>
+
+    public string[]? ExpectedCertificateThumbprints { get; set; }
+    /// <summary>
+    /// Gets or sets the FTPS certificate validation policy.
+    /// </summary>
+
+    public TransferettoFtpCertificatePolicy CertificatePolicy { get; set; } = TransferettoFtpCertificatePolicy.PolicyChain;
+    /// <summary>
+    /// Gets or sets the known-certificate store path.
+    /// </summary>
+
+    public string? KnownCertificatesPath { get; set; }
+    /// <summary>
+    /// Gets or sets the FTP control connection timeout, in milliseconds.
+    /// </summary>
+
+    public int? ConnectTimeout { get; set; }
+    /// <summary>
+    /// Gets or sets the FTP control socket read timeout, in milliseconds.
+    /// </summary>
+
+    public int? ReadTimeout { get; set; }
+    /// <summary>
+    /// Gets or sets the FTP data connection timeout, in milliseconds.
+    /// </summary>
+
+    public int? DataConnectionConnectTimeout { get; set; }
+    /// <summary>
+    /// Gets or sets the FTP data socket read timeout, in milliseconds.
+    /// </summary>
+
+    public int? DataConnectionReadTimeout { get; set; }
+    /// <summary>
+    /// Gets or sets the number of retry attempts for verified transfers.
+    /// </summary>
+
+    public int? RetryAttempts { get; set; }
+    /// <summary>
+    /// Gets or sets the number of bytes transferred in a single FTP transfer chunk.
+    /// </summary>
+
+    public int? TransferChunkSize { get; set; }
+    /// <summary>
+    /// Gets or sets the local file buffer size used by FTP transfers.
+    /// </summary>
+
+    public int? LocalFileBufferSize { get; set; }
+    /// <summary>
+    /// Gets or sets the internet protocol versions allowed for FTP connections.
+    /// </summary>
+
+    public FtpIpVersion? InternetProtocolVersions { get; set; }
+    /// <summary>
+    /// Gets or sets the upload rate limit in kilobytes per second.
+    /// </summary>
+
+    public uint? UploadRateLimit { get; set; }
+    /// <summary>
+    /// Gets or sets the download rate limit in kilobytes per second.
+    /// </summary>
+
+    public uint? DownloadRateLimit { get; set; }
+    /// <summary>
+    /// Gets or sets the data type used by high-level FTP uploads.
+    /// </summary>
+
+    public FtpDataType? UploadDataType { get; set; }
+    /// <summary>
+    /// Gets or sets the data type used by high-level FTP downloads.
+    /// </summary>
+
+    public FtpDataType? DownloadDataType { get; set; }
+    /// <summary>
+    /// Gets or sets the data type used by FTP directory listings.
+    /// </summary>
+
+    public FtpDataType? ListingDataType { get; set; }
+    /// <summary>
+    /// Gets or sets the data type used by FXP server-to-server transfers.
+    /// </summary>
+
+    public FtpDataType? FXPDataType { get; set; }
+    /// <summary>
+    /// Gets or sets how often FXP progress is reported.
+    /// </summary>
+
+    public int? FXPProgressInterval { get; set; }
+    /// <summary>
+    /// Gets or sets active-mode data ports.
+    /// </summary>
+
+    public int[]? ActivePorts { get; set; }
+    /// <summary>
+    /// Gets or sets passive-mode ports to avoid.
+    /// </summary>
+
+    public int[]? PassiveBlockedPorts { get; set; }
+    /// <summary>
+    /// Gets or sets the maximum number of passive-mode connection attempts.
+    /// </summary>
+
+    public int? PassiveMaxAttempts { get; set; }
+    /// <summary>
+    /// Gets or sets the text encoding name used by the FTP control channel.
+    /// </summary>
+
+    public string? EncodingName { get; set; }
+    /// <summary>
     /// Gets or sets a value indicating whether send Host.
     /// </summary>
 

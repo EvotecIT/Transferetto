@@ -1,3 +1,5 @@
+using System;
+
 namespace Transferetto;
 /// <summary>
 /// Represents the outcome of a file or directory transfer.
@@ -43,6 +45,33 @@ public sealed class TransferettoTransferResult {
     /// </summary>
 
     public string? RemotePath { get; init; }
+    /// <summary>
+    /// Gets or sets the number of bytes transferred when known.
+    /// </summary>
+
+    public long? BytesTransferred { get; init; }
+    /// <summary>
+    /// Gets or sets the expected total number of bytes when known.
+    /// </summary>
+
+    public long? TotalBytes { get; init; }
+    /// <summary>
+    /// Gets or sets the UTC timestamp when the transfer started.
+    /// </summary>
+
+    public DateTime? StartedUtc { get; init; }
+    /// <summary>
+    /// Gets or sets the UTC timestamp when the transfer completed.
+    /// </summary>
+
+    public DateTime? CompletedUtc { get; init; }
+    /// <summary>
+    /// Gets the transfer duration when start and completion timestamps are known.
+    /// </summary>
+
+    public TimeSpan? Elapsed => StartedUtc.HasValue && CompletedUtc.HasValue
+        ? CompletedUtc.Value - StartedUtc.Value
+        : null;
     /// <summary>
     /// Gets or sets the message reported for the operation.
     /// </summary>

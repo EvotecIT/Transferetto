@@ -34,6 +34,11 @@ public sealed class TransferettoSftpSession : IDisposable {
 
     public string? Error { get; internal set; }
     /// <summary>
+    /// Gets or sets the host Key Info.
+    /// </summary>
+
+    public TransferettoSshHostKeyInfo? HostKeyInfo { get; internal set; }
+    /// <summary>
     /// Create Directory.
     /// </summary>
 

@@ -5,7 +5,7 @@ namespace Transferetto;
 /// Represents connection settings for SSH-based sessions.
 /// </summary>
 
-public sealed class TransferettoSshConnectionOptions {
+public class TransferettoSshConnectionOptions {
     /// <summary>
     /// Gets or sets the server.
     /// </summary>
