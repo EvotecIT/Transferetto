@@ -41,7 +41,8 @@ if ($Standard -and $Core -and $Default) {
     $Framework = ''
     $FrameworkNet = 'Default'
 } else {
-    Write-Error -Message 'No assemblies found'
+    $Framework = ''
+    $FrameworkNet = ''
 }
 if ($PSEdition -eq 'Core') {
     $LibFolder = $Framework
