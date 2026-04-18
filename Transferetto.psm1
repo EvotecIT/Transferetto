@@ -1,9 +1,10 @@
 # Remaining PowerShell script assets, if any, are intentionally ignored at runtime.
-$Classes = @(Get-ChildItem -Path $PSScriptRoot\Classes\*.ps1 -ErrorAction SilentlyContinue -Recurse)
-$Enums = @(Get-ChildItem -Path $PSScriptRoot\Enums\*.ps1 -ErrorAction SilentlyContinue -Recurse)
+$Classes = @(Get-ChildItem -Path ([IO.Path]::Combine($PSScriptRoot, 'Classes', '*.ps1')) -ErrorAction SilentlyContinue -Recurse)
+$Enums = @(Get-ChildItem -Path ([IO.Path]::Combine($PSScriptRoot, 'Enums', '*.ps1')) -ErrorAction SilentlyContinue -Recurse)
 
 # Get all assemblies
-$AssemblyFolders = Get-ChildItem -Path $PSScriptRoot\Lib -Directory -ErrorAction SilentlyContinue
+$LibRoot = [IO.Path]::Combine($PSScriptRoot, 'Lib')
+$AssemblyFolders = Get-ChildItem -Path $LibRoot -Directory -ErrorAction SilentlyContinue
 
 # Lets find which libraries we need to load
 $Default = $false
@@ -62,14 +63,14 @@ $IgnoreLibraryFiles = @(
 )
 $Assembly = @(
     if ($Framework -and $PSEdition -eq 'Core') {
-        Get-ChildItem -Path $PSScriptRoot\Lib\$Framework\*.dll -ErrorAction SilentlyContinue -Recurse
+        Get-ChildItem -Path ([IO.Path]::Combine($LibRoot, $Framework, '*.dll')) -ErrorAction SilentlyContinue -Recurse
     }
     if ($FrameworkNet -and $PSEdition -ne 'Core') {
-        Get-ChildItem -Path $PSScriptRoot\Lib\$FrameworkNet\*.dll -ErrorAction SilentlyContinue -Recurse
+        Get-ChildItem -Path ([IO.Path]::Combine($LibRoot, $FrameworkNet, '*.dll')) -ErrorAction SilentlyContinue -Recurse
     }
 )
 $Development = $false
-$DevelopmentPath = "$PSScriptRoot\Sources\Transferetto.PowerShell\bin\Debug"
+$DevelopmentPath = [IO.Path]::Combine($PSScriptRoot, 'Sources', 'Transferetto.PowerShell', 'bin', 'Debug')
 $DevelopmentFolderDefault = 'net472'
 $DevelopmentFolderCore = 'net8.0'
 $BinaryModulePaths = @(
@@ -90,9 +91,9 @@ $BinaryModulePaths = @(
 if ($Development) {
     $Assembly = @(
         if ($PSEdition -eq 'Core') {
-            Get-ChildItem -Path "$DevelopmentPath\$DevelopmentFolderCore\*.dll" -ErrorAction SilentlyContinue -Recurse
+            Get-ChildItem -Path ([IO.Path]::Combine($DevelopmentPath, $DevelopmentFolderCore, '*.dll')) -ErrorAction SilentlyContinue -Recurse
         } else {
-            Get-ChildItem -Path "$DevelopmentPath\$DevelopmentFolderDefault\*.dll" -ErrorAction SilentlyContinue -Recurse
+            Get-ChildItem -Path ([IO.Path]::Combine($DevelopmentPath, $DevelopmentFolderDefault, '*.dll')) -ErrorAction SilentlyContinue -Recurse
         }
     )
 }

@@ -42,7 +42,7 @@ foreach ($Module in $PSDInformation.RequiredModules) {
 }
 Write-Color
 
-Import-Module $PSScriptRoot\*.psd1 -Force
+Import-Module ([IO.Path]::Combine($PSScriptRoot, '*.psd1')) -Force
 
 $PesterCommand = Get-Command -Name Invoke-Pester
 $InvokePesterParameters = @{
