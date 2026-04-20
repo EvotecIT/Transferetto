@@ -34,7 +34,7 @@ public static partial class TransferettoClient {
             ConfigureFtpClient(client, options);
             if (!options.ValidateAnyCertificate) {
                 client.ValidateCertificate += (_, args) => {
-                    certificateInfo = EvaluateFtpCertificateTrust(options, args);
+                    certificateInfo = EvaluateFtpCertificateTrust(options, client, args);
                     args.Accept = certificateInfo.CanTrust;
                 };
             }
@@ -809,7 +809,7 @@ public static partial class TransferettoClient {
         }
     }
 
-    private static TransferettoFtpCertificateInfo EvaluateFtpCertificateTrust(TransferettoFtpConnectionOptions options, FtpSslValidationEventArgs args) {
+    private static TransferettoFtpCertificateInfo EvaluateFtpCertificateTrust(TransferettoFtpConnectionOptions options, FtpClient client, FtpSslValidationEventArgs args) {
         TransferettoFtpCertificateInfo certificateInfo = CreateFtpCertificateInfo(args);
 
         if (HasExpectedCertificateThumbprints(options)) {
@@ -821,8 +821,8 @@ public static partial class TransferettoClient {
         }
 
         return options.CertificatePolicy switch {
-            TransferettoFtpCertificatePolicy.KnownCertificates => EvaluateKnownCertificateTrust(options, certificateInfo, false),
-            TransferettoFtpCertificatePolicy.TrustOnFirstUse => EvaluateKnownCertificateTrust(options, certificateInfo, true),
+            TransferettoFtpCertificatePolicy.KnownCertificates => EvaluateKnownCertificateTrust(options, client, certificateInfo, false),
+            TransferettoFtpCertificatePolicy.TrustOnFirstUse => EvaluateKnownCertificateTrust(options, client, certificateInfo, true),
             _ => EvaluatePolicyChainTrust(args, certificateInfo)
         };
     }
@@ -837,14 +837,17 @@ public static partial class TransferettoClient {
 
     private static TransferettoFtpCertificateInfo EvaluateKnownCertificateTrust(
         TransferettoFtpConnectionOptions options,
+        FtpClient client,
         TransferettoFtpCertificateInfo certificateInfo,
         bool trustOnFirstUse) {
         string knownCertificatesPath = ResolveKnownCertificatesPath(options);
         certificateInfo.KnownCertificatesPath = knownCertificatesPath;
+        string host = ResolveFtpTrustHost(options, client);
+        int port = ResolveFtpTrustPort(options, client);
 
         List<TransferettoFtpKnownCertificateEntry> entries = LoadKnownCertificates(knownCertificatesPath);
         TransferettoFtpKnownCertificateEntry[] matchingEntries = entries
-            .Where(entry => string.Equals(entry.Host, options.Server, StringComparison.OrdinalIgnoreCase) && entry.Port == ResolveFtpPort(options))
+            .Where(entry => string.Equals(entry.Host, host, StringComparison.OrdinalIgnoreCase) && entry.Port == port)
             .ToArray();
 
         if (matchingEntries.Length == 0) {
@@ -854,7 +857,7 @@ public static partial class TransferettoClient {
                 return certificateInfo;
             }
 
-            entries.Add(CreateKnownCertificateEntry(options, certificateInfo));
+            entries.Add(CreateKnownCertificateEntry(options, client, certificateInfo));
             SaveKnownCertificates(knownCertificatesPath, entries);
             certificateInfo.CanTrust = true;
             certificateInfo.TrustSource = TransferettoFtpCertificateTrustSource.TrustOnFirstUse;
@@ -1013,11 +1016,12 @@ public static partial class TransferettoClient {
 
     private static TransferettoFtpKnownCertificateEntry CreateKnownCertificateEntry(
         TransferettoFtpConnectionOptions options,
+        FtpClient client,
         TransferettoFtpCertificateInfo certificateInfo) {
         string now = DateTime.UtcNow.ToString("O");
         return new TransferettoFtpKnownCertificateEntry {
-            Host = options.Server ?? string.Empty,
-            Port = ResolveFtpPort(options),
+            Host = ResolveFtpTrustHost(options, client),
+            Port = ResolveFtpTrustPort(options, client),
             Subject = certificateInfo.Subject,
             Issuer = certificateInfo.Issuer,
             ThumbprintSHA1 = certificateInfo.ThumbprintSHA1,
@@ -1025,6 +1029,22 @@ public static partial class TransferettoClient {
             FirstSeenUtc = now,
             LastSeenUtc = now
         };
+    }
+
+    private static string ResolveFtpTrustHost(TransferettoFtpConnectionOptions options, FtpClient client) {
+        if (!string.IsNullOrWhiteSpace(client.Host)) {
+            return client.Host;
+        }
+
+        return options.Server ?? string.Empty;
+    }
+
+    private static int ResolveFtpTrustPort(TransferettoFtpConnectionOptions options, FtpClient client) {
+        if (client.Port > 0) {
+            return client.Port;
+        }
+
+        return ResolveFtpPort(options);
     }
 
     private static string SanitizeKnownCertificateValue(string? value) {

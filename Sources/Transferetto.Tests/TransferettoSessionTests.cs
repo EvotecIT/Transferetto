@@ -254,6 +254,7 @@ public sealed class TransferettoSessionTests {
             KnownCertificatesPath = path,
             CertificatePolicy = TransferettoFtpCertificatePolicy.TrustOnFirstUse
         };
+        FtpClient client = new("ftps.example.com", 990);
         TransferettoFtpCertificateInfo firstSeenCertificate = new() {
             Subject = "CN=ftps.example.com",
             Issuer = "CN=Example CA",
@@ -262,14 +263,14 @@ public sealed class TransferettoSessionTests {
         };
         MethodInfo method = typeof(TransferettoClient).GetMethod("EvaluateKnownCertificateTrust", BindingFlags.Static | BindingFlags.NonPublic)!;
 
-        TransferettoFtpCertificateInfo trustedFirstSeen = (TransferettoFtpCertificateInfo) method.Invoke(null, new object[] { options, firstSeenCertificate, true })!;
+        TransferettoFtpCertificateInfo trustedFirstSeen = (TransferettoFtpCertificateInfo) method.Invoke(null, new object[] { options, client, firstSeenCertificate, true })!;
         TransferettoFtpCertificateInfo knownCertificate = new() {
             Subject = firstSeenCertificate.Subject,
             Issuer = firstSeenCertificate.Issuer,
             ThumbprintSHA1 = firstSeenCertificate.ThumbprintSHA1,
             ThumbprintSHA256 = firstSeenCertificate.ThumbprintSHA256
         };
-        TransferettoFtpCertificateInfo trustedKnownCertificate = (TransferettoFtpCertificateInfo) method.Invoke(null, new object[] { options, knownCertificate, false })!;
+        TransferettoFtpCertificateInfo trustedKnownCertificate = (TransferettoFtpCertificateInfo) method.Invoke(null, new object[] { options, client, knownCertificate, false })!;
 
         Assert.True(trustedFirstSeen.CanTrust);
         Assert.True(trustedFirstSeen.WasPersisted);
@@ -278,6 +279,29 @@ public sealed class TransferettoSessionTests {
         Assert.True(trustedKnownCertificate.CanTrust);
         Assert.False(trustedKnownCertificate.WasPersisted);
         Assert.Equal(TransferettoFtpCertificateTrustSource.KnownCertificates, trustedKnownCertificate.TrustSource);
+    }
+
+    [Fact]
+    public void FtpKnownCertificateTrustUsesResolvedClientEndpointWhenOptionsAreUnset() {
+        string path = Path.Combine(Path.GetTempPath(), "Transferetto.Tests", Guid.NewGuid().ToString("N"), "ftps-known-certificates.tsv");
+        TransferettoFtpConnectionOptions options = new() {
+            KnownCertificatesPath = path,
+            CertificatePolicy = TransferettoFtpCertificatePolicy.TrustOnFirstUse
+        };
+        FtpClient client = new("profile-host.example.com", 2121);
+        TransferettoFtpCertificateInfo certificate = new() {
+            Subject = "CN=profile-host.example.com",
+            Issuer = "CN=Example CA",
+            ThumbprintSHA1 = "SHA1:1111222233334444555566667777888899990000",
+            ThumbprintSHA256 = "SHA256:AAAABBBBCCCCDDDDEEEEFFFF0000111122223333444455556666777788889999"
+        };
+        MethodInfo trustMethod = typeof(TransferettoClient).GetMethod("EvaluateKnownCertificateTrust", BindingFlags.Static | BindingFlags.NonPublic)!;
+
+        TransferettoFtpCertificateInfo trustedFirstSeen = (TransferettoFtpCertificateInfo) trustMethod.Invoke(null, new object[] { options, client, certificate, true })!;
+        string persistedLine = Assert.Single(File.ReadAllLines(path));
+
+        Assert.True(trustedFirstSeen.CanTrust);
+        Assert.StartsWith("profile-host.example.com\t2121\t", persistedLine, StringComparison.Ordinal);
     }
 
     [Fact]
