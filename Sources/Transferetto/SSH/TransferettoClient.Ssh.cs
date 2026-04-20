@@ -515,15 +515,23 @@ public static partial class TransferettoClient {
     }
 
     private static void ValidateSshProxyOptions(TransferettoSshConnectionOptions options) {
+        bool hasProxyHost = !string.IsNullOrWhiteSpace(options.ProxyHost);
+        bool hasProxyPort = options.ProxyPort.HasValue && options.ProxyPort.Value > 0;
+        bool hasProxyCredential = options.ProxyCredential is not null;
+
         if (options.ProxyType == TransferettoSshProxyType.None) {
+            if (hasProxyHost || hasProxyPort || hasProxyCredential) {
+                throw new InvalidOperationException("ProxyType must be specified when ProxyHost, ProxyPort, or ProxyCredential is provided.");
+            }
+
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(options.ProxyHost)) {
+        if (!hasProxyHost) {
             throw new InvalidOperationException("ProxyHost must be provided when ProxyType is enabled.");
         }
 
-        if (!options.ProxyPort.HasValue || options.ProxyPort.Value <= 0) {
+        if (!hasProxyPort) {
             throw new InvalidOperationException("ProxyPort must be a positive value when ProxyType is enabled.");
         }
     }

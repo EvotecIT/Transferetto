@@ -77,4 +77,15 @@ Describe 'Transferetto module import' {
                 -ErrorAction Stop
         } | Should -Throw '*ProxyPort*'
     }
+
+    It 'rejects SSH proxy settings when ProxyType is omitted' {
+        {
+            Connect-SSH -Server 'ssh.example.com' `
+                -Username 'user' `
+                -Password 'password' `
+                -ProxyHost 'proxy.example.com' `
+                -ProxyPort 1080 `
+                -ErrorAction Stop
+        } | Should -Throw '*ProxyType*'
+    }
 }

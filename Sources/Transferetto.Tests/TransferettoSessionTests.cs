@@ -524,6 +524,51 @@ public sealed class TransferettoSessionTests {
     }
 
     [Fact]
+    public void ConnectSshRejectsPartialProxySettingsWhenProxyTypeIsUnset() {
+        TransferettoSshConnectionOptions options = new() {
+            Server = "ssh.example.com",
+            UserName = "user",
+            Password = "password",
+            ProxyHost = "proxy.example.com",
+            ProxyPort = 1080
+        };
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => TransferettoClient.ConnectSsh(options));
+
+        Assert.Contains("ProxyType", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ConnectSftpRejectsPartialProxySettingsWhenProxyTypeIsUnset() {
+        TransferettoSftpConnectionOptions options = new() {
+            Server = "sftp.example.com",
+            UserName = "user",
+            Password = "password",
+            ProxyHost = "proxy.example.com",
+            ProxyPort = 1080
+        };
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => TransferettoClient.ConnectSftp(options));
+
+        Assert.Contains("ProxyType", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ConnectScpRejectsPartialProxySettingsWhenProxyTypeIsUnset() {
+        TransferettoSshConnectionOptions options = new() {
+            Server = "scp.example.com",
+            UserName = "user",
+            Password = "password",
+            ProxyHost = "proxy.example.com",
+            ProxyPort = 1080
+        };
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => TransferettoClient.ConnectScp(options));
+
+        Assert.Contains("ProxyType", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ScpSessionExposesWrappedClientProperties() {
         TransferettoScpSession session = CreateScpSession(new ScpClient("scp.example.com", "user", "password"), "none");
         TransferettoSshHostKeyInfo hostKeyInfo = new() {
