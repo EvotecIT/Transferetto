@@ -18,6 +18,7 @@ public static partial class TransferettoClient {
     public static TransferettoSftpSession ConnectSftp(TransferettoSftpConnectionOptions options) {
         EnsureNotNull(options, nameof(options));
         EnsureNotNullOrWhiteSpace(options.Server, nameof(options.Server));
+        ValidateSshHostKeyTrustOptions(options);
 
         SftpClient client = CreateSftpClient(options);
         TransferettoSshHostKeyInfo? hostKeyInfo = null;
@@ -345,18 +346,19 @@ public static partial class TransferettoClient {
             Directory.CreateDirectory(directory);
         }
 
-        using FileStream fileStream = new(localPath, FileMode.Create, FileAccess.Write, FileShare.None);
-        session.Client.DownloadFile(remotePath, fileStream, transferredBytes => {
-            bytesTransferred = ReportTransferProgress(
-                resolvedOptions,
-                "DownloadFile",
-                "SFTP",
-                TransferettoTransferDirection.Download,
-                localPath,
-                remotePath,
-                transferredBytes,
-                totalBytes,
-                bytesTransferred);
+        WriteLocalFileAtomically(localPath, fileStream => {
+            session.Client.DownloadFile(remotePath, fileStream, transferredBytes => {
+                bytesTransferred = ReportTransferProgress(
+                    resolvedOptions,
+                    "DownloadFile",
+                    "SFTP",
+                    TransferettoTransferDirection.Download,
+                    localPath,
+                    remotePath,
+                    transferredBytes,
+                    totalBytes,
+                    bytesTransferred);
+            });
         });
         if (bytesTransferred < totalBytes) {
             bytesTransferred = ReportTransferProgress(
@@ -778,6 +780,46 @@ public static partial class TransferettoClient {
     private static void EnsureFileExists(string path, string paramName) {
         if (!File.Exists(path)) {
             throw new FileNotFoundException($"File {path} does not exist.", path);
+        }
+    }
+
+    private static void WriteLocalFileAtomically(string localPath, Action<FileStream> writer) {
+        string temporaryPath = CreateTemporaryLocalTransferPath(localPath);
+
+        try {
+            using (FileStream fileStream = new(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
+                writer(fileStream);
+                fileStream.Flush();
+            }
+
+            if (File.Exists(localPath)) {
+                File.Delete(localPath);
+            }
+
+            File.Move(temporaryPath, localPath);
+        } catch {
+            TryDeleteLocalFile(temporaryPath);
+            throw;
+        }
+    }
+
+    private static string CreateTemporaryLocalTransferPath(string localPath) {
+        string? directory = Path.GetDirectoryName(localPath);
+        string fileName = Path.GetFileName(localPath);
+        string temporaryFileName = $"{fileName}.transferetto.{Guid.NewGuid():N}.part";
+
+        return string.IsNullOrWhiteSpace(directory)
+            ? temporaryFileName
+            : Path.Combine(directory, temporaryFileName);
+    }
+
+    private static void TryDeleteLocalFile(string path) {
+        try {
+            if (File.Exists(path)) {
+                File.Delete(path);
+            }
+        } catch {
+            // Best-effort cleanup: preserve the original transfer error.
         }
     }
 

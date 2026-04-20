@@ -16,6 +16,7 @@ public static partial class TransferettoClient {
     public static TransferettoScpSession ConnectScp(TransferettoSshConnectionOptions options) {
         EnsureNotNull(options, nameof(options));
         EnsureNotNullOrWhiteSpace(options.Server, nameof(options.Server));
+        ValidateSshHostKeyTrustOptions(options);
 
         ScpClient client = CreateScpClient(options);
         TransferettoSshHostKeyInfo? hostKeyInfo = null;

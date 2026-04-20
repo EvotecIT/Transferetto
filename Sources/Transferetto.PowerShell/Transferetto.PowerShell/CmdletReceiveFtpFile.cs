@@ -99,6 +99,10 @@ public sealed class CmdletReceiveFtpFile : PSCmdlet
 			if (list.Count != 0)
 			{
 				bool flag = Directory.Exists(localPath);
+				if (list.Count > 1 && File.Exists(localPath))
+				{
+					throw new PSArgumentException("LocalPath must reference a directory when downloading multiple remote files.", nameof(LocalPath));
+				}
 				TransferettoTransferOptions options = new()
 				{
 					CancellationToken = cancellationTokenSource.Token,

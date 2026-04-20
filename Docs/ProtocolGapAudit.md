@@ -1,6 +1,6 @@
 # Transferetto protocol gap audit
 
-Last updated: 2026-04-17
+Last updated: 2026-04-20
 
 This document tracks the current Transferetto protocol surface after the migration to a reusable C# library and binary PowerShell cmdlets. It is intentionally implementation-focused: what exists today, what is missing for a fuller protocol surface, and what should be prioritized before building CLI or MCP layers.
 
@@ -60,6 +60,13 @@ This document tracks the current Transferetto protocol surface after the migrati
 - FTPS certificate thumbprint pinning with captured certificate metadata
 - FTPS certificate policy selection with platform-chain, known-certificate, and trust-on-first-use modes
 
+### Validated behavior
+
+- Explicit FTPS connect, list, upload, and download were validated against a local WSL `vsftpd` harness with `require_ssl_reuse=YES`.
+- Public explicit and implicit FTPS connections were validated against `test.rebex.net`.
+- `UseGnuTls` works against the public Rebex FTPS server after native dependency preloading on Windows.
+- A public `ftp.dlptest.com` explicit-FTPS attempt reproduced a real `522` session-reuse error during investigation, but that server was not stable enough to rely on as an automated regression target.
+
 ### Gaps
 
 - No dedicated `Connect-FTPS` alias/cmdlet; FTPS is discoverable only through `Connect-FTP -EncryptionMode`.
@@ -96,6 +103,11 @@ This document tracks the current Transferetto protocol surface after the migrati
 - text and byte content read/write helpers
 - managed SFTP streams: open, read, write, seek, sync, close
 
+### Validated behavior
+
+- Public SFTP listing and file download were validated against `test.rebex.net` with optional live PowerShell tests.
+- Local SFTP downloads now write through an atomic temporary file and release the file handle before the final move on Windows.
+
 ### Gaps
 
 - SFTP now reuses the SSH/SCP trust/auth option model, including host-key policy, known-hosts, expected fingerprints, keepalive, timeout, retry, proxy, keyboard-interactive, and private-key passphrase.
@@ -124,6 +136,10 @@ This document tracks the current Transferetto protocol surface after the migrati
 - send and receive directory
 - shared transfer options, progress reporting, cancellation token checks, byte counts, and timing metadata for file and directory transfer
 
+### Validated behavior
+
+- Public SCP file download was validated against `test.rebex.net` with optional live PowerShell tests.
+
 ### Gaps
 
 - SCP intentionally has no listing, metadata, chmod, or stream lane. That is normal; users should use SFTP for filesystem management.
@@ -148,6 +164,10 @@ This document tracks the current Transferetto protocol surface after the migrati
 - proxy options
 - one-shot command execution through `Send-SSHCommand`
 - structured command result type
+
+### Validated behavior
+
+- Public SSH command execution was validated against `test.rebex.net` with an opt-in live test that runs `pwd`.
 
 ### Gaps
 
@@ -253,14 +273,11 @@ Each protocol currently has its own options style. Before CLI/MCP, introduce com
 
 ### Testing
 
-Current tests cover model behavior and build/import health, but there is no dedicated integration test harness. Add optional live tests gated by environment variables for:
+Current tests cover model behavior and build/import health. A local FTPS integration harness now exists through `Build/Start-LocalFtpsServer.ps1`, `Build/Stop-LocalFtpsServer.ps1`, and `Tests/Local-FTPS.Tests.ps1`, using WSL Ubuntu with `vsftpd` on demand. That harness currently validates explicit FTPS listing plus upload/download round-trips through the PowerShell module. Public read-only SSH-family validation also exists through `Tests/Live-SSH.Tests.ps1`, gated by `TRANSFERETTO_RUN_LIVE_SSH_TESTS=1`, and currently covers SFTP listing/download, SCP download, and SSH command execution against `test.rebex.net`. Broader protocol integration coverage is still missing. Add optional live tests gated by environment variables for:
 
 - FTP
 - FTPS
 - FXP
-- SFTP
-- SCP
-- SSH command
 - SSH shell
 - SSH tunnel
 

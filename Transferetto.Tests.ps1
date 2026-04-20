@@ -54,13 +54,24 @@ if ($PesterCommand.Parameters.ContainsKey('Path')) {
 } else {
     $InvokePesterParameters.Script = "$PSScriptRoot\Tests"
 }
+$ExcludedTags = [System.Collections.Generic.List[string]]::new()
 if ($env:TRANSFERETTO_RUN_LIVE_FTP_TESTS -ne '1') {
+    Write-Color 'Skipping public live FTP tests. Set TRANSFERETTO_RUN_LIVE_FTP_TESTS=1 to include them.' -Color Yellow
+    $null = $ExcludedTags.Add('LiveFTP')
+}
+if ($env:TRANSFERETTO_RUN_LIVE_SSH_TESTS -ne '1') {
+    Write-Color 'Skipping public live SSH/SFTP/SCP tests. Set TRANSFERETTO_RUN_LIVE_SSH_TESTS=1 to include them.' -Color Yellow
+    $null = $ExcludedTags.Add('LiveSSH')
+}
+if ($env:TRANSFERETTO_RUN_LOCAL_FTPS_TESTS -ne '1') {
+    Write-Color 'Skipping local FTPS tests. Set TRANSFERETTO_RUN_LOCAL_FTPS_TESTS=1 to include them.' -Color Yellow
+    $null = $ExcludedTags.Add('LocalFTPS')
+}
+if ($ExcludedTags.Count -gt 0) {
     if ($PesterCommand.Parameters.ContainsKey('ExcludeTagFilter')) {
-        Write-Color 'Skipping live FTP tests. Set TRANSFERETTO_RUN_LIVE_FTP_TESTS=1 to include them.' -Color Yellow
-        $InvokePesterParameters.ExcludeTagFilter = 'LiveFTP'
+        $InvokePesterParameters.ExcludeTagFilter = $ExcludedTags.ToArray()
     } elseif ($PesterCommand.Parameters.ContainsKey('ExcludeTag')) {
-        Write-Color 'Skipping live FTP tests. Set TRANSFERETTO_RUN_LIVE_FTP_TESTS=1 to include them.' -Color Yellow
-        $InvokePesterParameters.ExcludeTag = 'LiveFTP'
+        $InvokePesterParameters.ExcludeTag = $ExcludedTags.ToArray()
     }
 }
 

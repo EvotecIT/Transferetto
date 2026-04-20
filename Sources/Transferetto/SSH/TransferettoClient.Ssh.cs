@@ -22,6 +22,7 @@ public static partial class TransferettoClient {
     public static TransferettoSshSession ConnectSsh(TransferettoSshConnectionOptions options) {
         EnsureNotNull(options, nameof(options));
         EnsureNotNullOrWhiteSpace(options.Server, nameof(options.Server));
+        ValidateSshHostKeyTrustOptions(options);
 
         SshClient client = CreateSshClient(options);
         TransferettoSshHostKeyInfo? hostKeyInfo = null;
@@ -503,6 +504,13 @@ public static partial class TransferettoClient {
     private static SshClient CreateSshClient(TransferettoSshConnectionOptions options) {
         ConnectionInfo connectionInfo = CreateSshConnectionInfo(options);
         return new SshClient(connectionInfo);
+    }
+
+    private static void ValidateSshHostKeyTrustOptions(TransferettoSshConnectionOptions options) {
+        bool hasExpectedFingerprints = options.ExpectedHostKeyFingerprints?.Any(static value => !string.IsNullOrWhiteSpace(value)) == true;
+        if (options.AcceptAnyHostKey && hasExpectedFingerprints) {
+            throw new InvalidOperationException("AcceptAnyHostKey cannot be combined with ExpectedHostKeyFingerprints.");
+        }
     }
 
     private static string ReadSshShellWithTimeout(ShellStream shellStream, TimeSpan timeout) {

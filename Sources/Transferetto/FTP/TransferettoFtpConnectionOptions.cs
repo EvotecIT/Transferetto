@@ -57,6 +57,11 @@ public sealed class TransferettoFtpConnectionOptions {
 
     public bool ValidateAnyCertificate { get; set; }
     /// <summary>
+    /// Gets or sets a value indicating whether the FluentFTP GnuTLS stream should be used for FTPS connections.
+    /// </summary>
+
+    public bool UseGnuTls { get; set; }
+    /// <summary>
     /// Gets or sets expected FTPS certificate thumbprints.
     /// </summary>
 
@@ -91,6 +96,26 @@ public sealed class TransferettoFtpConnectionOptions {
     /// </summary>
 
     public int? DataConnectionReadTimeout { get; set; }
+    /// <summary>
+    /// Gets or sets the FTP control connection NOOP interval, in milliseconds. Set to 0 to disable NOOPs.
+    /// </summary>
+
+    public int? NoopInterval { get; set; }
+    /// <summary>
+    /// Gets or sets the maximum number of FTPS control-channel transactions before the client reconnects.
+    /// </summary>
+
+    public int? SslSessionLength { get; set; }
+    /// <summary>
+    /// Gets or sets a value indicating whether the CCC command should be used after authentication.
+    /// </summary>
+
+    public bool EncryptAuthenticationOnly { get; set; }
+    /// <summary>
+    /// Gets or sets how FluentFTP should reconnect when it needs a control connection.
+    /// </summary>
+
+    public FtpSelfConnectMode? SelfConnectMode { get; set; }
     /// <summary>
     /// Gets or sets the number of retry attempts for verified transfers.
     /// </summary>

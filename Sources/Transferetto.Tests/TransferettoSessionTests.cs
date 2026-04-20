@@ -38,10 +38,15 @@ public sealed class TransferettoSessionTests {
     public void FtpConnectionOptionsStoreAdvancedRuntimeSettings() {
         TransferettoFtpConnectionOptions options = new() {
             Server = "ftp.example.com",
+            UseGnuTls = true,
             ConnectTimeout = 15000,
             ReadTimeout = 16000,
             DataConnectionConnectTimeout = 17000,
             DataConnectionReadTimeout = 18000,
+            NoopInterval = 0,
+            SslSessionLength = 32,
+            EncryptAuthenticationOnly = true,
+            SelfConnectMode = FtpSelfConnectMode.Always,
             RetryAttempts = 3,
             TransferChunkSize = 65536,
             LocalFileBufferSize = 32768,
@@ -60,9 +65,14 @@ public sealed class TransferettoSessionTests {
         };
 
         Assert.Equal(15000, options.ConnectTimeout);
+        Assert.True(options.UseGnuTls);
         Assert.Equal(16000, options.ReadTimeout);
         Assert.Equal(17000, options.DataConnectionConnectTimeout);
         Assert.Equal(18000, options.DataConnectionReadTimeout);
+        Assert.Equal(0, options.NoopInterval);
+        Assert.Equal(32, options.SslSessionLength);
+        Assert.True(options.EncryptAuthenticationOnly);
+        Assert.Equal(FtpSelfConnectMode.Always, options.SelfConnectMode);
         Assert.Equal(3, options.RetryAttempts);
         Assert.Equal(65536, options.TransferChunkSize);
         Assert.Equal(32768, options.LocalFileBufferSize);
@@ -84,10 +94,16 @@ public sealed class TransferettoSessionTests {
     public void ConfigureFtpClientAppliesAdvancedRuntimeSettings() {
         using FtpClient client = new("ftp.example.com");
         TransferettoFtpConnectionOptions options = new() {
+            EncryptionMode = new[] { FtpEncryptionMode.Explicit },
+            UseGnuTls = true,
             ConnectTimeout = 15000,
             ReadTimeout = 16000,
             DataConnectionConnectTimeout = 17000,
             DataConnectionReadTimeout = 18000,
+            NoopInterval = 0,
+            SslSessionLength = 32,
+            EncryptAuthenticationOnly = true,
+            SelfConnectMode = FtpSelfConnectMode.Always,
             RetryAttempts = 3,
             TransferChunkSize = 65536,
             LocalFileBufferSize = 32768,
@@ -112,6 +128,10 @@ public sealed class TransferettoSessionTests {
         Assert.Equal(16000, client.Config.ReadTimeout);
         Assert.Equal(17000, client.Config.DataConnectionConnectTimeout);
         Assert.Equal(18000, client.Config.DataConnectionReadTimeout);
+        Assert.False(client.Config.Noop);
+        Assert.Equal(32, client.Config.SslSessionLength);
+        Assert.True(client.Config.EncryptAuthenticationOnly);
+        Assert.Equal(FtpSelfConnectMode.Always, client.Config.SelfConnectMode);
         Assert.Equal(3, client.Config.RetryAttempts);
         Assert.Equal(65536, client.Config.TransferChunkSize);
         Assert.Equal(32768, client.Config.LocalFileBufferSize);
@@ -127,6 +147,7 @@ public sealed class TransferettoSessionTests {
         Assert.Equal(new[] { 60000, 60001 }, client.Config.PassiveBlockedPorts);
         Assert.Equal(4, client.Config.PassiveMaxAttempts);
         Assert.Equal("utf-8", client.Encoding.WebName);
+        Assert.Equal("FluentFTP.GnuTLS.GnuTlsStream", client.Config.CustomStream?.FullName);
     }
 
     [Fact]
@@ -163,6 +184,44 @@ public sealed class TransferettoSessionTests {
 
         Assert.Equal("AABBCCDD", sha1);
         Assert.Equal("SHA256:AABBCCDD", sha256);
+    }
+
+    [Fact]
+    public void FtpChmodFallbackUsesStructuredPermissionFlags() {
+        MethodInfo method = typeof(TransferettoClient).GetMethod("ResolveFtpChmod", BindingFlags.Static | BindingFlags.NonPublic)!;
+        FtpListItem item = new() {
+            OwnerPermissions = FtpPermission.Read | FtpPermission.Write | FtpPermission.Execute,
+            GroupPermissions = FtpPermission.Read | FtpPermission.Execute,
+            OthersPermissions = FtpPermission.Read | FtpPermission.Execute
+        };
+
+        int chmod = (int) method.Invoke(null, new object?[] { item })!;
+
+        Assert.Equal(755, chmod);
+    }
+
+    [Fact]
+    public void FtpChmodFallbackUsesRawPermissionsWhenStructuredFlagsAreUnavailable() {
+        MethodInfo method = typeof(TransferettoClient).GetMethod("ResolveFtpChmod", BindingFlags.Static | BindingFlags.NonPublic)!;
+        FtpListItem item = new() {
+            RawPermissions = "-rw-r-----"
+        };
+
+        int chmod = (int) method.Invoke(null, new object?[] { item })!;
+
+        Assert.Equal(640, chmod);
+    }
+
+    [Fact]
+    public void FtpListingPathSplitterExtractsWildcardDirectoryAndPattern() {
+        MethodInfo method = typeof(TransferettoClient).GetMethod("TrySplitFtpListingPath", BindingFlags.Static | BindingFlags.NonPublic)!;
+        object?[] arguments = { "/LOGS/Force_Data/0113*", null, null };
+
+        bool result = (bool) method.Invoke(null, arguments)!;
+
+        Assert.True(result);
+        Assert.Equal("/LOGS/Force_Data", arguments[1]);
+        Assert.Equal("0113*", arguments[2]);
     }
 
     [Fact]
@@ -348,6 +407,51 @@ public sealed class TransferettoSessionTests {
 
         Assert.Equal(TransferettoSshHostKeyPolicy.TrustOnFirstUse, options.HostKeyPolicy);
         Assert.Null(options.KnownHostsPath);
+    }
+
+    [Fact]
+    public void ConnectSshRejectsConflictingTrustSettings() {
+        TransferettoSshConnectionOptions options = new() {
+            Server = "ssh.example.com",
+            UserName = "user",
+            Password = "password",
+            AcceptAnyHostKey = true,
+            ExpectedHostKeyFingerprints = new[] { "SHA256:abc123=" }
+        };
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => TransferettoClient.ConnectSsh(options));
+
+        Assert.Contains("AcceptAnyHostKey", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ConnectSftpRejectsConflictingTrustSettings() {
+        TransferettoSftpConnectionOptions options = new() {
+            Server = "sftp.example.com",
+            UserName = "user",
+            Password = "password",
+            AcceptAnyHostKey = true,
+            ExpectedHostKeyFingerprints = new[] { "SHA256:abc123=" }
+        };
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => TransferettoClient.ConnectSftp(options));
+
+        Assert.Contains("AcceptAnyHostKey", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ConnectScpRejectsConflictingTrustSettings() {
+        TransferettoSshConnectionOptions options = new() {
+            Server = "scp.example.com",
+            UserName = "user",
+            Password = "password",
+            AcceptAnyHostKey = true,
+            ExpectedHostKeyFingerprints = new[] { "SHA256:abc123=" }
+        };
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => TransferettoClient.ConnectScp(options));
+
+        Assert.Contains("AcceptAnyHostKey", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -692,6 +796,48 @@ public sealed class TransferettoSessionTests {
 
         Assert.Equal(Convert.ToInt16("644", 8), mode644);
         Assert.Equal(Convert.ToInt16("755", 8), mode755);
+    }
+
+    [Fact]
+    public void AtomicLocalWriterPreservesExistingFileWhenWriteFails() {
+        string root = Path.Combine(Path.GetTempPath(), "Transferetto.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string localPath = Path.Combine(root, "example.txt");
+        File.WriteAllText(localPath, "original");
+        MethodInfo method = typeof(TransferettoClient).GetMethod("WriteLocalFileAtomically", BindingFlags.Static | BindingFlags.NonPublic)!;
+        Action<FileStream> writer = stream => {
+            byte[] partialContent = new byte[] { 1, 2, 3, 4 };
+            stream.Write(partialContent, 0, partialContent.Length);
+            throw new InvalidOperationException("boom");
+        };
+
+        TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, new object?[] { localPath, writer }));
+
+        Assert.IsType<InvalidOperationException>(exception.InnerException);
+        Assert.Equal("original", File.ReadAllText(localPath));
+        Assert.Empty(Directory.GetFiles(root, "*.part"));
+    }
+
+    [Fact]
+    public void AtomicLocalWriterCommitsFileAndReleasesHandleOnSuccess() {
+        string root = Path.Combine(Path.GetTempPath(), "Transferetto.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string localPath = Path.Combine(root, "example.txt");
+        MethodInfo method = typeof(TransferettoClient).GetMethod("WriteLocalFileAtomically", BindingFlags.Static | BindingFlags.NonPublic)!;
+        byte[] content = System.Text.Encoding.UTF8.GetBytes("updated");
+        Action<FileStream> writer = stream => {
+            stream.Write(content, 0, content.Length);
+        };
+
+        method.Invoke(null, new object?[] { localPath, writer });
+
+        Assert.Equal("updated", File.ReadAllText(localPath));
+        using (FileStream verificationStream = new(localPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) {
+            Assert.True(verificationStream.CanRead);
+            Assert.True(verificationStream.CanWrite);
+        }
+
+        Assert.Empty(Directory.GetFiles(root, "*.part"));
     }
 
     [Fact]

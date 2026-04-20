@@ -113,7 +113,14 @@ public static partial class TransferettoClient {
     public static object GetFtpChmod(TransferettoFtpSession session, string remotePath) {
         EnsureNotNull(session, nameof(session));
         EnsureNotNullOrWhiteSpace(remotePath, nameof(remotePath));
-        return session.Client.GetChmod(remotePath);
+        int chmod = session.Client.GetChmod(remotePath);
+        if (chmod > 0) {
+            return chmod;
+        }
+
+        FtpListItem? item = session.Client.GetObjectInfo(remotePath, false);
+        int fallbackChmod = ResolveFtpChmod(item);
+        return fallbackChmod > 0 ? fallbackChmod : chmod;
     }
     /// <summary>
     /// Sets permissions for a remote FTP or FTPS item.
@@ -560,6 +567,85 @@ public static partial class TransferettoClient {
             TotalBytes = result.Size >= 0 ? result.Size : null,
             Message = result.Exception?.Message ?? (result.IsSkipped ? "Skipped" : "Success")
         };
+    }
+
+    private static int ResolveFtpChmod(FtpListItem? item) {
+        if (item is null) {
+            return 0;
+        }
+
+        if (item.Chmod > 0) {
+            return item.Chmod;
+        }
+
+        int structuredPermissions = CombineFtpPermissions(item.OwnerPermissions, item.GroupPermissions, item.OthersPermissions);
+        if (structuredPermissions > 0) {
+            return structuredPermissions;
+        }
+
+        return ParseRawFtpPermissions(item.RawPermissions);
+    }
+
+    private static int CombineFtpPermissions(FtpPermission owner, FtpPermission group, FtpPermission other) {
+        int ownerValue = ConvertFtpPermission(owner);
+        int groupValue = ConvertFtpPermission(group);
+        int otherValue = ConvertFtpPermission(other);
+
+        return ownerValue == 0 && groupValue == 0 && otherValue == 0
+            ? 0
+            : ownerValue * 100 + groupValue * 10 + otherValue;
+    }
+
+    private static int ConvertFtpPermission(FtpPermission permission) {
+        int value = 0;
+        if ((permission & FtpPermission.Read) == FtpPermission.Read) {
+            value += 4;
+        }
+
+        if ((permission & FtpPermission.Write) == FtpPermission.Write) {
+            value += 2;
+        }
+
+        if ((permission & FtpPermission.Execute) == FtpPermission.Execute) {
+            value += 1;
+        }
+
+        return value;
+    }
+
+    private static int ParseRawFtpPermissions(string? rawPermissions) {
+        if (string.IsNullOrWhiteSpace(rawPermissions)) {
+            return 0;
+        }
+
+        string normalized = rawPermissions!.Trim();
+        if (normalized.Length < 9) {
+            return 0;
+        }
+
+        string permissionTriplets = normalized.Substring(normalized.Length - 9, 9);
+        return ConvertPermissionTriplet(permissionTriplets, 0) * 100 +
+            ConvertPermissionTriplet(permissionTriplets, 3) * 10 +
+            ConvertPermissionTriplet(permissionTriplets, 6);
+    }
+
+    private static int ConvertPermissionTriplet(string permissions, int startIndex) {
+        int value = 0;
+
+        if (permissions[startIndex] == 'r') {
+            value += 4;
+        }
+
+        if (permissions[startIndex + 1] == 'w') {
+            value += 2;
+        }
+
+        char execute = permissions[startIndex + 2];
+        if (execute is 'x' or 's' or 't') {
+            value += 1;
+        }
+
+        return value;
     }
 
     private static bool TestFxpSourcePath(

@@ -132,6 +132,14 @@ public sealed class CmdletConnectFtp : PSCmdlet
 	[Parameter(ParameterSetName = "Password")]
 	public SwitchParameter ValidateAnyCertificate { get; set; }
 	/// <summary>
+	/// Gets or sets a value indicating whether the FluentFTP GnuTLS stream should be used for FTPS connections.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public SwitchParameter UseGnuTls { get; set; }
+	/// <summary>
 	/// Gets or sets expected FTPS certificate thumbprints.
 	/// </summary>
 
@@ -187,6 +195,38 @@ public sealed class CmdletConnectFtp : PSCmdlet
 	[Parameter(ParameterSetName = "ClearText")]
 	[Parameter(ParameterSetName = "Password")]
 	public int DataConnectionReadTimeout { get; set; }
+	/// <summary>
+	/// Gets or sets the FTP control connection NOOP interval, in milliseconds. Set to 0 to disable NOOPs.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public int NoopInterval { get; set; }
+	/// <summary>
+	/// Gets or sets the maximum number of FTPS control-channel transactions before the client reconnects.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public int SslSessionLength { get; set; }
+	/// <summary>
+	/// Gets or sets a value indicating whether the CCC command should be used after authentication.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public SwitchParameter EncryptAuthenticationOnly { get; set; }
+	/// <summary>
+	/// Gets or sets how FluentFTP should reconnect when it needs a control connection.
+	/// </summary>
+
+	[Parameter(ParameterSetName = "FtpProfile")]
+	[Parameter(ParameterSetName = "ClearText")]
+	[Parameter(ParameterSetName = "Password")]
+	public FtpSelfConnectMode SelfConnectMode { get; set; }
 	/// <summary>
 	/// Gets or sets the number of retry attempts for verified transfers.
 	/// </summary>
@@ -353,6 +393,7 @@ public sealed class CmdletConnectFtp : PSCmdlet
 				DisableDataConnectionEncryption = DisableDataConnectionEncryption.IsPresent,
 				DisableValidateCertificateRevocation = DisableValidateCertificateRevocation.IsPresent,
 				ValidateAnyCertificate = ValidateAnyCertificate.IsPresent,
+				UseGnuTls = UseGnuTls.IsPresent,
 				ExpectedCertificateThumbprints = ExpectedCertificateThumbprint,
 				CertificatePolicy = CertificatePolicy,
 				KnownCertificatesPath = KnownCertificatesPath,
@@ -360,6 +401,10 @@ public sealed class CmdletConnectFtp : PSCmdlet
 				ReadTimeout = (base.MyInvocation.BoundParameters.ContainsKey("ReadTimeout") ? new int?(ReadTimeout) : ((int?)null)),
 				DataConnectionConnectTimeout = (base.MyInvocation.BoundParameters.ContainsKey("DataConnectionConnectTimeout") ? new int?(DataConnectionConnectTimeout) : ((int?)null)),
 				DataConnectionReadTimeout = (base.MyInvocation.BoundParameters.ContainsKey("DataConnectionReadTimeout") ? new int?(DataConnectionReadTimeout) : ((int?)null)),
+				NoopInterval = (base.MyInvocation.BoundParameters.ContainsKey("NoopInterval") ? new int?(NoopInterval) : ((int?)null)),
+				SslSessionLength = (base.MyInvocation.BoundParameters.ContainsKey("SslSessionLength") ? new int?(SslSessionLength) : ((int?)null)),
+				EncryptAuthenticationOnly = EncryptAuthenticationOnly.IsPresent,
+				SelfConnectMode = (base.MyInvocation.BoundParameters.ContainsKey("SelfConnectMode") ? new FtpSelfConnectMode?(SelfConnectMode) : ((FtpSelfConnectMode?)null)),
 				RetryAttempts = (base.MyInvocation.BoundParameters.ContainsKey("RetryAttempts") ? new int?(RetryAttempts) : ((int?)null)),
 				TransferChunkSize = (base.MyInvocation.BoundParameters.ContainsKey("TransferChunkSize") ? new int?(TransferChunkSize) : ((int?)null)),
 				LocalFileBufferSize = (base.MyInvocation.BoundParameters.ContainsKey("LocalFileBufferSize") ? new int?(LocalFileBufferSize) : ((int?)null)),

@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Security;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Text.RegularExpressions;
 using FluentFTP;
 using FluentFTP.Proxy.SyncProxy;
 
@@ -16,6 +19,8 @@ namespace Transferetto;
 /// </summary>
 
 public static partial class TransferettoClient {
+    private static readonly object GnuTlsNativeLoadSync = new();
+    private static bool gnuTlsNativeLibrariesLoaded;
     /// <summary>
     /// Creates and connects an FTP or FTPS session.
     /// </summary>
@@ -71,11 +76,7 @@ public static partial class TransferettoClient {
         FtpListOption? options = null) {
         EnsureNotNull(session, nameof(session));
 
-        FtpListItem[] items = path switch {
-            not null when options.HasValue => session.Client.GetListing(path, options.Value),
-            not null => session.Client.GetListing(path),
-            _ => session.Client.GetListing()
-        };
+        FtpListItem[] items = GetFtpListingItems(session, path, options);
 
         return items.Select(TransferettoRemoteItem.FromFtpListItem).ToArray();
     }
@@ -538,6 +539,113 @@ public static partial class TransferettoClient {
         return transferredBytes < 0 ? 0 : transferredBytes;
     }
 
+    private static FtpListItem[] GetFtpListingItems(
+        TransferettoFtpSession session,
+        string? path,
+        FtpListOption? options) {
+        if (string.IsNullOrWhiteSpace(path)) {
+            return options.HasValue
+                ? session.Client.GetListing(session.Client.GetWorkingDirectory(), options.Value)
+                : session.Client.GetListing();
+        }
+
+        string normalizedPath = NormalizeRemotePath(path!);
+        if (TrySplitFtpListingPath(normalizedPath, out string directoryPath, out string searchPattern)) {
+            return GetFtpDirectoryListing(session, directoryPath, options)
+                .Where(item => WildcardMatchesFtpName(item.Name, searchPattern))
+                .ToArray();
+        }
+
+        if (LooksLikeFtpDirectoryPath(path!)) {
+            return GetFtpDirectoryListing(session, normalizedPath, options);
+        }
+
+        FtpListItem? item = session.Client.GetObjectInfo(normalizedPath, false);
+        if (item is not null) {
+            if (item.Type == FtpObjectType.Directory) {
+                return GetFtpDirectoryListing(session, normalizedPath, options);
+            }
+
+            return new[] { item };
+        }
+
+        return ExecuteFtpListing(session.Client, normalizedPath, options);
+    }
+
+    private static FtpListItem[] GetFtpDirectoryListing(
+        TransferettoFtpSession session,
+        string directoryPath,
+        FtpListOption? options) {
+        string originalWorkingDirectory = session.Client.GetWorkingDirectory();
+        string targetDirectory = string.IsNullOrWhiteSpace(directoryPath) ? originalWorkingDirectory : directoryPath;
+        bool workingDirectoryChanged = !string.Equals(originalWorkingDirectory, targetDirectory, StringComparison.Ordinal);
+
+        try {
+            if (workingDirectoryChanged) {
+                session.Client.SetWorkingDirectory(targetDirectory);
+            }
+
+            return ExecuteFtpListing(session.Client, null, options);
+        } finally {
+            if (workingDirectoryChanged) {
+                session.Client.SetWorkingDirectory(originalWorkingDirectory);
+            }
+        }
+    }
+
+    private static FtpListItem[] ExecuteFtpListing(
+        FtpClient client,
+        string? path,
+        FtpListOption? options) {
+        return path switch {
+            not null when options.HasValue => client.GetListing(path, options.Value),
+            not null => client.GetListing(path),
+            _ when options.HasValue => client.GetListing(client.GetWorkingDirectory(), options.Value),
+            _ => client.GetListing()
+        };
+    }
+
+    private static bool LooksLikeFtpDirectoryPath(string path) {
+        return path.EndsWith("/", StringComparison.Ordinal) || path.EndsWith("\\", StringComparison.Ordinal);
+    }
+
+    private static bool TrySplitFtpListingPath(string path, out string directoryPath, out string searchPattern) {
+        string normalizedPath = NormalizeRemotePath(path);
+        string name = GetRemoteName(normalizedPath);
+        if (!ContainsFtpWildcardPattern(name)) {
+            directoryPath = string.Empty;
+            searchPattern = string.Empty;
+            return false;
+        }
+
+        directoryPath = GetRemoteParent(normalizedPath);
+        searchPattern = name;
+        return true;
+    }
+
+    private static bool ContainsFtpWildcardPattern(string value) {
+        return value.Contains('*') || value.Contains('?');
+    }
+
+    private static bool WildcardMatchesFtpName(string name, string pattern) {
+        string regexPattern = "^" + Regex.Escape(pattern)
+            .Replace("\\*", ".*")
+            .Replace("\\?", ".") + "$";
+        return Regex.IsMatch(name, regexPattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    }
+
+    private static string GetRemoteName(string path) {
+        string normalizedPath = NormalizeRemotePath(path);
+        if (string.IsNullOrWhiteSpace(normalizedPath) || normalizedPath == "/") {
+            return normalizedPath;
+        }
+
+        int separatorIndex = normalizedPath.LastIndexOf('/');
+        return separatorIndex < 0
+            ? normalizedPath
+            : normalizedPath.Substring(separatorIndex + 1);
+    }
+
     private static void ConfigureFtpClient(FtpClient client, TransferettoFtpConnectionOptions options) {
         if (options.ValidateAnyCertificate && HasExpectedCertificateThumbprints(options)) {
             throw new InvalidOperationException("ValidateAnyCertificate cannot be combined with ExpectedCertificateThumbprints because accept-any validation bypasses certificate pinning.");
@@ -579,6 +687,14 @@ public static partial class TransferettoClient {
             client.Config.ValidateAnyCertificate = true;
         }
 
+        if (options.UseGnuTls) {
+            if (client.Config.EncryptionMode == FtpEncryptionMode.None) {
+                throw new InvalidOperationException("UseGnuTls requires FTPS encryption. Specify EncryptionMode or an FTP profile with FTPS enabled.");
+            }
+
+            client.Config.CustomStream = ResolveFtpGnuTlsStreamType();
+        }
+
         if (options.ConnectTimeout.HasValue) {
             client.Config.ConnectTimeout = options.ConnectTimeout.Value;
         }
@@ -593,6 +709,27 @@ public static partial class TransferettoClient {
 
         if (options.DataConnectionReadTimeout.HasValue) {
             client.Config.DataConnectionReadTimeout = options.DataConnectionReadTimeout.Value;
+        }
+
+        if (options.NoopInterval.HasValue) {
+            if (options.NoopInterval.Value <= 0) {
+                client.Config.Noop = false;
+            } else {
+                client.Config.NoopInterval = options.NoopInterval.Value;
+                client.Config.Noop = true;
+            }
+        }
+
+        if (options.SslSessionLength.HasValue) {
+            client.Config.SslSessionLength = options.SslSessionLength.Value;
+        }
+
+        if (options.EncryptAuthenticationOnly) {
+            client.Config.EncryptAuthenticationOnly = true;
+        }
+
+        if (options.SelfConnectMode.HasValue) {
+            client.Config.SelfConnectMode = options.SelfConnectMode.Value;
         }
 
         if (options.RetryAttempts.HasValue) {
@@ -936,6 +1073,68 @@ public static partial class TransferettoClient {
             return BitConverter.ToString(hash).Replace("-", string.Empty);
         }
     }
+
+    private static Type ResolveFtpGnuTlsStreamType() {
+        EnsureFtpGnuTlsNativeLibrariesLoaded();
+
+        Type? gnuTlsStreamType = Type.GetType("FluentFTP.GnuTLS.GnuTlsStream, FluentFTP.GnuTLS", throwOnError: false);
+        if (gnuTlsStreamType is not null) {
+            return gnuTlsStreamType;
+        }
+
+        try {
+            System.Reflection.Assembly assembly = System.Reflection.Assembly.Load("FluentFTP.GnuTLS");
+            gnuTlsStreamType = assembly.GetType("FluentFTP.GnuTLS.GnuTlsStream", throwOnError: false);
+        } catch (Exception exception) {
+            throw new InvalidOperationException("Could not load FluentFTP.GnuTLS. Ensure the FluentFTP.GnuTLS assembly is available next to Transferetto.", exception);
+        }
+
+        return gnuTlsStreamType ?? throw new InvalidOperationException("FluentFTP.GnuTLS is available, but the FluentFTP.GnuTLS.GnuTlsStream type could not be resolved.");
+    }
+
+    private static void EnsureFtpGnuTlsNativeLibrariesLoaded() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            return;
+        }
+
+        lock (GnuTlsNativeLoadSync) {
+            if (gnuTlsNativeLibrariesLoaded) {
+                return;
+            }
+
+            string assemblyPath = typeof(TransferettoClient).Assembly.Location;
+            string? rootDirectory = Path.GetDirectoryName(assemblyPath);
+            if (string.IsNullOrWhiteSpace(rootDirectory)) {
+                rootDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            }
+
+            foreach (string libraryName in new[] {
+                "libgcc_s_seh-1.dll",
+                "libwinpthread-1.dll",
+                "libgmp-10.dll",
+                "libnettle-8.dll",
+                "libhogweed-6.dll",
+                "libgnutls-30.dll"
+            }) {
+                string libraryPath = Path.Combine(rootDirectory, libraryName);
+                if (!File.Exists(libraryPath)) {
+                    continue;
+                }
+
+                IntPtr handle = LoadLibrary(libraryPath);
+                if (handle == IntPtr.Zero) {
+                    throw new InvalidOperationException(
+                        $"Could not preload {libraryName} from {libraryPath}.",
+                        new Win32Exception(Marshal.GetLastWin32Error()));
+                }
+            }
+
+            gnuTlsNativeLibrariesLoaded = true;
+        }
+    }
+
+    [DllImport("kernel32", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr LoadLibrary(string lpFileName);
 
     private static bool IsHexDigit(char value) {
         return (value >= '0' && value <= '9') ||
