@@ -66,4 +66,15 @@ Describe 'Transferetto module import' {
 
         $session.Dispose()
     }
+
+    It 'rejects SSH proxy configuration without a proxy port before connecting' {
+        {
+            Connect-SSH -Server 'ssh.example.com' `
+                -Username 'user' `
+                -Password 'password' `
+                -ProxyType Socks5 `
+                -ProxyHost 'proxy.example.com' `
+                -ErrorAction Stop
+        } | Should -Throw '*ProxyPort*'
+    }
 }

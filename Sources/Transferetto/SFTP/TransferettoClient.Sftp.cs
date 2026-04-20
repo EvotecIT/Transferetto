@@ -19,6 +19,7 @@ public static partial class TransferettoClient {
         EnsureNotNull(options, nameof(options));
         EnsureNotNullOrWhiteSpace(options.Server, nameof(options.Server));
         ValidateSshHostKeyTrustOptions(options);
+        ValidateSshProxyOptions(options);
 
         SftpClient client = CreateSftpClient(options);
         TransferettoSshHostKeyInfo? hostKeyInfo = null;
@@ -54,7 +55,7 @@ public static partial class TransferettoClient {
 
     public static IReadOnlyList<TransferettoSftpItem> GetSftpListing(TransferettoSftpSession session, string? path = null) {
         EnsureNotNull(session, nameof(session));
-        string listPath = path ?? string.Empty;
+        string listPath = ResolveSftpListingPath(session, path);
         return session.Client.ListDirectory(listPath).Select(static item => TransferettoSftpItem.FromSftpFile(item)).ToArray();
     }
     /// <summary>
@@ -730,6 +731,16 @@ public static partial class TransferettoClient {
 
     private static SftpClient CreateSftpClient(TransferettoSftpConnectionOptions options) {
         return new SftpClient(CreateSshConnectionInfo(options));
+    }
+
+    private static string ResolveSftpListingPath(TransferettoSftpSession session, string? path) {
+        string? candidate = string.IsNullOrWhiteSpace(path)
+            ? (session.Client.IsConnected ? session.Client.WorkingDirectory : null)
+            : path;
+
+        return string.IsNullOrWhiteSpace(candidate)
+            ? "."
+            : candidate!;
     }
 
     private static long ReportTransferProgress(

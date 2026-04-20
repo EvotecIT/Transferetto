@@ -17,6 +17,7 @@ public static partial class TransferettoClient {
         EnsureNotNull(options, nameof(options));
         EnsureNotNullOrWhiteSpace(options.Server, nameof(options.Server));
         ValidateSshHostKeyTrustOptions(options);
+        ValidateSshProxyOptions(options);
 
         ScpClient client = CreateScpClient(options);
         TransferettoSshHostKeyInfo? hostKeyInfo = null;

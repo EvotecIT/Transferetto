@@ -23,6 +23,7 @@ public static partial class TransferettoClient {
         EnsureNotNull(options, nameof(options));
         EnsureNotNullOrWhiteSpace(options.Server, nameof(options.Server));
         ValidateSshHostKeyTrustOptions(options);
+        ValidateSshProxyOptions(options);
 
         SshClient client = CreateSshClient(options);
         TransferettoSshHostKeyInfo? hostKeyInfo = null;
@@ -510,6 +511,20 @@ public static partial class TransferettoClient {
         bool hasExpectedFingerprints = options.ExpectedHostKeyFingerprints?.Any(static value => !string.IsNullOrWhiteSpace(value)) == true;
         if (options.AcceptAnyHostKey && hasExpectedFingerprints) {
             throw new InvalidOperationException("AcceptAnyHostKey cannot be combined with ExpectedHostKeyFingerprints.");
+        }
+    }
+
+    private static void ValidateSshProxyOptions(TransferettoSshConnectionOptions options) {
+        if (options.ProxyType == TransferettoSshProxyType.None) {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(options.ProxyHost)) {
+            throw new InvalidOperationException("ProxyHost must be provided when ProxyType is enabled.");
+        }
+
+        if (!options.ProxyPort.HasValue || options.ProxyPort.Value <= 0) {
+            throw new InvalidOperationException("ProxyPort must be a positive value when ProxyType is enabled.");
         }
     }
 

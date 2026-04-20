@@ -455,6 +455,51 @@ public sealed class TransferettoSessionTests {
     }
 
     [Fact]
+    public void ConnectSshRejectsMissingProxyPortWhenProxyIsEnabled() {
+        TransferettoSshConnectionOptions options = new() {
+            Server = "ssh.example.com",
+            UserName = "user",
+            Password = "password",
+            ProxyType = TransferettoSshProxyType.Socks5,
+            ProxyHost = "proxy.example.com"
+        };
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => TransferettoClient.ConnectSsh(options));
+
+        Assert.Contains("ProxyPort", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ConnectSftpRejectsMissingProxyPortWhenProxyIsEnabled() {
+        TransferettoSftpConnectionOptions options = new() {
+            Server = "sftp.example.com",
+            UserName = "user",
+            Password = "password",
+            ProxyType = TransferettoSshProxyType.Socks5,
+            ProxyHost = "proxy.example.com"
+        };
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => TransferettoClient.ConnectSftp(options));
+
+        Assert.Contains("ProxyPort", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ConnectScpRejectsMissingProxyPortWhenProxyIsEnabled() {
+        TransferettoSshConnectionOptions options = new() {
+            Server = "scp.example.com",
+            UserName = "user",
+            Password = "password",
+            ProxyType = TransferettoSshProxyType.Socks5,
+            ProxyHost = "proxy.example.com"
+        };
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => TransferettoClient.ConnectScp(options));
+
+        Assert.Contains("ProxyPort", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ScpSessionExposesWrappedClientProperties() {
         TransferettoScpSession session = CreateScpSession(new ScpClient("scp.example.com", "user", "password"), "none");
         TransferettoSshHostKeyInfo hostKeyInfo = new() {
@@ -580,6 +625,18 @@ public sealed class TransferettoSessionTests {
         string[] names = Enum.GetNames(typeof(TransferettoSftpStreamMode));
 
         Assert.Equal(new[] { "Read", "Write", "Append" }, names);
+    }
+
+    [Fact]
+    public void SftpListingPathFallsBackToWorkingDirectoryOrDot() {
+        MethodInfo method = typeof(TransferettoClient).GetMethod("ResolveSftpListingPath", BindingFlags.Static | BindingFlags.NonPublic)!;
+        TransferettoSftpSession session = CreateSftpSession(new SftpClient("sftp.example.com", "user", "password"), "none");
+
+        string explicitPath = (string) method.Invoke(null, new object?[] { session, "/pub/example" })!;
+        string fallbackPath = (string) method.Invoke(null, new object?[] { session, null })!;
+
+        Assert.Equal("/pub/example", explicitPath);
+        Assert.Equal(".", fallbackPath);
     }
 
     [Fact]
