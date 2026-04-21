@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Management.Automation;
 using System.Threading;
 
@@ -62,10 +61,6 @@ public sealed class CmdletReceiveSftpFile : PSCmdlet
 		}
 		catch (Exception exception)
 		{
-			if (File.Exists(LocalPath))
-			{
-				File.Delete(LocalPath);
-			}
 			WriteError(new ErrorRecord(exception, "ReceiveSftpFileFailed", ErrorCategory.ReadError, RemotePath));
 		}
 	}

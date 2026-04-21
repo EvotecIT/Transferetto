@@ -434,7 +434,7 @@ public static partial class TransferettoClient {
             Command = command,
             Output = cleanedOutput,
             ExitCode = exitCode,
-            Status = exitCode.GetValueOrDefault() == 0,
+            Status = IsSshShellCommandSuccessful(exitCode),
             Marker = marker,
             PromptPattern = resolvedPromptPattern
         };
@@ -534,6 +534,10 @@ public static partial class TransferettoClient {
         if (!hasProxyPort) {
             throw new InvalidOperationException("ProxyPort must be a positive value when ProxyType is enabled.");
         }
+    }
+
+    private static bool IsSshShellCommandSuccessful(int? exitCode) {
+        return exitCode.HasValue && exitCode.Value == 0;
     }
 
     private static string ReadSshShellWithTimeout(ShellStream shellStream, TimeSpan timeout) {

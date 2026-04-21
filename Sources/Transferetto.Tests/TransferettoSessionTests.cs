@@ -820,6 +820,19 @@ public sealed class TransferettoSessionTests {
     }
 
     [Fact]
+    public void SshShellCommandSuccessRequiresCapturedExitCode() {
+        MethodInfo method = typeof(TransferettoClient).GetMethod("IsSshShellCommandSuccessful", BindingFlags.Static | BindingFlags.NonPublic)!;
+
+        bool missingExitCodeStatus = (bool) method.Invoke(null, new object?[] { null })!;
+        bool failureStatus = (bool) method.Invoke(null, new object?[] { 1 })!;
+        bool successStatus = (bool) method.Invoke(null, new object?[] { 0 })!;
+
+        Assert.False(missingExitCodeStatus);
+        Assert.False(failureStatus);
+        Assert.True(successStatus);
+    }
+
+    [Fact]
     public void SshShellControlKeyProvidesInteractiveActions() {
         string[] names = Enum.GetNames(typeof(TransferettoSshShellControlKey));
 

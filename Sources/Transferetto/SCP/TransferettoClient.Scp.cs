@@ -147,7 +147,6 @@ public static partial class TransferettoClient {
             Directory.CreateDirectory(directory);
         }
 
-        FileInfo fileInfo = new(localPath);
         long bytesTransferred = 0;
         long? totalBytes = null;
         long lastReportedBytes = 0;
@@ -173,14 +172,17 @@ public static partial class TransferettoClient {
                 session.Client.Downloading += progress;
             }
 
-            session.Client.Download(remotePath, fileInfo);
+            WriteLocalFileAtomically(localPath, fileStream => {
+                session.Client.Download(remotePath, fileStream);
+            });
         } finally {
             if (progress is not null) {
                 session.Client.Downloading -= progress;
             }
         }
 
-        if (fileInfo.Exists) {
+        if (File.Exists(localPath)) {
+            FileInfo fileInfo = new(localPath);
             fileInfo.Refresh();
             bytesTransferred = Math.Max(bytesTransferred, fileInfo.Length);
         }
