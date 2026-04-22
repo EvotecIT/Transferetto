@@ -935,6 +935,18 @@ public sealed class TransferettoSessionTests {
     }
 
     [Fact]
+    public void DefaultSudoPromptPatternIgnoresCommandEchoAndMatchesPrompt() {
+        MethodInfo method = typeof(TransferettoClient).GetMethod("BuildDefaultSudoPasswordPromptPattern", BindingFlags.Static | BindingFlags.NonPublic)!;
+
+        string pattern = (string) method.Invoke(null, new object[] { "__PROMPT__" })!;
+        System.Text.RegularExpressions.Regex regex = new(pattern, System.Text.RegularExpressions.RegexOptions.Multiline);
+
+        Assert.DoesNotMatch(regex, "sudo -S -p '__PROMPT__' sh -lc 'echo hello'");
+        Assert.Matches(regex, "__PROMPT__");
+        Assert.Matches(regex, "prefix\r\n__PROMPT__");
+    }
+
+    [Fact]
     public void SshShellCommandSuccessRequiresCapturedExitCode() {
         MethodInfo method = typeof(TransferettoClient).GetMethod("IsSshShellCommandSuccessful", BindingFlags.Static | BindingFlags.NonPublic)!;
 
@@ -965,6 +977,29 @@ public sealed class TransferettoSessionTests {
         Assert.Equal("\u0003", interrupt);
         Assert.Equal("\u001B", escape);
         Assert.Equal("\r", enter);
+    }
+
+    [Fact]
+    public void SshShellReadCancellationFallsBackToCallerTokenWhenOptionsTokenIsDefault() {
+        MethodInfo method = typeof(TransferettoClient).GetMethod("ResolveSshShellReadCancellationToken", BindingFlags.Static | BindingFlags.NonPublic)!;
+        using CancellationTokenSource callerTokenSource = new();
+        TransferettoSshShellReadOptions options = new() {
+            PollInterval = TimeSpan.FromMilliseconds(25)
+        };
+
+        CancellationToken token = (CancellationToken) method.Invoke(null, new object?[] { options, callerTokenSource.Token, null })!;
+
+        Assert.Equal(callerTokenSource.Token, token);
+    }
+
+    [Fact]
+    public void SplitCompletedSshLinePreservesRemainderForLaterReads() {
+        MethodInfo method = typeof(TransferettoClient).GetMethod("SplitCompletedSshLine", BindingFlags.Static | BindingFlags.NonPublic)!;
+
+        ValueTuple<string, string> result = (ValueTuple<string, string>) method.Invoke(null, new object[] { "line1\nline2\nline3" })!;
+
+        Assert.Equal("line1\n", result.Item1);
+        Assert.Equal("line2\nline3", result.Item2);
     }
 
     [Fact]

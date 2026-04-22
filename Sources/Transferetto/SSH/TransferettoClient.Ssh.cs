@@ -292,7 +292,7 @@ public static partial class TransferettoClient {
         }
 
         using CancellationTokenSource? linkedCancellationSource = CreateLinkedCancellationTokenSource(options is null ? default : options.CancellationToken, cancellationToken);
-        CancellationToken effectiveCancellationToken = linkedCancellationSource?.Token ?? options?.CancellationToken ?? cancellationToken;
+        CancellationToken effectiveCancellationToken = ResolveSshShellReadCancellationToken(options, cancellationToken, linkedCancellationSource);
         TimeSpan pollInterval = ResolveShellPollInterval(options);
         Stopwatch overallStopwatch = Stopwatch.StartNew();
         Stopwatch idleStopwatch = Stopwatch.StartNew();
@@ -324,15 +324,23 @@ public static partial class TransferettoClient {
     /// </summary>
 
     public static void WriteSshShell(TransferettoSshShellSession session, string? text, bool appendLine = true) {
+        WriteSshShell(session, text, appendLine, recordTranscript: true);
+    }
+
+    private static void WriteSshShell(TransferettoSshShellSession session, string? text, bool appendLine, bool recordTranscript) {
         EnsureNotNull(session, nameof(session));
 
         string content = text ?? string.Empty;
         if (appendLine) {
             session.ShellStream.WriteLine(content);
-            session.RecordTranscript(TransferettoSshShellTranscriptDirection.Write, content + Environment.NewLine);
+            if (recordTranscript) {
+                session.RecordTranscript(TransferettoSshShellTranscriptDirection.Write, content + Environment.NewLine);
+            }
         } else {
             session.ShellStream.Write(content);
-            session.RecordTranscript(TransferettoSshShellTranscriptDirection.Write, content);
+            if (recordTranscript) {
+                session.RecordTranscript(TransferettoSshShellTranscriptDirection.Write, content);
+            }
         }
     }
     /// <summary>
@@ -361,14 +369,15 @@ public static partial class TransferettoClient {
     public static string ClearSshShellBuffer(TransferettoSshShellSession session) {
         EnsureNotNull(session, nameof(session));
 
-        StringBuilder builder = new();
+        string pendingOutput = session.ConsumePendingReadOutput();
+        StringBuilder freshOutputBuilder = new();
         while (session.ShellStream.DataAvailable) {
-            builder.Append(session.ShellStream.Read());
+            freshOutputBuilder.Append(session.ShellStream.Read());
         }
 
-        string output = builder.ToString();
-        session.RecordTranscript(TransferettoSshShellTranscriptDirection.Read, output);
-        return output;
+        string freshOutput = freshOutputBuilder.ToString();
+        session.RecordTranscript(TransferettoSshShellTranscriptDirection.Read, freshOutput);
+        return pendingOutput + freshOutput;
     }
     /// <summary>
     /// Gets the current SSH shell transcript snapshot.
@@ -570,7 +579,7 @@ public static partial class TransferettoClient {
         EnsureNotNull(session, nameof(session));
 
         using CancellationTokenSource? linkedCancellationSource = CreateLinkedCancellationTokenSource(options is null ? default : options.CancellationToken, cancellationToken);
-        CancellationToken effectiveCancellationToken = linkedCancellationSource?.Token ?? options?.CancellationToken ?? cancellationToken;
+        CancellationToken effectiveCancellationToken = ResolveSshShellReadCancellationToken(options, cancellationToken, linkedCancellationSource);
         TimeSpan pollInterval = ResolveShellPollInterval(options);
         Stopwatch stopwatch = Stopwatch.StartNew();
         Regex? stopRegex = !string.IsNullOrWhiteSpace(stopPattern) ? new Regex(stopPattern, RegexOptions.Multiline) : null;
@@ -820,7 +829,7 @@ public static partial class TransferettoClient {
         Regex markerRegex = new($"(?m)^{Regex.Escape(marker)}:(-?\\d+)\\r?$", RegexOptions.Multiline);
         string passwordPromptPattern = !string.IsNullOrWhiteSpace(recipe.PasswordPromptPattern)
             ? recipe.PasswordPromptPattern!
-            : Regex.Escape(passwordPromptToken);
+            : BuildDefaultSudoPasswordPromptPattern(passwordPromptToken);
         Regex initialRegex = new($"(?m)({passwordPromptPattern})|^{Regex.Escape(marker)}:(-?\\d+)\\r?$", RegexOptions.Multiline);
 
         WriteSshShell(session, commandText, appendLine: true);
@@ -831,7 +840,7 @@ public static partial class TransferettoClient {
                 throw new InvalidOperationException("Sudo recipe requires Password when a sudo password prompt is shown.");
             }
 
-            WriteSshShell(session, recipe.Password, appendLine: true);
+            WriteSshShell(session, recipe.Password, appendLine: true, recordTranscript: false);
             Regex completionRegex = new($"(?m)({passwordPromptPattern})|^{Regex.Escape(marker)}:(-?\\d+)\\r?$", RegexOptions.Multiline);
             string trailingOutput = await ReadSshShellUntilRegexMatchAsync(session, completionRegex, recipe.Timeout, recipe.Lookback, options, cancellationToken).ConfigureAwait(false);
             output += trailingOutput;
@@ -1351,7 +1360,7 @@ public static partial class TransferettoClient {
         }
 
         using CancellationTokenSource? linkedCancellationSource = CreateLinkedCancellationTokenSource(options is null ? default : options.CancellationToken, cancellationToken);
-        CancellationToken effectiveCancellationToken = linkedCancellationSource?.Token ?? options?.CancellationToken ?? cancellationToken;
+        CancellationToken effectiveCancellationToken = ResolveSshShellReadCancellationToken(options, cancellationToken, linkedCancellationSource);
         TimeSpan pollInterval = ResolveShellPollInterval(options);
         Stopwatch stopwatch = Stopwatch.StartNew();
 
@@ -1379,7 +1388,7 @@ public static partial class TransferettoClient {
         TransferettoSshShellReadOptions? options,
         CancellationToken cancellationToken) {
         using CancellationTokenSource? linkedCancellationSource = CreateLinkedCancellationTokenSource(options is null ? default : options.CancellationToken, cancellationToken);
-        CancellationToken effectiveCancellationToken = linkedCancellationSource?.Token ?? options?.CancellationToken ?? cancellationToken;
+        CancellationToken effectiveCancellationToken = ResolveSshShellReadCancellationToken(options, cancellationToken, linkedCancellationSource);
         TimeSpan pollInterval = ResolveShellPollInterval(options);
         Stopwatch stopwatch = Stopwatch.StartNew();
         StringBuilder builder = new();
@@ -1413,7 +1422,7 @@ public static partial class TransferettoClient {
         TransferettoSshShellReadOptions? options,
         CancellationToken cancellationToken) {
         using CancellationTokenSource? linkedCancellationSource = CreateLinkedCancellationTokenSource(options is null ? default : options.CancellationToken, cancellationToken);
-        CancellationToken effectiveCancellationToken = linkedCancellationSource?.Token ?? options?.CancellationToken ?? cancellationToken;
+        CancellationToken effectiveCancellationToken = ResolveSshShellReadCancellationToken(options, cancellationToken, linkedCancellationSource);
         TimeSpan pollInterval = ResolveShellPollInterval(options);
         Stopwatch stopwatch = Stopwatch.StartNew();
         StringBuilder builder = new();
@@ -1445,7 +1454,7 @@ public static partial class TransferettoClient {
         TransferettoSshShellReadOptions? options,
         CancellationToken cancellationToken) {
         using CancellationTokenSource? linkedCancellationSource = CreateLinkedCancellationTokenSource(options is null ? default : options.CancellationToken, cancellationToken);
-        CancellationToken effectiveCancellationToken = linkedCancellationSource?.Token ?? options?.CancellationToken ?? cancellationToken;
+        CancellationToken effectiveCancellationToken = ResolveSshShellReadCancellationToken(options, cancellationToken, linkedCancellationSource);
         TimeSpan pollInterval = ResolveShellPollInterval(options);
         Stopwatch stopwatch = Stopwatch.StartNew();
         StringBuilder builder = new();
@@ -1455,9 +1464,13 @@ public static partial class TransferettoClient {
 
             if (TryAppendAvailableSshShellOutput(session, builder, options)) {
                 string current = builder.ToString();
-                int newlineIndex = current.IndexOf('\n');
-                if (newlineIndex >= 0) {
-                    return current.Substring(0, newlineIndex + 1);
+                (string line, string remainder) = SplitCompletedSshLine(current);
+                if (line.Length > 0) {
+                    if (remainder.Length > 0) {
+                        session.AppendPendingReadOutput(remainder);
+                    }
+
+                    return line;
                 }
 
                 continue;
@@ -1472,6 +1485,11 @@ public static partial class TransferettoClient {
     }
 
     private static string ReadAvailableSshShellOutput(TransferettoSshShellSession session, TransferettoSshShellReadOptions? options) {
+        string pendingOutput = session.ConsumePendingReadOutput();
+        if (!string.IsNullOrEmpty(pendingOutput)) {
+            return pendingOutput;
+        }
+
         if (!session.ShellStream.DataAvailable) {
             return string.Empty;
         }
@@ -1521,6 +1539,39 @@ public static partial class TransferettoClient {
         return options?.PollInterval > TimeSpan.Zero
             ? options.PollInterval
             : TimeSpan.FromMilliseconds(50);
+    }
+
+    private static CancellationToken ResolveSshShellReadCancellationToken(
+        TransferettoSshShellReadOptions? options,
+        CancellationToken cancellationToken,
+        CancellationTokenSource? linkedCancellationSource) {
+        if (linkedCancellationSource is not null) {
+            return linkedCancellationSource.Token;
+        }
+
+        if (options is not null && options.CancellationToken.CanBeCanceled) {
+            return options.CancellationToken;
+        }
+
+        return cancellationToken;
+    }
+
+    private static string BuildDefaultSudoPasswordPromptPattern(string passwordPromptToken) {
+        EnsureNotNullOrWhiteSpace(passwordPromptToken, nameof(passwordPromptToken));
+        return $"(?:^|[\\r\\n]){Regex.Escape(passwordPromptToken)}\\s*$";
+    }
+
+    private static (string Line, string Remainder) SplitCompletedSshLine(string text) {
+        if (string.IsNullOrEmpty(text)) {
+            return (string.Empty, string.Empty);
+        }
+
+        int newlineIndex = text.IndexOf('\n');
+        if (newlineIndex < 0) {
+            return (string.Empty, text);
+        }
+
+        return (text.Substring(0, newlineIndex + 1), text.Substring(newlineIndex + 1));
     }
 
     private static string GetSshShellControlText(TransferettoSshShellControlKey controlKey) {

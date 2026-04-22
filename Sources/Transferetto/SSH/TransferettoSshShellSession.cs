@@ -9,8 +9,10 @@ namespace Transferetto;
 /// </summary>
 
 public sealed class TransferettoSshShellSession : IDisposable {
+    private readonly object _pendingReadSync = new();
     private readonly object _transcriptSync = new();
     private readonly List<TransferettoSshShellTranscriptEntry> _transcriptEntries = new();
+    private string _pendingReadOutput = string.Empty;
     private int _transcriptCharacterCount;
     private int _droppedTranscriptEntryCount;
 
@@ -53,7 +55,7 @@ public sealed class TransferettoSshShellSession : IDisposable {
     /// Gets the data Available.
     /// </summary>
 
-    public bool DataAvailable => ShellStream.DataAvailable;
+    public bool DataAvailable => HasPendingReadOutput() || ShellStream.DataAvailable;
     /// <summary>
     /// Gets the terminal Name.
     /// </summary>
@@ -125,6 +127,30 @@ public sealed class TransferettoSshShellSession : IDisposable {
     internal void UpdatePromptPattern(string? promptPattern, TransferettoSshShellPromptPreset promptPreset) {
         PromptPattern = promptPattern;
         PromptPreset = promptPreset;
+    }
+
+    internal bool HasPendingReadOutput() {
+        lock (_pendingReadSync) {
+            return !string.IsNullOrEmpty(_pendingReadOutput);
+        }
+    }
+
+    internal string ConsumePendingReadOutput() {
+        lock (_pendingReadSync) {
+            string pendingReadOutput = _pendingReadOutput;
+            _pendingReadOutput = string.Empty;
+            return pendingReadOutput;
+        }
+    }
+
+    internal void AppendPendingReadOutput(string? text) {
+        if (string.IsNullOrEmpty(text)) {
+            return;
+        }
+
+        lock (_pendingReadSync) {
+            _pendingReadOutput += text;
+        }
     }
 
     internal void RecordTranscript(TransferettoSshShellTranscriptDirection direction, string? text) {
