@@ -1,4 +1,4 @@
-﻿Describe 'Connect-FTP / Disconnect-FTP' {
+Describe 'Connect-FTP / Disconnect-FTP' -Tag LiveFTP {
     It 'Given no login and password it should connect to FTP and list' {
         # Anonymous login
         $Client = $Null

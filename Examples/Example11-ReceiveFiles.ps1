@@ -1,6 +1,7 @@
 ﻿Import-Module .\Transferetto.psd1 -Force
 
-Set-FTPTracing -Enable
+#Set-FTPTracing -Enable
+Set-FTPTracing -Disable
 
 # Connect to FTP
 $Client = Connect-FTP -Server 'test.rebex.net' -Verbose -Username 'demo' -Password 'password'

@@ -1,8 +1,8 @@
-﻿Import-Module .\Transferetto.psd1 -Force
+Import-Module .\Transferetto.psd1 -Force
 
-$SftpClient = Connect-SFTP -Server '192.168.240.29' -Username 'przemek' -Password 'YourPassword'
-Get-SFTPList -SftpClient $SftpClient | Format-Table
-Get-SFTPList -SftpClient $SftpClient -Path "/home" | Format-Table
-Receive-SFTPFile -SftpClient $SftpClient -RemotePath '/home/przemek/test1.txt' -LocalPath "$PSScriptRoot\Downloads\mmm.txt"
-Send-SFTPFile -SftpClient $SftpClient -LocalPath "$PSScriptRoot\Downloads\mmm.txt" -RemotePath '/home/przemek/mmm.txt' -AllowOverride
-Disconnect-SFTP -SftpClient $SftpClient
+$ScpClient = Connect-SCP -Server '192.168.241.29' -Username 'przemek' -Password 'YourPassword'
+Receive-SCPFile -ScpClient $ScpClient -RemotePath '/home/przemek/test1.txt' -LocalPath "$PSScriptRoot\Downloads\scp-test1.txt"
+Send-SCPFile -ScpClient $ScpClient -LocalPath "$PSScriptRoot\Downloads\scp-test1.txt" -RemotePath '/home/przemek/scp-test1.txt'
+Send-SCPDirectory -ScpClient $ScpClient -LocalPath "$PSScriptRoot\Downloads" -RemotePath '/home/przemek/scp-downloads'
+Receive-SCPDirectory -ScpClient $ScpClient -RemotePath '/home/przemek/scp-downloads' -LocalPath "$PSScriptRoot\Downloads-SCP"
+Disconnect-SCP -ScpClient $ScpClient

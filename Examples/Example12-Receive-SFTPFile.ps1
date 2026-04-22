@@ -17,4 +17,4 @@ $Output = ForEach ($RemoteFile in $Export_Files) {
 $Output | Format-Table
 
 # Disconnect
-Disconnect-FTP -Client $Client
+Disconnect-SFTP -SftpClient $SftpClient

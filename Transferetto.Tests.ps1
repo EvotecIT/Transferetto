@@ -1,4 +1,4 @@
-﻿$ModuleName = (Get-ChildItem $PSScriptRoot\*.psd1).BaseName
+$ModuleName = (Get-ChildItem $PSScriptRoot\*.psd1).BaseName
 $PrimaryModule = Get-ChildItem -Path $PSScriptRoot -Filter '*.psd1' -Recurse -ErrorAction SilentlyContinue -Depth 1
 if (-not $PrimaryModule) {
     throw "Path $PSScriptRoot doesn't contain PSD1 files. Failing tests."
@@ -42,8 +42,40 @@ foreach ($Module in $PSDInformation.RequiredModules) {
 }
 Write-Color
 
-Import-Module $PSScriptRoot\*.psd1 -Force
-$result = Invoke-Pester -Script $PSScriptRoot\Tests -Verbose -PassThru
+Import-Module ([IO.Path]::Combine($PSScriptRoot, '*.psd1')) -Force
+
+$PesterCommand = Get-Command -Name Invoke-Pester
+$InvokePesterParameters = @{
+    Verbose = $true
+    PassThru = $true
+}
+if ($PesterCommand.Parameters.ContainsKey('Path')) {
+    $InvokePesterParameters.Path = "$PSScriptRoot\Tests"
+} else {
+    $InvokePesterParameters.Script = "$PSScriptRoot\Tests"
+}
+$ExcludedTags = [System.Collections.Generic.List[string]]::new()
+if ($env:TRANSFERETTO_RUN_LIVE_FTP_TESTS -ne '1') {
+    Write-Color 'Skipping public live FTP tests. Set TRANSFERETTO_RUN_LIVE_FTP_TESTS=1 to include them.' -Color Yellow
+    $null = $ExcludedTags.Add('LiveFTP')
+}
+if ($env:TRANSFERETTO_RUN_LIVE_SSH_TESTS -ne '1') {
+    Write-Color 'Skipping public live SSH/SFTP/SCP tests. Set TRANSFERETTO_RUN_LIVE_SSH_TESTS=1 to include them.' -Color Yellow
+    $null = $ExcludedTags.Add('LiveSSH')
+}
+if ($env:TRANSFERETTO_RUN_LOCAL_FTPS_TESTS -ne '1') {
+    Write-Color 'Skipping local FTPS tests. Set TRANSFERETTO_RUN_LOCAL_FTPS_TESTS=1 to include them.' -Color Yellow
+    $null = $ExcludedTags.Add('LocalFTPS')
+}
+if ($ExcludedTags.Count -gt 0) {
+    if ($PesterCommand.Parameters.ContainsKey('ExcludeTagFilter')) {
+        $InvokePesterParameters.ExcludeTagFilter = $ExcludedTags.ToArray()
+    } elseif ($PesterCommand.Parameters.ContainsKey('ExcludeTag')) {
+        $InvokePesterParameters.ExcludeTag = $ExcludedTags.ToArray()
+    }
+}
+
+$result = Invoke-Pester @InvokePesterParameters
 
 if ($result.FailedCount -gt 0) {
     throw "$($result.FailedCount) tests failed."

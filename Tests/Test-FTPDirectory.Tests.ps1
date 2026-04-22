@@ -1,4 +1,4 @@
-Describe 'Test-FTPDirectory' {
+Describe 'Test-FTPDirectory' -Tag LiveFTP {
     It 'Given an existing path it should return $True' {
         # Anonymous login
         $Client = $Null

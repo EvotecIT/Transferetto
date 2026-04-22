@@ -1,4 +1,4 @@
-﻿Describe 'Connect-FTP / Disconnect-FTP' {
+Describe 'Connect-FTP / Disconnect-FTP' -Tag LiveFTP {
     It 'Given FTP server should be able to download at least one file' {
         # Anonymous login
         $Client = $Null

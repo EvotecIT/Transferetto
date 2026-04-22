@@ -1,39 +1,42 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
+      netstandard2.0;net472;net8.0
+    </TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))' Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
+      netstandard2.0;net8.0
+    </TargetFrameworks>
+    <AssemblyName>Transferetto</AssemblyName>
+    <Title>Transferetto</Title>
+    <Description>Reusable FTP, FTPS, SFTP, and SSH library that powers Transferetto PowerShell cmdlets and future CLI tooling.</Description>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <FileVersion>1.0.0</FileVersion>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <Copyright>(c) 2011 - 2026 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+  </PropertyGroup>
 
-	<PropertyGroup>
-		<Company>Evotec</Company>
-		<Authors>Przemyslaw Klys</Authors>
-		<VersionPrefix>1.0.0</VersionPrefix>
-		<TargetFrameworks>netstandard2.0</TargetFrameworks>
-		<AssemblyName>Transferetto</AssemblyName>
+  <ItemGroup>
+    <PackageReference Include="FluentFTP" Version="54.1.1" />
+    <PackageReference Include="FluentFTP.GnuTLS" Version="1.0.38" />
+    <PackageReference Include="SSH.NET" Version="2025.1.0" />
+  </ItemGroup>
 
-		<Copyright>(c) 2011 - 2022 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
-		<LangVersion>10.0</LangVersion>
-		<ProduceReferenceAssembly>False</ProduceReferenceAssembly>
-	</PropertyGroup>
+  <ItemGroup>
+    <Files Include="$(MSBuildThisFileDirectory)/../content/*.dll" />
+  </ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="FluentFTP" Version="49.0.2" />
-		<PackageReference Include="FluentFTP.GnuTLS" Version="1.0.29" />
-		<PackageReference Include="PowerShellStandard.Library" Version="5.1.1" PrivateAssets="all" />
-		<PackageReference Include="SSH.NET" Version="2023.0.0" />
-	</ItemGroup>
+  <Target Name="CopyNativeFilesAfterBuild" AfterTargets="Build">
+    <Copy SourceFiles="@(Files)" DestinationFolder="$(TargetDir)" />
+  </Target>
 
-	<PropertyGroup Condition=" '$(TargetFramework)' == 'net472' ">
-		<DefineConstants>$(DefineConstants);FRAMEWORK</DefineConstants>
-	</PropertyGroup>
-
-	<ItemGroup>
-		<Files Include="$(MSBuildThisFileDirectory)/../content/*.dll" />
-	</ItemGroup>
-	<Target Name="CopyFiles" AfterTargets="Build">
-		<Copy SourceFiles="@(Files)" DestinationFolder="$(TargetDir)" />
-	</Target>
-	<Target Name="CopyFilesPublish" AfterTargets="Publish">
-		<Copy SourceFiles="@(Files)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
-	</Target>
-	<Target Name="CopyFilesPublishFunctions" AfterTargets="Publish">
-		<Copy SourceFiles="@(Files)" DestinationFolder="$(PublishDir)/bin" SkipUnchangedFiles="true" />
-	</Target>
-
+  <Target Name="CopyNativeFilesAfterPublish" AfterTargets="Publish">
+    <Copy SourceFiles="@(Files)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

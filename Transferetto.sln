@@ -1,0 +1,53 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33103.184
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Transferetto", "Sources\Transferetto\Transferetto.csproj", "{25B1457B-3F86-42C4-86C6-D749054E5B52}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Transferetto.PowerShell", "Sources\Transferetto.PowerShell\Transferetto.PowerShell.csproj", "{3D75D5DA-879F-43CB-91EB-96B770DE6251}"
+	ProjectSection(ProjectDependencies) = postProject
+		{25B1457B-3F86-42C4-86C6-D749054E5B52} = {25B1457B-3F86-42C4-86C6-D749054E5B52}
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Transferetto.Cli", "Sources\Transferetto.Cli\Transferetto.Cli.csproj", "{B275AB85-B2FF-4E92-92C1-D3ED70639CB1}"
+	ProjectSection(ProjectDependencies) = postProject
+		{25B1457B-3F86-42C4-86C6-D749054E5B52} = {25B1457B-3F86-42C4-86C6-D749054E5B52}
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Transferetto.Tests", "Sources\Transferetto.Tests\Transferetto.Tests.csproj", "{5FCEF517-6F66-44F3-AF4F-9C399207A966}"
+	ProjectSection(ProjectDependencies) = postProject
+		{25B1457B-3F86-42C4-86C6-D749054E5B52} = {25B1457B-3F86-42C4-86C6-D749054E5B52}
+		{B275AB85-B2FF-4E92-92C1-D3ED70639CB1} = {B275AB85-B2FF-4E92-92C1-D3ED70639CB1}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{25B1457B-3F86-42C4-86C6-D749054E5B52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{25B1457B-3F86-42C4-86C6-D749054E5B52}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{25B1457B-3F86-42C4-86C6-D749054E5B52}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{25B1457B-3F86-42C4-86C6-D749054E5B52}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D75D5DA-879F-43CB-91EB-96B770DE6251}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D75D5DA-879F-43CB-91EB-96B770DE6251}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D75D5DA-879F-43CB-91EB-96B770DE6251}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D75D5DA-879F-43CB-91EB-96B770DE6251}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B275AB85-B2FF-4E92-92C1-D3ED70639CB1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B275AB85-B2FF-4E92-92C1-D3ED70639CB1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B275AB85-B2FF-4E92-92C1-D3ED70639CB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B275AB85-B2FF-4E92-92C1-D3ED70639CB1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5FCEF517-6F66-44F3-AF4F-9C399207A966}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5FCEF517-6F66-44F3-AF4F-9C399207A966}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5FCEF517-6F66-44F3-AF4F-9C399207A966}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5FCEF517-6F66-44F3-AF4F-9C399207A966}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BDE5E3B8-D31A-40DE-A694-2B1399AB69F0}
+	EndGlobalSection
+EndGlobal

@@ -1,10 +1,10 @@
-﻿# Get public and private function definition files.
-$Public = @( Get-ChildItem -Path $PSScriptRoot\Public\*.ps1 -ErrorAction SilentlyContinue -Recurse )
-$Private = @( Get-ChildItem -Path $PSScriptRoot\Private\*.ps1 -ErrorAction SilentlyContinue -Recurse )
-$Classes = @( Get-ChildItem -Path $PSScriptRoot\Classes\*.ps1 -ErrorAction SilentlyContinue -Recurse )
-$Enums = @( Get-ChildItem -Path $PSScriptRoot\Enums\*.ps1 -ErrorAction SilentlyContinue -Recurse )
+# Remaining PowerShell script assets, if any, are intentionally ignored at runtime.
+$Classes = @(Get-ChildItem -Path ([IO.Path]::Combine($PSScriptRoot, 'Classes', '*.ps1')) -ErrorAction SilentlyContinue -Recurse)
+$Enums = @(Get-ChildItem -Path ([IO.Path]::Combine($PSScriptRoot, 'Enums', '*.ps1')) -ErrorAction SilentlyContinue -Recurse)
+
 # Get all assemblies
-$AssemblyFolders = Get-ChildItem -Path $PSScriptRoot\Lib -Directory -ErrorAction SilentlyContinue
+$LibRoot = [IO.Path]::Combine($PSScriptRoot, 'Lib')
+$AssemblyFolders = Get-ChildItem -Path $LibRoot -Directory -ErrorAction SilentlyContinue
 
 # Lets find which libraries we need to load
 $Default = $false
@@ -41,7 +41,8 @@ if ($Standard -and $Core -and $Default) {
     $Framework = ''
     $FrameworkNet = 'Default'
 } else {
-    Write-Error -Message 'No assemblies found'
+    $Framework = ''
+    $FrameworkNet = ''
 }
 if ($PSEdition -eq 'Core') {
     $LibFolder = $Framework
@@ -49,58 +50,70 @@ if ($PSEdition -eq 'Core') {
     $LibFolder = $FrameworkNet
 }
 
+$BinaryModules = @(
+    'Transferetto.PowerShell.dll'
+)
+$IgnoreLibraryFiles = @(
+    'libgcc_s_seh-1.dll'
+    'libgmp-10.dll'
+    'libgnutls-30.dll'
+    'libhogweed-6.dll'
+    'libnettle-8.dll'
+    'libwinpthread-1.dll'
+    'Transferetto.PowerShell.dll'
+)
 $Assembly = @(
     if ($Framework -and $PSEdition -eq 'Core') {
-        Get-ChildItem -Path $PSScriptRoot\Lib\$Framework\*.dll -ErrorAction SilentlyContinue -Recurse
+        Get-ChildItem -Path ([IO.Path]::Combine($LibRoot, $Framework, '*.dll')) -ErrorAction SilentlyContinue -Recurse
     }
     if ($FrameworkNet -and $PSEdition -ne 'Core') {
-        Get-ChildItem -Path $PSScriptRoot\Lib\$FrameworkNet\*.dll -ErrorAction SilentlyContinue -Recurse
+        Get-ChildItem -Path ([IO.Path]::Combine($LibRoot, $FrameworkNet, '*.dll')) -ErrorAction SilentlyContinue -Recurse
     }
-    # if ($AssemblyFolders.BaseName -contains 'Standard') {
-    #     @( Get-ChildItem -Path $PSScriptRoot\Lib\Standard\*.dll -ErrorAction SilentlyContinue -Recurse)
-    # }
-    # if ($PSEdition -eq 'Core') {
-    #     @( Get-ChildItem -Path $PSScriptRoot\Lib\Core\*.dll -ErrorAction SilentlyContinue -Recurse )
-    # } else {
-    #     @( Get-ChildItem -Path $PSScriptRoot\Lib\Default\*.dll -ErrorAction SilentlyContinue -Recurse )
-    # }
 )
-
-# This is special way of importing DLL if multiple frameworks are in use
-$FoundErrors = @(
-    # We load the DLL that does OnImportRemove if we have special module that requires special treatment for binary modules
-
-    # Get library name, from the PSM1 file name
-    $LibraryName = $myInvocation.MyCommand.Name.Replace(".psm1", "")
-    $Library = "$LibraryName.dll"
-    $Class = "$LibraryName.Initialize"
-
-    # Ignore DLL files that are not NET Libraries
-    $IgnoreLibraryFiles = @(
-        'libgcc_s_seh-1.dll'
-        'libgmp-10.dll'
-        'libgnutls-30.dll'
-        'libhogweed-6.dll'
-        'libnettle-8.dll'
-        'libwinpthread-1.dll'
-        #ą 'Microsoft.Bcl.AsyncInterfaces.dll'
-    )
-
-    try {
-        $ImportModule = Get-Command -Name Import-Module -Module Microsoft.PowerShell.Core
-
-        if (-not ($Class -as [type])) {
-            & $ImportModule ([IO.Path]::Combine($PSScriptRoot, 'Lib', $LibFolder, $Library)) -ErrorAction Stop
+$Development = $false
+$DevelopmentPath = [IO.Path]::Combine($PSScriptRoot, 'Sources', 'Transferetto.PowerShell', 'bin', 'Debug')
+$DevelopmentFolderDefault = 'net472'
+$DevelopmentFolderCore = 'net8.0'
+$BinaryModulePaths = @(
+    foreach ($BinaryModule in $BinaryModules) {
+        $ModulePath = [IO.Path]::Combine($PSScriptRoot, 'Lib', $LibFolder, $BinaryModule)
+        if (Test-Path -LiteralPath $ModulePath) {
+            $ModulePath
         } else {
-            $Type = "$Class" -as [Type]
-            & $importModule -Force -Assembly ($Type.Assembly)
+            $Development = $true
+            if ($PSEdition -eq 'Core') {
+                [IO.Path]::Combine($DevelopmentPath, $DevelopmentFolderCore, $BinaryModule)
+            } else {
+                [IO.Path]::Combine($DevelopmentPath, $DevelopmentFolderDefault, $BinaryModule)
+            }
         }
-    } catch {
-        Write-Warning -Message "Importing module $Library failed. Fix errors before continuing. Error: $($_.Exception.Message)"
-        $true
+    }
+)
+if ($Development) {
+    $Assembly = @(
+        if ($PSEdition -eq 'Core') {
+            Get-ChildItem -Path ([IO.Path]::Combine($DevelopmentPath, $DevelopmentFolderCore, '*.dll')) -ErrorAction SilentlyContinue -Recurse
+        } else {
+            Get-ChildItem -Path ([IO.Path]::Combine($DevelopmentPath, $DevelopmentFolderDefault, '*.dll')) -ErrorAction SilentlyContinue -Recurse
+        }
+    )
+}
+
+$FoundErrors = @(
+    $ImportModule = Get-Command -Name Import-Module -Module Microsoft.PowerShell.Core
+    foreach ($BinaryModule in $BinaryModulePaths) {
+        try {
+            if ($Development) {
+                Write-Warning "Development mode: Using binary module from $BinaryModule"
+            }
+            & $ImportModule $BinaryModule -ErrorAction Stop
+        } catch {
+            Write-Warning -Message "Importing module $BinaryModule failed. Fix errors before continuing. Error: $($_.Exception.Message)"
+            $true
+        }
     }
 
-    Foreach ($Import in @($Assembly)) {
+    foreach ($Import in @($Assembly)) {
         if ($IgnoreLibraryFiles -contains $Import.Name) {
             continue
         }
@@ -123,11 +136,11 @@ $FoundErrors = @(
         }
     }
 
-    #Dot source the files
-    Foreach ($Import in @($Private + $Classes + $Enums + $Public)) {
-        Try {
+    # Dot source the files
+    foreach ($Import in @($Classes + $Enums)) {
+        try {
             . $Import.Fullname
-        } Catch {
+        } catch {
             Write-Warning -Message "Failed to import functions from $($import.Fullname).Error: $($_.Exception.Message)"
             $true
         }

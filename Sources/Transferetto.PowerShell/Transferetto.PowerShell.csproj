@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
+      net472;net8.0
+    </TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))' Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
+      net8.0
+    </TargetFrameworks>
+    <AssemblyName>Transferetto.PowerShell</AssemblyName>
+    <Title>Transferetto PowerShell Module</Title>
+    <Description>Binary PowerShell cmdlets for the Transferetto transport library.</Description>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <FileVersion>1.0.0</FileVersion>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <Copyright>(c) 2011 - 2026 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MatejKafka.XmlDoc2CmdletDoc" Version="0.7.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <Target Name="RemoveFilesAfterBuild" AfterTargets="Build">
+    <Delete Files="$(OutDir)System.Management.Automation.dll" />
+    <Delete Files="$(OutDir)System.Management.dll" />
+  </Target>
+
+  <Target Name="CopyHelpDocumentationToPublishOutput" AfterTargets="Publish">
+    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll-Help.xml"
+      DestinationFiles="$(PublishDir)$(AssemblyName).dll-Help.xml"
+      Condition="Exists('$(OutputPath)$(AssemblyName).dll-Help.xml')" />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="PowerShellStandard.Library" Version="5.1.1" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Transferetto\Transferetto.csproj" />
+  </ItemGroup>
+</Project>
