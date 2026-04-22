@@ -960,6 +960,30 @@ public sealed class TransferettoSessionTests {
     }
 
     [Fact]
+    public async Task ReadSshCommandStreamAsyncStopsWaitingWhenCancellationIsRequested() {
+        MethodInfo method = typeof(TransferettoClient).GetMethod("ReadSshCommandStreamAsync", BindingFlags.Static | BindingFlags.NonPublic)!;
+        using BlockingSshCommandStream stream = new();
+        using CancellationTokenSource cancellationSource = new();
+        System.Text.StringBuilder builder = new();
+        Task readTask = (Task) method.Invoke(null, new object?[] {
+            stream,
+            TransferettoSshCommandOutputStream.Stdout,
+            builder,
+            System.Text.Encoding.UTF8,
+            null,
+            cancellationSource.Token
+        })!;
+
+        cancellationSource.CancelAfter(TimeSpan.FromMilliseconds(100));
+        Task completedTask = await Task.WhenAny(readTask, Task.Delay(TimeSpan.FromSeconds(2)));
+
+        Assert.Same(readTask, completedTask);
+        await readTask;
+        Assert.True(stream.WasDisposed);
+        Assert.Empty(builder.ToString());
+    }
+
+    [Fact]
     public void SshShellControlKeyProvidesInteractiveActions() {
         string[] names = Enum.GetNames(typeof(TransferettoSshShellControlKey));
 
@@ -1201,5 +1225,56 @@ public sealed class TransferettoSessionTests {
         ConstructorInfo constructor = typeof(TransferettoSshTunnelSession).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic)
             .Single();
         return (TransferettoSshTunnelSession) constructor.Invoke(new object?[] { sshSession, forwardedPort, tunnelType, boundHost, boundPort, host, port });
+    }
+
+    private sealed class BlockingSshCommandStream : Stream {
+        private readonly TaskCompletionSource<bool> _disposedSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public bool WasDisposed => _disposedSource.Task.IsCompleted;
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            throw new NotSupportedException();
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) {
+            throw new NotSupportedException();
+        }
+
+        public override void SetLength(long value) {
+            throw new NotSupportedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count) {
+            throw new NotSupportedException();
+        }
+
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
+            await _disposedSource.Task.ConfigureAwait(false);
+            throw new ObjectDisposedException(nameof(BlockingSshCommandStream));
+        }
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) {
+                _disposedSource.TrySetResult(true);
+            }
+
+            base.Dispose(disposing);
+        }
     }
 }

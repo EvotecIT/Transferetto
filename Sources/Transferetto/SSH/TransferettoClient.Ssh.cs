@@ -1195,8 +1195,8 @@ public static partial class TransferettoClient {
             StringBuilder stderr = new();
 
             Task executeTask = command.ExecuteAsync(effectiveCancellationToken);
-            Task stdoutTask = ReadSshCommandStreamAsync(command.OutputStream, TransferettoSshCommandOutputStream.Stdout, stdout, outputEncoding, resolvedOptions?.OutputProgress);
-            Task stderrTask = ReadSshCommandStreamAsync(command.ExtendedOutputStream, TransferettoSshCommandOutputStream.Stderr, stderr, outputEncoding, resolvedOptions?.OutputProgress);
+            Task stdoutTask = ReadSshCommandStreamAsync(command.OutputStream, TransferettoSshCommandOutputStream.Stdout, stdout, outputEncoding, resolvedOptions?.OutputProgress, effectiveCancellationToken);
+            Task stderrTask = ReadSshCommandStreamAsync(command.ExtendedOutputStream, TransferettoSshCommandOutputStream.Stderr, stderr, outputEncoding, resolvedOptions?.OutputProgress, effectiveCancellationToken);
 
             bool isCanceled = false;
             try {
@@ -1230,22 +1230,47 @@ public static partial class TransferettoClient {
         TransferettoSshCommandOutputStream outputStream,
         StringBuilder builder,
         Encoding encoding,
-        IProgress<TransferettoSshCommandOutputChunk>? progress) {
+        IProgress<TransferettoSshCommandOutputChunk>? progress,
+        CancellationToken cancellationToken) {
         using StreamReader reader = new(stream, encoding, detectEncodingFromByteOrderMarks: true, 1024, leaveOpen: true);
+        CancellationTokenRegistration cancellationRegistration = cancellationToken.CanBeCanceled
+            ? cancellationToken.Register(static state => DisposeSshCommandOutputStream((Stream) state!), stream)
+            : default;
         char[] buffer = new char[4096];
-        while (true) {
-            int readCount = await reader.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
-            if (readCount == 0) {
-                break;
-            }
+        try {
+            while (true) {
+                int readCount;
+                try {
+                    readCount = await reader.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+                } catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested) {
+                    break;
+                } catch (IOException) when (cancellationToken.IsCancellationRequested) {
+                    break;
+                } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+                    break;
+                }
 
-            string text = new(buffer, 0, readCount);
-            builder.Append(text);
-            progress?.Report(new TransferettoSshCommandOutputChunk {
-                Stream = outputStream,
-                Text = text,
-                TimestampUtc = DateTime.UtcNow
-            });
+                if (readCount == 0) {
+                    break;
+                }
+
+                string text = new(buffer, 0, readCount);
+                builder.Append(text);
+                progress?.Report(new TransferettoSshCommandOutputChunk {
+                    Stream = outputStream,
+                    Text = text,
+                    TimestampUtc = DateTime.UtcNow
+                });
+            }
+        } finally {
+            cancellationRegistration.Dispose();
+        }
+    }
+
+    private static void DisposeSshCommandOutputStream(Stream stream) {
+        try {
+            stream.Dispose();
+        } catch (ObjectDisposedException) {
         }
     }
 
