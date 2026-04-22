@@ -85,14 +85,14 @@ jobs:
                   }
 
             - name: Upload test results
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               if: always()
               with:
                   name: test-results-windows
                   path: '**/*.trx'
 
             - name: Upload coverage reports
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               if: always()
               with:
                   name: coverage-reports-windows
@@ -155,14 +155,14 @@ jobs:
                   }
 
             - name: Upload test results
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               if: always()
               with:
                   name: test-results-ubuntu
                   path: '**/*.trx'
 
             - name: Upload coverage reports
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               if: always()
               with:
                   name: coverage-reports-ubuntu
@@ -225,14 +225,14 @@ jobs:
                   }
 
             - name: Upload test results
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               if: always()
               with:
                   name: test-results-macos
                   path: '**/*.trx'
 
             - name: Upload coverage reports
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               if: always()
               with:
                   name: coverage-reports-macos
