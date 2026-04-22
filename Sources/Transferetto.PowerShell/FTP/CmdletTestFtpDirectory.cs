@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Test-FTPDirectory cmdlet.
+/// <para type="synopsis">Checks whether a remote FTP directory exists.</para>
+/// <para type="description">Returns a Boolean-like existence result for a remote FTP directory path, which is useful before create, remove, or sync operations.</para>
+/// <example>
+///   <para>Check whether a remote directory exists.</para>
+///   <code>Test-FTPDirectory -Client $ftp -RemotePath '/wwwroot/releases'</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Test", "FTPDirectory")]
@@ -38,4 +43,3 @@ public sealed class CmdletTestFtpDirectory : PSCmdlet
 		}
 	}
 }
-

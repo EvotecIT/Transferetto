@@ -7,7 +7,16 @@ using FluentFTP.Rules;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Start-FXPDirectoryTransfer cmdlet.
+/// <para type="synopsis">Transfers a directory tree directly between two FTP/FTPS servers by using FXP.</para>
+/// <para type="description">Starts a server-to-server directory sync through the reusable Transferetto FXP layer, with folder sync mode, verification, rules, collision handling, and progress reporting.</para>
+/// <example>
+///   <para>Copy a remote directory from one FTP server to another.</para>
+///   <code>Start-FXPDirectoryTransfer -Client $source -SourcePath '/pub/site' -DestinationClient $destination -DestinationPath '/incoming/site'</code>
+/// </example>
+/// <example>
+///   <para>Mirror a directory between servers while applying transfer rules and showing progress.</para>
+///   <code>Start-FXPDirectoryTransfer -Client $source -SourcePath '/pub/site' -DestinationClient $destination -DestinationPath '/mirror/site' -FolderSyncMode Mirror -Rules $rules -ShowProgress</code>
+/// </example>
 /// </summary>
 
 [Alias(new string[] { "Start-FXPDirectory" })]

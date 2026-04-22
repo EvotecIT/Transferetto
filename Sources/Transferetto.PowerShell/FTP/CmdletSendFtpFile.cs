@@ -7,7 +7,20 @@ using FluentFTP;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Send-FTPFile cmdlet.
+/// <para type="synopsis">Uploads one or more local files to an FTP or FTPS session.</para>
+/// <para type="description">Supports explicit remote targets or automatic filename mapping, remote collision policy, optional verification, remote directory creation, shared transfer progress, and cancellation-aware async uploads for both FTP and FTPS sessions.</para>
+/// <example>
+///   <para>Upload a single file to the current remote working directory.</para>
+///   <code>Send-FTPFile -Client $ftp -LocalPath '.\build\app.zip'</code>
+/// </example>
+/// <example>
+///   <para>Upload a file to an explicit FTPS destination and overwrite an existing file.</para>
+///   <code>Send-FTPFile -Client $ftp -LocalFile (Get-Item '.\release\site.tar.gz') -RemotePath '/incoming/site.tar.gz' -RemoteExists Overwrite -VerifyOptions Retry</code>
+/// </example>
+/// <example>
+///   <para>Upload multiple files, create the remote folder if needed, and show progress.</para>
+///   <code>Send-FTPFile -Client $ftp -LocalPath '.\logs\app.log','.\logs\web.log' -RemotePath '/archive/logs' -CreateRemoteDirectory -ShowProgress</code>
+/// </example>
 /// </summary>
 
 [Alias(new string[] { "Add-FTPFile" })]

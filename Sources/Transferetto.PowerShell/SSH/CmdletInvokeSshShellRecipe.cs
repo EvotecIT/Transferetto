@@ -4,9 +4,21 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Invoke-SSHShellRecipe cmdlet.
+/// <para type="synopsis">Runs a reusable Linux administration recipe inside an interactive SSH shell.</para>
+/// <para type="description">Provides a higher-level shell automation layer for common administration flows such as running a sudo command, following a remote file with tail, or following systemd logs with journalctl, while still supporting prompt presets, streaming output, and cancellation.</para>
+/// <example>
+///   <para>Run a privileged command through sudo inside the active shell session.</para>
+///   <code>Invoke-SSHShellRecipe -ShellSession $shell -Recipe SudoCommand -Command 'systemctl restart nginx' -Password 'secret' -PromptPreset LinuxRoot</code>
+/// </example>
+/// <example>
+///   <para>Follow a remote log file for 30 seconds and stream the output as it arrives.</para>
+///   <code>Invoke-SSHShellRecipe -ShellSession $shell -Recipe FollowFile -RemotePath '/var/log/nginx/access.log' -TailLines 50 -TimeoutSeconds 30 -StreamOutput</code>
+/// </example>
+/// <example>
+///   <para>Follow systemd journal output for one service.</para>
+///   <code>Invoke-SSHShellRecipe -ShellSession $shell -Recipe FollowJournal -ServiceName 'nginx' -TailLines 100 -TimeoutSeconds 60 -StreamOutput</code>
+/// </example>
 /// </summary>
-
 [Cmdlet("Invoke", "SSHShellRecipe")]
 public sealed class CmdletInvokeSshShellRecipe : AsyncPSCmdlet {
     /// <summary>

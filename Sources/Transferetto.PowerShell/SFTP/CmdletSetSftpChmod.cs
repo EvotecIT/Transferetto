@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Set-SFTPChmod cmdlet.
+/// <para type="synopsis">Sets POSIX-style permissions for a remote SFTP item.</para>
+/// <para type="description">Supports symbolic permission strings or explicit owner/group/other digit values and can optionally return refreshed item metadata after the change.</para>
+/// <example>
+///   <para>Set permissions by symbolic string.</para>
+///   <code>Set-SFTPChmod -SftpClient $sftp -Path '/srv/app/deploy.sh' -Permissions '755'</code>
+/// </example>
+/// <example>
+///   <para>Set permissions by owner/group/other digits and return the updated item.</para>
+///   <code>Set-SFTPChmod -SftpClient $sftp -Path '/srv/app/deploy.sh' -Owner 7 -Group 5 -Other 5 -PassThru</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Set", "SFTPChmod", DefaultParameterSetName = "ByString")]
@@ -78,4 +87,3 @@ public sealed class CmdletSetSftpChmod : PSCmdlet
 		}
 	}
 }
-

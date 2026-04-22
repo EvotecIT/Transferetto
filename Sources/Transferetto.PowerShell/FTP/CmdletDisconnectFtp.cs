@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Disconnect-FTP cmdlet.
+/// <para type="synopsis">Disconnects an FTP or FTPS session.</para>
+/// <para type="description">Closes the reusable FTP session created by <c>Connect-FTP</c> so sockets and authentication state are released cleanly at the end of a script or pipeline.</para>
+/// <example>
+///   <para>Close the current FTP session.</para>
+///   <code>Disconnect-FTP -Client $ftp</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Disconnect", "FTP")]
@@ -32,4 +37,3 @@ public sealed class CmdletDisconnectFtp : PSCmdlet
 		}
 	}
 }
-

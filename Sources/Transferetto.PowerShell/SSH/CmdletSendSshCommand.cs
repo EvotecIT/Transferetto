@@ -6,9 +6,21 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Send-SSHCommand cmdlet.
+/// <para type="synopsis">Runs one or more non-interactive SSH commands and captures their output.</para>
+/// <para type="description">Supports multi-line command blocks, structured status results, progressive stdout and stderr streaming, and per-command timeouts on top of the reusable SSH command execution layer.</para>
+/// <example>
+///   <para>Run two simple commands and return the combined stdout text.</para>
+///   <code>Send-SSHCommand -SshClient $ssh -Command { 'pwd'; 'uname -a' }</code>
+/// </example>
+/// <example>
+///   <para>Return the structured command result with exit status and timestamps.</para>
+///   <code>Send-SSHCommand -SshClient $ssh -Command { 'tail -n 20 /var/log/syslog' } -Status</code>
+/// </example>
+/// <example>
+///   <para>Stream output from a longer-running command and apply a timeout.</para>
+///   <code>Send-SSHCommand -SshClient $ssh -Command { 'long-running-script.sh' } -StreamOutput -CommandTimeoutSeconds 30 -Status</code>
+/// </example>
 /// </summary>
-
 [Cmdlet("Send", "SSHCommand")]
 public sealed class CmdletSendSshCommand : AsyncPSCmdlet
 {

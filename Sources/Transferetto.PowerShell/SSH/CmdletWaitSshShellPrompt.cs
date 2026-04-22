@@ -4,9 +4,17 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Wait-SSHShellPrompt cmdlet.
+/// <para type="synopsis">Waits until an expected interactive SSH shell prompt is observed.</para>
+/// <para type="description">Supports explicit prompt regexes or reusable prompt presets, progressive streaming while waiting, and cancellation-aware polling so shell automation can synchronize reliably before the next interactive step.</para>
+/// <example>
+///   <para>Wait for a standard Linux shell prompt by using the built-in preset.</para>
+///   <code>Wait-SSHShellPrompt -ShellSession $shell -PromptPreset Linux</code>
+/// </example>
+/// <example>
+///   <para>Wait for a PowerShell prompt and stream any intermediate output while waiting.</para>
+///   <code>Wait-SSHShellPrompt -ShellSession $shell -PromptPattern '(?m)^PS [^\r\n]*&gt;\s?$' -StreamOutput</code>
+/// </example>
 /// </summary>
-
 [Cmdlet("Wait", "SSHShellPrompt")]
 public sealed class CmdletWaitSshShellPrompt : AsyncPSCmdlet
 {

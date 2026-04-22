@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Set-SSHShellSize cmdlet.
+/// <para type="synopsis">Resizes the virtual terminal backing an interactive SSH shell session.</para>
+/// <para type="description">Updates terminal rows, columns, and optional pixel dimensions so interactive programs such as editors, pagers, or full-screen tools render correctly in the remote shell.</para>
+/// <example>
+///   <para>Resize the shell to a standard 120x40 terminal.</para>
+///   <code>Set-SSHShellSize -ShellSession $shell -Columns 120 -Rows 40</code>
+/// </example>
+/// <example>
+///   <para>Resize the shell and continue with the same shell session.</para>
+///   <code>$shell = Set-SSHShellSize -ShellSession $shell -Columns 160 -Rows 48 -PassThru</code>
+/// </example>
 /// </summary>
 
 [Alias(new string[] { "Resize-SSHShell" })]
@@ -67,4 +76,3 @@ public sealed class CmdletSetSshShellSize : PSCmdlet
 		}
 	}
 }
-

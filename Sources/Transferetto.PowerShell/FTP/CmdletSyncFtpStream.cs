@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Sync-FTPStream cmdlet.
+/// <para type="synopsis">Flushes buffered writes for an open FTP stream session.</para>
+/// <para type="description">Forces pending FTP stream data to be synchronized so stream-based writes are committed before later operations such as verification, rename, or close.</para>
+/// <example>
+///   <para>Flush pending writes to the remote FTP file.</para>
+///   <code>Sync-FTPStream -StreamSession $stream</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Sync", "FTPStream")]

@@ -5,9 +5,17 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Send-SFTPFile cmdlet.
+/// <para type="synopsis">Uploads a local file to an SFTP session.</para>
+/// <para type="description">Supports overwrite control, shared transfer progress reporting, and cancellation-aware async uploads that can be reused in deployment and automation workflows.</para>
+/// <example>
+///   <para>Upload a package to a deployment folder and show transfer progress.</para>
+///   <code>Send-SFTPFile -SftpClient $sftp -LocalPath '.\package.zip' -RemotePath '/srv/deploy/package.zip' -ShowProgress</code>
+/// </example>
+/// <example>
+///   <para>Replace an existing remote configuration file.</para>
+///   <code>Send-SFTPFile -SftpClient $sftp -LocalPath '.\appsettings.json' -RemotePath '/srv/app/appsettings.json' -AllowOverride</code>
+/// </example>
 /// </summary>
-
 [Alias(new string[] { "Add-SFTPFile" })]
 [Cmdlet("Send", "SFTPFile")]
 public sealed class CmdletSendSftpFile : AsyncPSCmdlet {

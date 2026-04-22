@@ -5,7 +5,16 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Write-FTPStream cmdlet.
+/// <para type="synopsis">Writes text or bytes to an open FTP stream session.</para>
+/// <para type="description">Supports text encoding or raw byte writes, optional flush behavior, and progress-aware async execution for low-level FTP upload scenarios that need incremental control.</para>
+/// <example>
+///   <para>Write text to a remote FTP stream.</para>
+///   <code>Write-FTPStream -StreamSession $stream -Text 'hello from Transferetto' -Flush</code>
+/// </example>
+/// <example>
+///   <para>Write raw bytes to the stream.</para>
+///   <code>Write-FTPStream -StreamSession $stream -ByteContent ([byte[]](1,2,3,4))</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Write", "FTPStream", DefaultParameterSetName = "Text")]

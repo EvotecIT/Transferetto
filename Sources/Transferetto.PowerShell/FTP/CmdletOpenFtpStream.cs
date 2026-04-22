@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Open-FTPStream cmdlet.
+/// <para type="synopsis">Opens a readable or writable FTP stream for a remote file.</para>
+/// <para type="description">Creates a reusable stream session for low-level FTP file access when callers need incremental reads or writes instead of a full-file transfer cmdlet.</para>
+/// <example>
+///   <para>Open a remote file for reading.</para>
+///   <code>$stream = Open-FTPStream -Client $ftp -RemotePath '/pub/example/readme.txt'</code>
+/// </example>
+/// <example>
+///   <para>Open a remote file for writing.</para>
+///   <code>$stream = Open-FTPStream -Client $ftp -RemotePath '/incoming/upload.txt' -Mode Write</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Open", "FTPStream")]
@@ -44,4 +53,3 @@ public sealed class CmdletOpenFtpStream : PSCmdlet
 		}
 	}
 }
-

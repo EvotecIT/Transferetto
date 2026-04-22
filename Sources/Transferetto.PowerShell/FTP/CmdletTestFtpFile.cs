@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Test-FTPFile cmdlet.
+/// <para type="synopsis">Checks whether a remote FTP file exists.</para>
+/// <para type="description">Returns a Boolean-like existence result for a remote FTP file path, which is useful for guard clauses and idempotent deployment flows.</para>
+/// <example>
+///   <para>Check whether a remote file exists.</para>
+///   <code>Test-FTPFile -Client $ftp -RemotePath '/incoming/site.zip'</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Test", "FTPFile")]
@@ -38,4 +43,3 @@ public sealed class CmdletTestFtpFile : PSCmdlet
 		}
 	}
 }
-

@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Remove-SFTPDirectory cmdlet.
+/// <para type="synopsis">Removes a directory from an SFTP server.</para>
+/// <para type="description">Deletes a remote SFTP directory and returns the operation result unless suppressed, which fits well into cleanup and deployment-rollback scripts.</para>
+/// <example>
+///   <para>Remove a remote SFTP directory.</para>
+///   <code>Remove-SFTPDirectory -SftpClient $sftp -Path '/srv/releases/old'</code>
+/// </example>
+/// <example>
+///   <para>Delete a directory quietly inside a larger maintenance script.</para>
+///   <code>Remove-SFTPDirectory -SftpClient $sftp -Path '/srv/tmp/build-cache' -Suppress</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Remove", "SFTPDirectory")]
@@ -48,4 +57,3 @@ public sealed class CmdletRemoveSftpDirectory : PSCmdlet
 		}
 	}
 }
-

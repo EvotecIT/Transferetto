@@ -5,7 +5,16 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Read-FTPStream cmdlet.
+/// <para type="synopsis">Reads bytes or text from an open FTP stream session.</para>
+/// <para type="description">Supports chunked reads, optional text decoding, and progress-aware async execution so large or incremental FTP stream reads can be scripted without buffering an entire file up front.</para>
+/// <example>
+///   <para>Read the next chunk of bytes from the stream.</para>
+///   <code>Read-FTPStream -StreamSession $stream -Count 8192</code>
+/// </example>
+/// <example>
+///   <para>Read text from the stream by decoding the returned bytes as UTF-8.</para>
+///   <code>Read-FTPStream -StreamSession $stream -Count 4096 -AsText</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Read", "FTPStream", DefaultParameterSetName = "Bytes")]

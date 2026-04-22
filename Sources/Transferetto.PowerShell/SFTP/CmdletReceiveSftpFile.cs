@@ -4,9 +4,17 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Receive-SFTPFile cmdlet.
+/// <para type="synopsis">Downloads a file from an SFTP session to the local machine.</para>
+/// <para type="description">Uses the shared async transfer pipeline so SFTP downloads support cancellation and progress reporting consistently with the FTP, SCP, and broader Transferetto file-transfer surface.</para>
+/// <example>
+///   <para>Download a log file from a Linux server with progress reporting.</para>
+///   <code>Receive-SFTPFile -SftpClient $sftp -RemotePath '/var/log/app.log' -LocalPath '.\logs\app.log' -ShowProgress</code>
+/// </example>
+/// <example>
+///   <para>Back up a remote configuration file before making changes.</para>
+///   <code>Receive-SFTPFile -SftpClient $sftp -RemotePath '/etc/nginx/nginx.conf' -LocalPath '.\backup\nginx.conf'</code>
+/// </example>
 /// </summary>
-
 [Alias(new string[] { "Get-SFTPFile" })]
 [Cmdlet("Receive", "SFTPFile")]
 public sealed class CmdletReceiveSftpFile : AsyncPSCmdlet {

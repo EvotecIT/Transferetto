@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Test-SFTPPath cmdlet.
+/// <para type="synopsis">Checks whether a remote SFTP path exists.</para>
+/// <para type="description">Returns a Boolean-like existence result for a remote SFTP path regardless of whether it is a file, directory, or other supported item type.</para>
+/// <example>
+///   <para>Check whether a remote path exists.</para>
+///   <code>Test-SFTPPath -SftpClient $sftp -Path '/srv/app/current'</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Test", "SFTPPath")]
@@ -38,4 +43,3 @@ public sealed class CmdletTestSftpPath : PSCmdlet
 		}
 	}
 }
-

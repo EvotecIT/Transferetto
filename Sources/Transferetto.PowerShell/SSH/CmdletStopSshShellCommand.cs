@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Stop-SSHShellCommand cmdlet.
+/// <para type="synopsis">Stops a running interactive SSH shell command and waits for the prompt to return.</para>
+/// <para type="description">Uses the shell stop lane to interrupt the active command, optionally waiting for a resolved prompt pattern or preset before returning the captured stop result.</para>
+/// <example>
+///   <para>Stop the current command and wait for a Linux prompt.</para>
+///   <code>Stop-SSHShellCommand -ShellSession $shell -PromptPreset Linux</code>
+/// </example>
+/// <example>
+///   <para>Stop the current command with a timeout and limited transcript lookback.</para>
+///   <code>Stop-SSHShellCommand -ShellSession $shell -PromptPattern '(?m)^deploy@web01:[^\\r\\n]*\\$\\s?$' -TimeoutSeconds 10 -Lookback 200</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Stop", "SSHShellCommand")]

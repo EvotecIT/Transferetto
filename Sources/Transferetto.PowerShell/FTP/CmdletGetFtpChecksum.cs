@@ -4,7 +4,16 @@ using FluentFTP;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Get-FTPChecksum cmdlet.
+/// <para type="synopsis">Calculates or retrieves a checksum for a remote FTP file.</para>
+/// <para type="description">Requests a remote hash from the FTP server by using the selected algorithm, which is useful for post-upload verification and drift detection workflows.</para>
+/// <example>
+///   <para>Request an MD5 checksum for a remote file.</para>
+///   <code>Get-FTPChecksum -Client $ftp -RemotePath '/incoming/site.zip'</code>
+/// </example>
+/// <example>
+///   <para>Request a SHA-256 checksum when the server supports it.</para>
+///   <code>Get-FTPChecksum -Client $ftp -RemotePath '/incoming/site.zip' -HashAlgorithm SHA256</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Get", "FTPChecksum")]
@@ -45,4 +54,3 @@ public sealed class CmdletGetFtpChecksum : PSCmdlet
 		}
 	}
 }
-

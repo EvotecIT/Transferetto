@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Set-SFTPWorkingDirectory cmdlet.
+/// <para type="synopsis">Changes the working directory for an SFTP session.</para>
+/// <para type="description">Updates the session’s active SFTP path so later relative operations run against the intended remote location.</para>
+/// <example>
+///   <para>Change the remote SFTP working directory.</para>
+///   <code>Set-SFTPWorkingDirectory -SftpClient $sftp -Path '/srv/app/releases'</code>
+/// </example>
+/// <example>
+///   <para>Change the directory and continue with the same session object.</para>
+///   <code>$sftp = Set-SFTPWorkingDirectory -SftpClient $sftp -Path '/srv/app/releases' -PassThru</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Set", "SFTPWorkingDirectory")]
@@ -48,4 +57,3 @@ public sealed class CmdletSetSftpWorkingDirectory : PSCmdlet
 		}
 	}
 }
-

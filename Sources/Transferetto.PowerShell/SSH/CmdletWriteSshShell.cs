@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Write-SSHShell cmdlet.
+/// <para type="synopsis">Writes text into an interactive SSH shell session.</para>
+/// <para type="description">Sends raw text or line-based input to an existing shell stream, with optional newline suppression and pass-through support so command composition can stay in PowerShell pipelines.</para>
+/// <example>
+///   <para>Send a command line into an interactive shell.</para>
+///   <code>Write-SSHShell -ShellSession $shell -Text 'pwd'</code>
+/// </example>
+/// <example>
+///   <para>Type a partial command without pressing Enter yet.</para>
+///   <code>Write-SSHShell -ShellSession $shell -Text 'sudo systemctl restart nginx' -NoNewLine</code>
+/// </example>
 /// </summary>
 
 [Alias(new string[] { "Send-SSHShell" })]
@@ -55,4 +64,3 @@ public sealed class CmdletWriteSshShell : PSCmdlet
 		}
 	}
 }
-

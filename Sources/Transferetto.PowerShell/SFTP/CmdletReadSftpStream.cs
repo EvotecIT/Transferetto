@@ -5,7 +5,16 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Read-SFTPStream cmdlet.
+/// <para type="synopsis">Reads bytes or text from an open SFTP stream session.</para>
+/// <para type="description">Supports chunked reads, optional text decoding, and progress-aware async execution so large or incremental SFTP stream reads can be automated efficiently.</para>
+/// <example>
+///   <para>Read the next chunk of bytes from the SFTP stream.</para>
+///   <code>Read-SFTPStream -StreamSession $stream -Count 8192</code>
+/// </example>
+/// <example>
+///   <para>Read text content from the SFTP stream.</para>
+///   <code>Read-SFTPStream -StreamSession $stream -AsText -Count 4096</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Read", "SFTPStream", DefaultParameterSetName = "Bytes")]

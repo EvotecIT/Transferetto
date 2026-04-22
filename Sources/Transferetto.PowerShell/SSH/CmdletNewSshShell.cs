@@ -3,9 +3,17 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the New-SSHShell cmdlet.
+/// <para type="synopsis">Creates a reusable interactive SSH shell session.</para>
+/// <para type="description">Builds an interactive shell stream on top of an SSH session, with optional prompt presets or explicit prompt patterns, transcript support, and terminal sizing that can be reused by shell read, write, expect, and recipe cmdlets.</para>
+/// <example>
+///   <para>Create a standard Linux shell session using the built-in prompt preset.</para>
+///   <code>$shell = New-SSHShell -SshClient $ssh -PromptPreset Linux</code>
+/// </example>
+/// <example>
+///   <para>Create a wider shell session and supply an explicit prompt pattern.</para>
+///   <code>$shell = New-SSHShell -SshClient $ssh -Columns 160 -Rows 50 -PromptPattern '(?m)^[^\r\n]*[#$]\s?$'</code>
+/// </example>
 /// </summary>
-
 [Cmdlet("New", "SSHShell")]
 public sealed class CmdletNewSshShell : PSCmdlet
 {

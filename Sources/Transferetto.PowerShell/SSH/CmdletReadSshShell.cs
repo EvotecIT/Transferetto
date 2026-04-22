@@ -5,9 +5,21 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Read-SSHShell cmdlet.
+/// <para type="synopsis">Reads output from an interactive SSH shell session.</para>
+/// <para type="description">Supports simple reads, line reads, read-until-idle, text and regex expectations, prompt waits, follow-mode output capture, prompt presets, progressive streaming, and cancellation-aware polling for interactive shell automation.</para>
+/// <example>
+///   <para>Drain the shell output until it becomes idle.</para>
+///   <code>Read-SSHShell -ShellSession $shell -ReadUntilIdle</code>
+/// </example>
+/// <example>
+///   <para>Wait until a Linux prompt appears by using the built-in prompt preset.</para>
+///   <code>Read-SSHShell -ShellSession $shell -ExpectPrompt -PromptPreset LinuxRoot</code>
+/// </example>
+/// <example>
+///   <para>Follow shell output until a stop pattern is observed and stream chunks to the pipeline while waiting.</para>
+///   <code>Read-SSHShell -ShellSession $shell -Follow -RegexPattern 'completed successfully' -StreamOutput -TimeoutSeconds 60</code>
+/// </example>
 /// </summary>
-
 [Alias(new string[] { "Receive-SSHShell" })]
 [Cmdlet("Read", "SSHShell")]
 public sealed class CmdletReadSshShell : AsyncPSCmdlet

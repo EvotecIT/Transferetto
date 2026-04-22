@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Test-FXPTransfer cmdlet.
+/// <para type="synopsis">Preflights whether an FXP transfer can run between two FTP/FTPS sessions.</para>
+/// <para type="description">Evaluates the requested source, destination, transfer kind, and optional destination-directory creation rules before a full FXP transfer is attempted.</para>
+/// <example>
+///   <para>Preflight a direct server-to-server file transfer.</para>
+///   <code>Test-FXPTransfer -Client $source -SourcePath '/pub/site.zip' -DestinationClient $destination -DestinationPath '/incoming/site.zip'</code>
+/// </example>
+/// <example>
+///   <para>Preflight a directory transfer where the destination path may need to be created.</para>
+///   <code>Test-FXPTransfer -Client $source -SourcePath '/pub/site' -DestinationClient $destination -DestinationPath '/mirror/site' -TransferKind Directory -CreateRemoteDirectory</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Test", "FXPTransfer")]

@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Send-SSHShellControl cmdlet.
+/// <para type="synopsis">Sends control-key input to an interactive SSH shell session.</para>
+/// <para type="description">Provides a safe way to send interrupt and navigation keys such as Ctrl+C or Ctrl+D without embedding terminal escape sequences directly into shell automation scripts.</para>
+/// <example>
+///   <para>Interrupt the currently running command.</para>
+///   <code>Send-SSHShellControl -ShellSession $shell -Key CtrlC</code>
+/// </example>
+/// <example>
+///   <para>Send the up-arrow twice to recall earlier history entries.</para>
+///   <code>Send-SSHShellControl -ShellSession $shell -Key UpArrow -Repeat 2</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Send", "SSHShellControl")]
@@ -54,4 +63,3 @@ public sealed class CmdletSendSshShellControl : PSCmdlet
 		}
 	}
 }
-

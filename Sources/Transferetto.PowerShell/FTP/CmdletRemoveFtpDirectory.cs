@@ -4,7 +4,16 @@ using FluentFTP;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Remove-FTPDirectory cmdlet.
+/// <para type="synopsis">Removes a directory from an FTP or FTPS server.</para>
+/// <para type="description">Deletes a remote FTP directory and can pass explicit listing options for servers that need additional directory enumeration behavior during recursive removal.</para>
+/// <example>
+///   <para>Remove a remote FTP directory.</para>
+///   <code>Remove-FTPDirectory -Client $ftp -RemotePath '/incoming/old-release'</code>
+/// </example>
+/// <example>
+///   <para>Remove a directory while forcing a specific listing mode.</para>
+///   <code>Remove-FTPDirectory -Client $ftp -RemotePath '/staging/tmp' -FtpListOption AllFiles</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Remove", "FTPDirectory")]
@@ -46,4 +55,3 @@ public sealed class CmdletRemoveFtpDirectory : PSCmdlet
 		}
 	}
 }
-

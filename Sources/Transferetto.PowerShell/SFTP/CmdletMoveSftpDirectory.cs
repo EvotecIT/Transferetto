@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Move-SFTPDirectory cmdlet.
+/// <para type="synopsis">Moves or renames a directory on an SFTP server.</para>
+/// <para type="description">Renames or relocates a remote SFTP directory, optionally using POSIX rename semantics when the server supports them, and returns a structured operation result unless suppressed.</para>
+/// <example>
+///   <para>Rename a directory on the server.</para>
+///   <code>Move-SFTPDirectory -SftpClient $sftp -SourcePath '/srv/releases/next' -DestinationPath '/srv/releases/current'</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Move", "SFTPDirectory")]
@@ -60,4 +65,3 @@ public sealed class CmdletMoveSftpDirectory : PSCmdlet
 		}
 	}
 }
-

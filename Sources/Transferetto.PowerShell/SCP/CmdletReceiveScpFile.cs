@@ -4,9 +4,17 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Receive-SCPFile cmdlet.
+/// <para type="synopsis">Downloads a file through an SCP session.</para>
+/// <para type="description">Provides a simple SCP receive path with the shared Transferetto async transfer options so scripts can show progress and cancel long downloads consistently.</para>
+/// <example>
+///   <para>Download a deployment archive from a Linux server.</para>
+///   <code>Receive-SCPFile -ScpClient $scp -RemotePath '/var/www/app.tar.gz' -LocalPath '.\app.tar.gz' -ShowProgress</code>
+/// </example>
+/// <example>
+///   <para>Copy a remote backup file to the current machine for offline inspection.</para>
+///   <code>Receive-SCPFile -ScpClient $scp -RemotePath '/srv/backups/nightly.tar.gz' -LocalPath '.\nightly.tar.gz'</code>
+/// </example>
 /// </summary>
-
 [Alias(new string[] { "Get-SCPFile" })]
 [Cmdlet("Receive", "SCPFile")]
 public sealed class CmdletReceiveScpFile : AsyncPSCmdlet {

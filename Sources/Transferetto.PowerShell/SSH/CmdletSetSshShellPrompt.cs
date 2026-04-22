@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Set-SSHShellPrompt cmdlet.
+/// <para type="synopsis">Updates the prompt detection settings for an interactive SSH shell session.</para>
+/// <para type="description">Configures either an explicit prompt regex or a reusable prompt preset so later read, expect, and command cmdlets can synchronize against the correct shell prompt.</para>
+/// <example>
+///   <para>Switch the shell to use the built-in Linux prompt preset.</para>
+///   <code>Set-SSHShellPrompt -ShellSession $shell -PromptPreset Linux</code>
+/// </example>
+/// <example>
+///   <para>Set a custom prompt regex and continue with the same shell session.</para>
+///   <code>$shell = Set-SSHShellPrompt -ShellSession $shell -PromptPattern '(?m)^deploy@web01:[^\\r\\n]*\\$\\s?$' -PassThru</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Set", "SSHShellPrompt")]

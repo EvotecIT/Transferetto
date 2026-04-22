@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Start-SSHLocalTunnel cmdlet.
+/// <para type="synopsis">Starts a local SSH port-forwarding tunnel.</para>
+/// <para type="description">Binds a local host and port, then forwards traffic through the SSH session to a remote host and port, returning a reusable tunnel session that can be stopped later.</para>
+/// <example>
+///   <para>Expose a remote web application on a local port.</para>
+///   <code>Start-SSHLocalTunnel -SshClient $ssh -BoundPort 8080 -RemoteHost '127.0.0.1' -RemotePort 80</code>
+/// </example>
+/// <example>
+///   <para>Bind a tunnel to all local interfaces for a shared troubleshooting session.</para>
+///   <code>Start-SSHLocalTunnel -SshClient $ssh -BoundHost '0.0.0.0' -BoundPort 15432 -RemoteHost 'db.internal' -RemotePort 5432</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Start", "SSHLocalTunnel")]
@@ -56,4 +65,3 @@ public sealed class CmdletStartSshLocalTunnel : PSCmdlet
 		}
 	}
 }
-

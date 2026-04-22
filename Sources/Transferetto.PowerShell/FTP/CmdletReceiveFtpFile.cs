@@ -8,9 +8,21 @@ using FluentFTP;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Receive-FTPFile cmdlet.
+/// <para type="synopsis">Downloads one or more files from an FTP or FTPS session to the local machine.</para>
+/// <para type="description">Supports explicit remote paths or native listing objects, local collision policy, optional verification, shared transfer progress, and cancellation-aware async downloads for both FTP and FTPS sessions.</para>
+/// <example>
+///   <para>Download a single remote file to a local path.</para>
+///   <code>Receive-FTPFile -Client $ftp -RemotePath '/pub/example/readme.txt' -LocalPath '.\Downloads\readme.txt'</code>
+/// </example>
+/// <example>
+///   <para>Download multiple remote files into a local directory and show progress.</para>
+///   <code>Receive-FTPFile -Client $ftp -RemotePath '/pub/example/a.txt','/pub/example/b.txt' -LocalPath '.\Downloads' -ShowProgress</code>
+/// </example>
+/// <example>
+///   <para>Download a file and require FluentFTP verification before reporting success.</para>
+///   <code>Receive-FTPFile -Client $ftp -RemotePath '/pub/example/archive.zip' -LocalPath '.\Downloads\archive.zip' -VerifyOptions Retry</code>
+/// </example>
 /// </summary>
-
 [Alias(new string[] { "Get-FTPFile" })]
 [Cmdlet("Receive", "FTPFile", DefaultParameterSetName = "Text")]
 public sealed class CmdletReceiveFtpFile : AsyncPSCmdlet {

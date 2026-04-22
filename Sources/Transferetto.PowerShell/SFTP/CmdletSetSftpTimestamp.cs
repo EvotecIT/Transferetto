@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Set-SFTPTimestamp cmdlet.
+/// <para type="synopsis">Sets access and/or write timestamps for a remote SFTP item.</para>
+/// <para type="description">Updates one or both SFTP timestamps, with optional UTC semantics, and can return refreshed item metadata after the change.</para>
+/// <example>
+///   <para>Set the last write time on a remote file.</para>
+///   <code>Set-SFTPTimestamp -SftpClient $sftp -Path '/srv/app/config.json' -LastWriteTime (Get-Date)</code>
+/// </example>
+/// <example>
+///   <para>Set both timestamps in UTC and return the updated item.</para>
+///   <code>Set-SFTPTimestamp -SftpClient $sftp -Path '/srv/app/config.json' -LastAccessTime (Get-Date).ToUniversalTime() -LastWriteTime (Get-Date).ToUniversalTime() -Utc -PassThru</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Set", "SFTPTimestamp")]
@@ -72,4 +81,3 @@ public sealed class CmdletSetSftpTimestamp : PSCmdlet
 		}
 	}
 }
-

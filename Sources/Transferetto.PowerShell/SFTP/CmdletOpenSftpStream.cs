@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Open-SFTPStream cmdlet.
+/// <para type="synopsis">Opens a readable or writable SFTP stream for a remote file.</para>
+/// <para type="description">Creates a reusable stream session for low-level SFTP access when callers need incremental reads or writes instead of a full-file transfer cmdlet.</para>
+/// <example>
+///   <para>Open a remote file for reading through SFTP.</para>
+///   <code>$stream = Open-SFTPStream -SftpClient $sftp -Path '/srv/app/settings.json'</code>
+/// </example>
+/// <example>
+///   <para>Open a remote file for writing through SFTP.</para>
+///   <code>$stream = Open-SFTPStream -SftpClient $sftp -Path '/srv/app/settings.json' -Mode Write</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Open", "SFTPStream")]
@@ -44,4 +53,3 @@ public sealed class CmdletOpenSftpStream : PSCmdlet
 		}
 	}
 }
-

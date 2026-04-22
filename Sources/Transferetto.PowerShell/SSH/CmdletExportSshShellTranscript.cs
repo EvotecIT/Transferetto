@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Export-SSHShellTranscript cmdlet.
+/// <para type="synopsis">Exports the interactive SSH shell transcript to a file.</para>
+/// <para type="description">Writes the shell transcript to disk for troubleshooting or audit purposes, with optional append mode and support for exporting only the newest entries from a long-running shell session.</para>
+/// <example>
+///   <para>Export the entire transcript to a log file.</para>
+///   <code>Export-SSHShellTranscript -ShellSession $shell -Path '.\transcripts\session.log'</code>
+/// </example>
+/// <example>
+///   <para>Append only the most recent transcript entries to an existing file.</para>
+///   <code>Export-SSHShellTranscript -ShellSession $shell -Path '.\transcripts\session.log' -Last 50 -Append</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Export", "SSHShellTranscript")]
@@ -50,4 +59,3 @@ public sealed class CmdletExportSshShellTranscript : PSCmdlet
 		}
 	}
 }
-

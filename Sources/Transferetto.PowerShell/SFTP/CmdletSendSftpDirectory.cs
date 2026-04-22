@@ -5,7 +5,16 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Send-SFTPDirectory cmdlet.
+/// <para type="synopsis">Uploads a local directory tree to an SFTP session.</para>
+/// <para type="description">Uses the shared Transferetto async transfer pipeline so recursive SFTP uploads support overwrite control, progress reporting, and cancellation consistently with the FTP and SCP directory transfer cmdlets.</para>
+/// <example>
+///   <para>Upload a local directory to a remote SFTP path.</para>
+///   <code>Send-SFTPDirectory -SftpClient $sftp -LocalPath '.\site' -RemotePath '/var/www/site'</code>
+/// </example>
+/// <example>
+///   <para>Redeploy a directory tree and overwrite existing remote files while streaming progress.</para>
+///   <code>Send-SFTPDirectory -SftpClient $sftp -LocalPath '.\publish' -RemotePath '/srv/releases/current' -AllowOverride -ShowProgress</code>
+/// </example>
 /// </summary>
 
 [Alias(new string[] { "Add-SFTPDirectory" })]

@@ -4,7 +4,16 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Send-SCPFile cmdlet.
+/// <para type="synopsis">Uploads a local file through an SCP session.</para>
+/// <para type="description">Provides a simple SCP upload path with the shared Transferetto async transfer options so scripts can show progress and cancel long uploads consistently.</para>
+/// <example>
+///   <para>Upload a deployment package to a Linux host with SCP.</para>
+///   <code>Send-SCPFile -ScpClient $scp -LocalPath '.\deploy\site.tar.gz' -RemotePath '/tmp/site.tar.gz'</code>
+/// </example>
+/// <example>
+///   <para>Upload a file and emit progress records while it transfers.</para>
+///   <code>Send-SCPFile -ScpClient $scp -LocalPath '.\backup\database.sql.gz' -RemotePath '/var/backups/database.sql.gz' -ShowProgress</code>
+/// </example>
 /// </summary>
 
 [Alias(new string[] { "Add-SCPFile" })]

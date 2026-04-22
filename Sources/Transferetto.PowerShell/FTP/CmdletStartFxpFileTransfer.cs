@@ -5,7 +5,16 @@ using FluentFTP;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Start-FXPFileTransfer cmdlet.
+/// <para type="synopsis">Transfers a file directly between two FTP/FTPS servers by using FXP.</para>
+/// <para type="description">Starts a server-to-server file copy through the reusable Transferetto FXP layer, with remote collision handling, optional verification, destination directory creation, and progress reporting.</para>
+/// <example>
+///   <para>Copy a file directly between two FTP sessions.</para>
+///   <code>Start-FXPFileTransfer -Client $source -SourcePath '/pub/site.zip' -DestinationClient $destination -DestinationPath '/incoming/site.zip'</code>
+/// </example>
+/// <example>
+///   <para>Create the destination directory if needed and verify the result.</para>
+///   <code>Start-FXPFileTransfer -Client $source -SourcePath '/pub/site.zip' -DestinationClient $destination -DestinationPath '/releases/2026/site.zip' -CreateRemoteDirectory -VerifyOptions Retry,Throw -ShowProgress</code>
+/// </example>
 /// </summary>
 
 [Alias(new string[] { "Start-FXPFile" })]

@@ -4,7 +4,16 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Receive-SCPDirectory cmdlet.
+/// <para type="synopsis">Downloads a remote directory tree through an SCP session.</para>
+/// <para type="description">Provides recursive SCP downloads with the same shared progress reporting and cancellation-aware async behavior used by the rest of the Transferetto file-transfer surface.</para>
+/// <example>
+///   <para>Download a remote release directory from a Linux server.</para>
+///   <code>Receive-SCPDirectory -ScpClient $scp -RemotePath '/srv/releases/current' -LocalPath '.\releases\current'</code>
+/// </example>
+/// <example>
+///   <para>Download a remote directory and stream progress to the pipeline host.</para>
+///   <code>Receive-SCPDirectory -ScpClient $scp -RemotePath '/var/log' -LocalPath '.\logs' -ShowProgress</code>
+/// </example>
 /// </summary>
 
 [Alias(new string[] { "Get-SCPDirectory" })]

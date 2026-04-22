@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Get-FTPChmod cmdlet.
+/// <para type="synopsis">Reads POSIX-style permission bits for a remote FTP item.</para>
+/// <para type="description">Returns the remote mode/permission information reported by the FTP server so scripts can inspect Unix-style access flags before applying changes.</para>
+/// <example>
+///   <para>Read permissions for a remote file.</para>
+///   <code>Get-FTPChmod -Client $ftp -RemotePath '/wwwroot/appsettings.json'</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Get", "FTPChmod")]
@@ -38,4 +43,3 @@ public sealed class CmdletGetFtpChmod : PSCmdlet
 		}
 	}
 }
-

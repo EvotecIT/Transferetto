@@ -5,9 +5,24 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Invoke-SSHShellExpect cmdlet.
+/// <para type="synopsis">Executes an ordered expect-style workflow against an interactive SSH shell.</para>
+/// <para type="description">Supports send-text, control-key, prompt, text, regex, line, idle, and follow-mode steps through reusable step objects or PSCustomObject input, making it possible to script interactive shell flows without dropping into raw shell polling logic.</para>
+/// <example>
+///   <para>Run two simple shell commands and wait for a Linux prompt after each one.</para>
+///   <code>$steps = @(
+///   [pscustomobject]@{ Name = 'pwd'; SendText = 'pwd'; ExpectPrompt = $true; PromptPreset = 'Linux' },
+///   [pscustomobject]@{ Name = 'list'; SendText = 'ls -la /srv/app'; ExpectPrompt = $true; PromptPreset = 'Linux' }
+/// )
+/// Invoke-SSHShellExpect -ShellSession $shell -Step $steps</code>
+/// </example>
+/// <example>
+///   <para>Follow shell output from a long-running command until a stop pattern is observed.</para>
+///   <code>$steps = @(
+///   [pscustomobject]@{ SendText = 'tail -n 20 -f /var/log/app.log'; Follow = $true; StopPattern = 'ready'; TimeoutSeconds = 30 }
+/// )
+/// Invoke-SSHShellExpect -ShellSession $shell -Step $steps -StreamOutput</code>
+/// </example>
 /// </summary>
-
 [Cmdlet("Invoke", "SSHShellExpect")]
 public sealed class CmdletInvokeSshShellExpect : AsyncPSCmdlet {
 	/// <summary>

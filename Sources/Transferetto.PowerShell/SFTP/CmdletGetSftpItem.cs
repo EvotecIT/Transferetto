@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Get-SFTPItem cmdlet.
+/// <para type="synopsis">Retrieves metadata for a single SFTP file-system item.</para>
+/// <para type="description">Returns SFTP attributes for a target path so scripts can inspect timestamps, permissions, size, and item type before taking further action.</para>
+/// <example>
+///   <para>Inspect a remote SFTP file.</para>
+///   <code>Get-SFTPItem -SftpClient $sftp -Path '/srv/app/settings.json'</code>
+/// </example>
+/// <example>
+///   <para>Inspect a remote directory before deciding whether to create or remove children.</para>
+///   <code>Get-SFTPItem -SftpClient $sftp -Path '/srv/releases'</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Get", "SFTPItem")]
@@ -38,4 +47,3 @@ public sealed class CmdletGetSftpItem : PSCmdlet
 		}
 	}
 }
-

@@ -4,9 +4,21 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Invoke-SSHShellCommand cmdlet.
+/// <para type="synopsis">Runs a command inside an interactive SSH shell and captures output plus exit code.</para>
+/// <para type="description">Uses the reusable shell marker and prompt-handling lane to execute a command in a live shell session, optionally stream output while it runs, trim command echo, and return either structured results or raw shell output.</para>
+/// <example>
+///   <para>Run a simple command and return the structured shell-command result.</para>
+///   <code>Invoke-SSHShellCommand -ShellSession $shell -Command 'pwd'</code>
+/// </example>
+/// <example>
+///   <para>Return only the captured command output for quick scripting.</para>
+///   <code>Invoke-SSHShellCommand -ShellSession $shell -Command 'ls -la /srv/app' -RawOutput</code>
+/// </example>
+/// <example>
+///   <para>Stream output while a longer-running shell command executes.</para>
+///   <code>Invoke-SSHShellCommand -ShellSession $shell -Command 'tail -n 20 /var/log/syslog' -PromptPreset Linux -StreamOutput -TimeoutSeconds 30</code>
+/// </example>
 /// </summary>
-
 [Cmdlet("Invoke", "SSHShellCommand")]
 public sealed class CmdletInvokeSshShellCommand : AsyncPSCmdlet
 {

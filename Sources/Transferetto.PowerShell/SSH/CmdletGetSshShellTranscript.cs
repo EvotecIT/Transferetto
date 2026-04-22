@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Get-SSHShellTranscript cmdlet.
+/// <para type="synopsis">Retrieves the in-memory transcript captured for an interactive SSH shell session.</para>
+/// <para type="description">Returns either a structured transcript snapshot or plain text entries, with optional trimming to the newest entries so long-running interactive sessions can be inspected without exporting everything.</para>
+/// <example>
+///   <para>Return the full structured transcript snapshot.</para>
+///   <code>Get-SSHShellTranscript -ShellSession $shell</code>
+/// </example>
+/// <example>
+///   <para>Return the last 20 transcript entries as formatted text.</para>
+///   <code>Get-SSHShellTranscript -ShellSession $shell -Last 20 -AsText</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Get", "SSHShellTranscript")]
@@ -59,4 +68,3 @@ public sealed class CmdletGetSshShellTranscript : PSCmdlet
 		}
 	}
 }
-

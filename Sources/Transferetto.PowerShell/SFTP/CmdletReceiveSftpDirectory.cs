@@ -5,7 +5,16 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Receive-SFTPDirectory cmdlet.
+/// <para type="synopsis">Downloads a remote directory tree from an SFTP session.</para>
+/// <para type="description">Supports recursive SFTP downloads with overwrite control, progress reporting, and cancellation-aware async execution so local staging and backup workflows behave consistently across protocols.</para>
+/// <example>
+///   <para>Download a remote application directory to the local machine.</para>
+///   <code>Receive-SFTPDirectory -SftpClient $sftp -RemotePath '/srv/app' -LocalPath '.\backup\app'</code>
+/// </example>
+/// <example>
+///   <para>Refresh a local mirror from SFTP and overwrite existing files while showing progress.</para>
+///   <code>Receive-SFTPDirectory -SftpClient $sftp -RemotePath '/var/log/nginx' -LocalPath '.\logs\nginx' -AllowOverride -ShowProgress</code>
+/// </example>
 /// </summary>
 
 [Alias(new string[] { "Get-SFTPDirectory" })]

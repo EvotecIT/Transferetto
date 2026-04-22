@@ -7,9 +7,21 @@ using FluentFTP.Rules;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Send-FTPDirectory cmdlet.
+/// <para type="synopsis">Uploads a local directory tree to an FTP or FTPS session.</para>
+/// <para type="description">Supports FluentFTP folder sync modes, remote collision policy, verification, transfer rules, shared progress reporting, and cancellation-aware async directory uploads for both FTP and FTPS targets.</para>
+/// <example>
+///   <para>Upload a local website directory and update changed files on the server.</para>
+///   <code>Send-FTPDirectory -Client $ftp -LocalPath '.\Website' -RemotePath '/wwwroot' -FolderSyncMode Update -ShowProgress</code>
+/// </example>
+/// <example>
+///   <para>Upload build artifacts and overwrite existing remote files when names collide.</para>
+///   <code>Send-FTPDirectory -Client $ftp -LocalPath '.\Artifacts' -RemotePath '/incoming' -RemoteExists Overwrite</code>
+/// </example>
+/// <example>
+///   <para>Apply transfer rules during a recursive upload.</para>
+///   <code>Send-FTPDirectory -Client $ftp -LocalPath '.\Website' -RemotePath '/wwwroot' -Rules $rules -VerifyOptions Retry</code>
+/// </example>
 /// </summary>
-
 [Alias(new string[] { "Add-FTPDirectory" })]
 [Cmdlet("Send", "FTPDirectory")]
 public sealed class CmdletSendFtpDirectory : AsyncPSCmdlet {

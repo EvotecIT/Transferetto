@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Disconnect-SSH cmdlet.
+/// <para type="synopsis">Disconnects an SSH session.</para>
+/// <para type="description">Closes the reusable SSH session created by <c>Connect-SSH</c>, ending command, shell, and tunnel activity tied to that session when shutdown is complete.</para>
+/// <example>
+///   <para>Close the SSH session after finishing command work.</para>
+///   <code>Disconnect-SSH -SshClient $ssh</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Disconnect", "SSH")]
@@ -32,4 +37,3 @@ public sealed class CmdletDisconnectSsh : PSCmdlet
 		}
 	}
 }
-

@@ -5,7 +5,16 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Write-SFTPStream cmdlet.
+/// <para type="synopsis">Writes text or bytes to an open SFTP stream session.</para>
+/// <para type="description">Supports text encoding or raw byte writes, optional flush behavior, and progress-aware async execution for low-level SFTP upload or remote content-editing scenarios.</para>
+/// <example>
+///   <para>Write text to a remote SFTP stream.</para>
+///   <code>Write-SFTPStream -StreamSession $stream -Text 'deployment ready' -Flush</code>
+/// </example>
+/// <example>
+///   <para>Write raw bytes to the SFTP stream.</para>
+///   <code>Write-SFTPStream -StreamSession $stream -ByteContent ([byte[]](1,2,3,4))</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Write", "SFTPStream", DefaultParameterSetName = "Text")]

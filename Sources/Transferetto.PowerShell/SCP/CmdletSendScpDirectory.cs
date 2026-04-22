@@ -4,7 +4,16 @@ using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Send-SCPDirectory cmdlet.
+/// <para type="synopsis">Uploads a local directory tree through an SCP session.</para>
+/// <para type="description">Supports recursive SCP uploads with shared progress reporting and cancellation-aware async execution, making it suitable for simple release and backup flows that do not need SFTP-specific metadata operations.</para>
+/// <example>
+///   <para>Upload a local website directory to a remote Linux host.</para>
+///   <code>Send-SCPDirectory -ScpClient $scp -LocalPath '.\site' -RemotePath '/var/www/site'</code>
+/// </example>
+/// <example>
+///   <para>Upload a backup directory and show transfer progress.</para>
+///   <code>Send-SCPDirectory -ScpClient $scp -LocalPath '.\backup' -RemotePath '/srv/backup' -ShowProgress</code>
+/// </example>
 /// </summary>
 
 [Alias(new string[] { "Add-SCPDirectory" })]

@@ -3,9 +3,21 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Connect-SCP cmdlet.
+/// <para type="synopsis">Creates an SCP session with SSH host-key validation, proxy support, and password or private-key authentication.</para>
+/// <para type="description">Uses the same SSH trust and authentication model as the SFTP and SSH cmdlets, making it easy to connect with credentials or private keys, enforce known-hosts or TOFU trust, and route SCP transfers through an SSH proxy when needed.</para>
+/// <example>
+///   <para>Connect to an SCP server with a credential prompt and trust-on-first-use validation.</para>
+///   <code>$scp = Connect-SCP -Server 'test.rebex.net' -Credential (Get-Credential) -HostKeyPolicy TrustOnFirstUse</code>
+/// </example>
+/// <example>
+///   <para>Connect with a private key and a reusable known-hosts file.</para>
+///   <code>$scp = Connect-SCP -Server 'linux.example.com' -Username 'deploy' -PrivateKey '.\id_ed25519' -KnownHostsPath '.\ssh-known-hosts.tsv'</code>
+/// </example>
+/// <example>
+///   <para>Connect through a SOCKS proxy for restricted network paths.</para>
+///   <code>$scp = Connect-SCP -Server 'linux.example.com' -Credential (Get-Credential) -ProxyType Socks5 -ProxyHost 'proxy.example.com' -ProxyPort 1080</code>
+/// </example>
 /// </summary>
-
 [Cmdlet("Connect", "SCP", DefaultParameterSetName = "Password")]
 public sealed class CmdletConnectScp : PSCmdlet
 {

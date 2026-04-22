@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Get-FTPModifiedTime cmdlet.
+/// <para type="synopsis">Returns the last modified time for a remote FTP item.</para>
+/// <para type="description">Reads the remote timestamp reported by the FTP server, which is useful for deployment comparisons, freshness checks, and timestamp synchronization.</para>
+/// <example>
+///   <para>Check when a remote file was last modified.</para>
+///   <code>Get-FTPModifiedTime -Client $ftp -RemotePath '/wwwroot/index.html'</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Get", "FTPModifiedTime")]
@@ -38,4 +43,3 @@ public sealed class CmdletGetFtpModifiedTime : PSCmdlet
 		}
 	}
 }
-

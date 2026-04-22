@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Test-SFTPSymbolicLink cmdlet.
+/// <para type="synopsis">Checks whether a remote SFTP symbolic link exists.</para>
+/// <para type="description">Returns a Boolean-like existence result specifically for a symbolic-link path so scripts can distinguish link-oriented workflows from file or directory checks.</para>
+/// <example>
+///   <para>Check whether a remote symlink exists.</para>
+///   <code>Test-SFTPSymbolicLink -SftpClient $sftp -Path '/srv/releases/current'</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Test", "SFTPSymbolicLink")]
@@ -38,4 +43,3 @@ public sealed class CmdletTestSftpSymbolicLink : PSCmdlet
 		}
 	}
 }
-

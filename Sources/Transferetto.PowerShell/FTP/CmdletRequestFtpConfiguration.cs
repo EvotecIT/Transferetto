@@ -4,7 +4,16 @@ using System.Net;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Request-FTPConfiguration cmdlet.
+/// <para type="synopsis">Probes an FTP or FTPS endpoint to discover compatible connection settings.</para>
+/// <para type="description">Runs Transferetto’s FTP configuration detection against a target server, optionally with credentials, and can return either the first working configuration or the full candidate set.</para>
+/// <example>
+///   <para>Probe a server anonymously or with default credentials.</para>
+///   <code>Request-FTPConfiguration -Server 'ftp.example.com'</code>
+/// </example>
+/// <example>
+///   <para>Probe with credentials and stop after the first successful configuration.</para>
+///   <code>Request-FTPConfiguration -Server 'ftp.example.com' -Credential (Get-Credential) -FirstOnly</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Request", "FTPConfiguration", DefaultParameterSetName = "Password")]
@@ -77,4 +86,3 @@ public sealed class CmdletRequestFtpConfiguration : PSCmdlet
 		return Credential?.GetNetworkCredential();
 	}
 }
-

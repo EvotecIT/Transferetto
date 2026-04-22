@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Disconnect-SFTP cmdlet.
+/// <para type="synopsis">Disconnects an SFTP session.</para>
+/// <para type="description">Closes the reusable SFTP session created by <c>Connect-SFTP</c> so the underlying SSH transport is released cleanly when file operations are done.</para>
+/// <example>
+///   <para>Close the current SFTP session.</para>
+///   <code>Disconnect-SFTP -SftpClient $sftp</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Disconnect", "SFTP")]
@@ -32,4 +37,3 @@ public sealed class CmdletDisconnectSftp : PSCmdlet
 		}
 	}
 }
-

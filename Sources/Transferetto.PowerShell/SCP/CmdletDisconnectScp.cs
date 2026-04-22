@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Disconnect-SCP cmdlet.
+/// <para type="synopsis">Disconnects an SCP session.</para>
+/// <para type="description">Closes the reusable SCP session created by <c>Connect-SCP</c> so the underlying SSH transport is released cleanly after copy operations complete.</para>
+/// <example>
+///   <para>Close the current SCP session.</para>
+///   <code>Disconnect-SCP -ScpClient $scp</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Disconnect", "SCP")]
@@ -32,4 +37,3 @@ public sealed class CmdletDisconnectScp : PSCmdlet
 		}
 	}
 }
-
