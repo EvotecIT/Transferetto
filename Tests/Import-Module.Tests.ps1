@@ -42,6 +42,17 @@ Describe 'Transferetto module import' {
         $Command.Parameters.Keys | Should -Contain 'CreateRemoteDirectory'
     }
 
+    It 'exports the SSH shell recipe cmdlet with administration parameters' {
+        $Command = Get-Command -Name Invoke-SSHShellRecipe -ErrorAction Stop
+        $Command.CommandType | Should -Be 'Cmdlet'
+        $Command.Parameters.Keys | Should -Contain 'Recipe'
+        $Command.Parameters.Keys | Should -Contain 'Command'
+        $Command.Parameters.Keys | Should -Contain 'RemotePath'
+        $Command.Parameters.Keys | Should -Contain 'ServiceName'
+        $Command.Parameters.Keys | Should -Contain 'Password'
+        $Command.Parameters.Keys | Should -Contain 'PromptPreset'
+    }
+
     It 'rejects conflicting SSH host key trust settings before connecting' {
         {
             Connect-SSH -Server 'ssh.example.com' `

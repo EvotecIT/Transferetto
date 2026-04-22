@@ -21,6 +21,12 @@ public sealed class CmdletStopSshShellCommand : PSCmdlet
 	[Parameter]
 	public string? PromptPattern { get; set; }
 	/// <summary>
+	/// Gets or sets the reusable prompt preset applied when no explicit prompt pattern is supplied.
+	/// </summary>
+
+	[Parameter]
+	public TransferettoSshShellPromptPreset PromptPreset { get; set; }
+	/// <summary>
 	/// Gets or sets the lookback.
 	/// </summary>
 
@@ -43,7 +49,8 @@ public sealed class CmdletStopSshShellCommand : PSCmdlet
 		try
 		{
 			TimeSpan? timeout = (base.MyInvocation.BoundParameters.ContainsKey("TimeoutSeconds") ? new TimeSpan?(TimeSpan.FromSeconds(TimeoutSeconds)) : ((TimeSpan?)null));
-			WriteObject(TransferettoClient.StopSshShellCommand(ShellSession, timeout, PromptPattern!, Lookback));
+			string? promptPattern = TransferettoClient.ResolveSshShellPromptPattern(PromptPattern, PromptPreset);
+			WriteObject(TransferettoClient.StopSshShellCommand(ShellSession, timeout, promptPattern, Lookback));
 		}
 		catch (Exception exception)
 		{
@@ -51,4 +58,3 @@ public sealed class CmdletStopSshShellCommand : PSCmdlet
 		}
 	}
 }
-

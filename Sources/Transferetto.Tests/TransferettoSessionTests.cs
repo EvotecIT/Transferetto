@@ -336,9 +336,42 @@ public sealed class TransferettoSessionTests {
         Assert.Equal(2048, options.BufferSize);
         Assert.False(options.NoTerminal);
         Assert.Equal("(?m)^[$#]\\s?$", options.PromptPattern);
+        Assert.Equal(TransferettoSshShellPromptPreset.None, options.PromptPreset);
         Assert.True(options.EnableTranscript);
         Assert.Equal(500, options.MaxTranscriptEntries);
         Assert.Equal(262144, options.MaxTranscriptCharacters);
+    }
+
+    [Fact]
+    public void SshShellOptionsStorePromptPreset() {
+        TransferettoSshShellOptions options = new() {
+            PromptPreset = TransferettoSshShellPromptPreset.Linux
+        };
+
+        Assert.Equal(TransferettoSshShellPromptPreset.Linux, options.PromptPreset);
+    }
+
+    [Fact]
+    public void SshShellRecipeOptionsStoreAdministrationSettings() {
+        TransferettoSshShellRecipeOptions options = new() {
+            Recipe = TransferettoSshShellRecipeKind.FollowJournal,
+            ServiceName = "nginx",
+            TailLines = 250,
+            StopPattern = "ready",
+            Lookback = 1024,
+            Timeout = TimeSpan.FromMinutes(2),
+            InterruptTimeout = TimeSpan.FromSeconds(3),
+            PromptPreset = TransferettoSshShellPromptPreset.LinuxRoot
+        };
+
+        Assert.Equal(TransferettoSshShellRecipeKind.FollowJournal, options.Recipe);
+        Assert.Equal("nginx", options.ServiceName);
+        Assert.Equal(250, options.TailLines);
+        Assert.Equal("ready", options.StopPattern);
+        Assert.Equal(1024, options.Lookback);
+        Assert.Equal(TimeSpan.FromMinutes(2), options.Timeout);
+        Assert.Equal(TimeSpan.FromSeconds(3), options.InterruptTimeout);
+        Assert.Equal(TransferettoSshShellPromptPreset.LinuxRoot, options.PromptPreset);
     }
 
     [Fact]
@@ -817,6 +850,88 @@ public sealed class TransferettoSessionTests {
         Assert.True(result.Status);
         Assert.Equal("__TRANSFERETTO__123", result.Marker);
         Assert.Equal("(?m)^[$#]\\s?$", result.PromptPattern);
+    }
+
+    [Theory]
+    [InlineData(null, TransferettoSshShellPromptPreset.None, null)]
+    [InlineData(null, TransferettoSshShellPromptPreset.Linux, @"(?m)^[^\r\n]*[#$]\s?$")]
+    [InlineData(null, TransferettoSshShellPromptPreset.LinuxUser, @"(?m)^[^\r\n]*\$\s?$")]
+    [InlineData(null, TransferettoSshShellPromptPreset.LinuxRoot, @"(?m)^[^\r\n]*#\s?$")]
+    [InlineData(null, TransferettoSshShellPromptPreset.PowerShell, @"(?m)^PS [^\r\n]*>\s?$")]
+    [InlineData(null, TransferettoSshShellPromptPreset.Cmd, @"(?m)^[A-Za-z]:\\[^\r\n>]*>\s?$")]
+    [InlineData("custom", TransferettoSshShellPromptPreset.Linux, "custom")]
+    public void ResolveSshShellPromptPatternSupportsPresets(string? pattern, TransferettoSshShellPromptPreset preset, string? expected) {
+        string? resolved = TransferettoClient.ResolveSshShellPromptPattern(pattern, preset);
+
+        Assert.Equal(expected, resolved);
+    }
+
+    [Fact]
+    public void SshShellExpectStepStoresPromptPreset() {
+        TransferettoSshShellExpectStep step = new() {
+            ExpectPrompt = true,
+            PromptPreset = TransferettoSshShellPromptPreset.LinuxRoot
+        };
+
+        Assert.True(step.ExpectPrompt);
+        Assert.Equal(TransferettoSshShellPromptPreset.LinuxRoot, step.PromptPreset);
+    }
+
+    [Fact]
+    public void SshShellRecipeKindProvidesReusableAdministrationFlows() {
+        string[] names = Enum.GetNames(typeof(TransferettoSshShellRecipeKind));
+
+        Assert.Equal(new[] { "SudoCommand", "FollowFile", "FollowJournal" }, names);
+    }
+
+    [Fact]
+    public void SshShellRecipeResultExposesTimingAndInterruptState() {
+        DateTime startedUtc = new(2026, 4, 22, 10, 0, 0, DateTimeKind.Utc);
+        DateTime completedUtc = startedUtc.AddSeconds(15);
+        TransferettoSshShellRecipeResult result = new() {
+            Recipe = TransferettoSshShellRecipeKind.FollowFile,
+            CommandText = "tail -n 200 -f -- '/var/log/app.log'",
+            Output = "line1",
+            Status = true,
+            WasInterrupted = true,
+            PromptPattern = @"(?m)^[^\r\n]*[#$]\s?$",
+            StartedUtc = startedUtc,
+            CompletedUtc = completedUtc
+        };
+
+        Assert.Equal(TransferettoSshShellRecipeKind.FollowFile, result.Recipe);
+        Assert.Equal("line1", result.Output);
+        Assert.True(result.Status);
+        Assert.True(result.WasInterrupted);
+        Assert.Equal(TimeSpan.FromSeconds(15), result.CompletedUtc - result.StartedUtc);
+    }
+
+    [Fact]
+    public void BuildSshShellFollowFileCommandEscapesRemotePath() {
+        MethodInfo method = typeof(TransferettoClient).GetMethod("BuildSshShellFollowFileCommand", BindingFlags.Static | BindingFlags.NonPublic)!;
+
+        string command = (string) method.Invoke(null, new object[] { "/var/log/nginx/access'log", 150 })!;
+
+        Assert.Equal("tail -n 150 -f -- '/var/log/nginx/access'\"'\"'log'", command);
+    }
+
+    [Fact]
+    public void BuildSshShellFollowJournalCommandEscapesServiceName() {
+        MethodInfo method = typeof(TransferettoClient).GetMethod("BuildSshShellFollowJournalCommand", BindingFlags.Static | BindingFlags.NonPublic)!;
+
+        string command = (string) method.Invoke(null, new object[] { "my'app.service", 75 })!;
+
+        Assert.Equal("journalctl -u 'my'\"'\"'app.service' -n 75 -f --no-pager", command);
+    }
+
+    [Fact]
+    public void BuildSshShellSudoCommandWrapsCommandInQuotedShellInvocation() {
+        MethodInfo method = typeof(TransferettoClient).GetMethod("BuildSshShellSudoCommand", BindingFlags.Static | BindingFlags.NonPublic)!;
+
+        string command = (string) method.Invoke(null, new object[] { "systemctl restart nginx", "__MARKER__", "__PROMPT__" })!;
+
+        Assert.Contains("sudo -S -p '__PROMPT__' sh -lc", command, StringComparison.Ordinal);
+        Assert.Contains("systemctl restart nginx; printf '\"'\"'__MARKER__:%s\\n'\"'\"' $?", command, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 using System;
 using System.Management.Automation;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
@@ -8,7 +9,7 @@ namespace Transferetto.PowerShell;
 /// </summary>
 
 [Cmdlet("Write", "SFTPStream", DefaultParameterSetName = "Text")]
-public sealed class CmdletWriteSftpStream : PSCmdlet
+public sealed class CmdletWriteSftpStream : AsyncPSCmdlet
 {
 	/// <summary>
 	/// Gets or sets the stream Session.
@@ -40,8 +41,20 @@ public sealed class CmdletWriteSftpStream : PSCmdlet
 	[Parameter]
 	public SwitchParameter Flush { get; set; }
 
+	/// <summary>
+	/// Gets or sets a value indicating whether stream progress is displayed.
+	/// </summary>
+	[Parameter]
+	public SwitchParameter ShowProgress { get; set; }
+
+	/// <summary>
+	/// Gets or sets the minimum number of bytes between progress updates.
+	/// </summary>
+	[Parameter]
+	public long ProgressIntervalBytes { get; set; } = 65536;
+
 	/// <inheritdoc/>
-	protected override void ProcessRecord()
+	protected override async Task ProcessRecordAsync()
 	{
 		if (StreamSession == null)
 		{
@@ -50,7 +63,17 @@ public sealed class CmdletWriteSftpStream : PSCmdlet
 		try
 		{
 			byte[] content = ((base.ParameterSetName == "Bytes") ? (ByteContent ?? Array.Empty<byte>()) : (Encoding ?? System.Text.Encoding.UTF8).GetBytes(Text ?? string.Empty));
-			WriteObject(TransferettoClient.WriteSftpStream(StreamSession, content, Flush.IsPresent));
+			TransferettoTransferOptions options = new()
+			{
+				CancellationToken = CancelToken,
+				ProgressIntervalBytes = ProgressIntervalBytes,
+				Progress = ShowProgress.IsPresent ? new TransferettoCmdletTransferProgress(this) : null
+			};
+			WriteObject(await TransferettoClient.WriteSftpStreamAsync(StreamSession, content, Flush.IsPresent, options, CancelToken).ConfigureAwait(false));
+		}
+		catch (OperationCanceledException) when (CancelToken.IsCancellationRequested)
+		{
+			// StopProcessing requested cancellation.
 		}
 		catch (Exception exception)
 		{
@@ -58,4 +81,3 @@ public sealed class CmdletWriteSftpStream : PSCmdlet
 		}
 	}
 }
-

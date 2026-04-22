@@ -42,10 +42,15 @@ public sealed class TransferettoSshShellOptions {
 
     public bool NoTerminal { get; set; }
     /// <summary>
-    /// Gets or sets the prompt Pattern.
+    /// Gets or sets the explicit prompt Pattern.
     /// </summary>
 
     public string? PromptPattern { get; set; }
+    /// <summary>
+    /// Gets or sets the reusable prompt preset applied when <see cref="PromptPattern"/> is not provided.
+    /// </summary>
+
+    public TransferettoSshShellPromptPreset PromptPreset { get; set; }
     /// <summary>
     /// Gets or sets a value indicating whether enable Transcript.
     /// </summary>

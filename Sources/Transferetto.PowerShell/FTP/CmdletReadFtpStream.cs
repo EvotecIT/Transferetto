@@ -1,6 +1,7 @@
 using System;
 using System.Management.Automation;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
@@ -8,7 +9,7 @@ namespace Transferetto.PowerShell;
 /// </summary>
 
 [Cmdlet("Read", "FTPStream", DefaultParameterSetName = "Bytes")]
-public sealed class CmdletReadFtpStream : PSCmdlet
+public sealed class CmdletReadFtpStream : AsyncPSCmdlet
 {
 	/// <summary>
 	/// Gets or sets the stream Session.
@@ -34,8 +35,20 @@ public sealed class CmdletReadFtpStream : PSCmdlet
 	[Parameter(ParameterSetName = "Text")]
 	public Encoding? Encoding { get; set; }
 
+	/// <summary>
+	/// Gets or sets a value indicating whether stream progress is displayed.
+	/// </summary>
+	[Parameter]
+	public SwitchParameter ShowProgress { get; set; }
+
+	/// <summary>
+	/// Gets or sets the minimum number of bytes between progress updates.
+	/// </summary>
+	[Parameter]
+	public long ProgressIntervalBytes { get; set; } = 65536;
+
 	/// <inheritdoc/>
-	protected override void ProcessRecord()
+	protected override async Task ProcessRecordAsync()
 	{
 		if (StreamSession == null)
 		{
@@ -43,7 +56,13 @@ public sealed class CmdletReadFtpStream : PSCmdlet
 		}
 		try
 		{
-			TransferettoFtpStreamReadResult transferettoFtpStreamReadResult = TransferettoClient.ReadFtpStream(StreamSession, Count);
+			TransferettoTransferOptions options = new()
+			{
+				CancellationToken = CancelToken,
+				ProgressIntervalBytes = ProgressIntervalBytes,
+				Progress = ShowProgress.IsPresent ? new TransferettoCmdletTransferProgress(this) : null
+			};
+			TransferettoFtpStreamReadResult transferettoFtpStreamReadResult = await TransferettoClient.ReadFtpStreamAsync(StreamSession, Count, options, CancelToken).ConfigureAwait(false);
 			if (base.ParameterSetName == "Text")
 			{
 				WriteObject((Encoding ?? System.Text.Encoding.UTF8).GetString(transferettoFtpStreamReadResult.Data));
@@ -53,10 +72,13 @@ public sealed class CmdletReadFtpStream : PSCmdlet
 				WriteObject(transferettoFtpStreamReadResult);
 			}
 		}
+		catch (OperationCanceledException) when (CancelToken.IsCancellationRequested)
+		{
+			// StopProcessing requested cancellation.
+		}
 		catch (Exception exception)
 		{
 			WriteError(new ErrorRecord(exception, "ReadFtpStreamFailed", ErrorCategory.ReadError, StreamSession.RemotePath));
 		}
 	}
 }
-

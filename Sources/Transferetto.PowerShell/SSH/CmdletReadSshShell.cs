@@ -1,5 +1,7 @@
 using System;
 using System.Management.Automation;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
@@ -8,7 +10,7 @@ namespace Transferetto.PowerShell;
 
 [Alias(new string[] { "Receive-SSHShell" })]
 [Cmdlet("Read", "SSHShell")]
-public sealed class CmdletReadSshShell : PSCmdlet
+public sealed class CmdletReadSshShell : AsyncPSCmdlet
 {
 	/// <summary>
 	/// Gets or sets the shell Session.
@@ -69,9 +71,33 @@ public sealed class CmdletReadSshShell : PSCmdlet
 
 	[Parameter]
 	public string? PromptPattern { get; set; }
+	/// <summary>
+	/// Gets or sets the reusable prompt preset applied when no explicit prompt pattern is supplied.
+	/// </summary>
+
+	[Parameter]
+	public TransferettoSshShellPromptPreset PromptPreset { get; set; }
+	/// <summary>
+	/// Gets or sets a value indicating whether output should be followed until cancellation, timeout, or an optional stop pattern.
+	/// </summary>
+
+	[Parameter]
+	public SwitchParameter Follow { get; set; }
+	/// <summary>
+	/// Gets or sets a value indicating whether progressive output chunks are written to the pipeline while waiting.
+	/// </summary>
+
+	[Parameter]
+	public SwitchParameter StreamOutput { get; set; }
+	/// <summary>
+	/// Gets or sets the poll interval, in milliseconds, used while waiting for shell output.
+	/// </summary>
+
+	[Parameter]
+	public int PollIntervalMilliseconds { get; set; } = 50;
 
 	/// <inheritdoc/>
-	protected override void ProcessRecord()
+	protected override async Task ProcessRecordAsync()
 	{
 		if (ShellSession == null)
 		{
@@ -81,8 +107,31 @@ public sealed class CmdletReadSshShell : PSCmdlet
 		{
 			TimeSpan? timeout = (base.MyInvocation.BoundParameters.ContainsKey("TimeoutSeconds") ? new TimeSpan?(TimeSpan.FromSeconds(TimeoutSeconds)) : ((TimeSpan?)null));
 			TimeSpan? idleTimeout = (base.MyInvocation.BoundParameters.ContainsKey("IdleTimeoutSeconds") ? new TimeSpan?(TimeSpan.FromSeconds(IdleTimeoutSeconds)) : ((TimeSpan?)null));
-			string sendToPipeline = TransferettoClient.ReadSshShell(ShellSession, timeout, ReadLine.IsPresent, ExpectText, Lookback, RegexPattern, ReadUntilIdle.IsPresent, idleTimeout, ExpectPrompt.IsPresent, PromptPattern!);
+			string? promptPattern = TransferettoClient.ResolveSshShellPromptPattern(PromptPattern, PromptPreset);
+			TransferettoSshShellReadOptions options = new() {
+				CancellationToken = CancelToken,
+				OutputProgress = StreamOutput.IsPresent ? new TransferettoSshShellOutputProgress(this) : null,
+				PollInterval = TimeSpan.FromMilliseconds(PollIntervalMilliseconds > 0 ? PollIntervalMilliseconds : 50)
+			};
+			string sendToPipeline;
+			if (Follow.IsPresent)
+			{
+				string? stopPattern = !string.IsNullOrWhiteSpace(RegexPattern)
+					? RegexPattern
+					: (!string.IsNullOrWhiteSpace(promptPattern) || ExpectPrompt.IsPresent)
+						? (promptPattern ?? ShellSession.PromptPattern)
+						: (!string.IsNullOrWhiteSpace(ExpectText) ? Regex.Escape(ExpectText) : null);
+				sendToPipeline = await TransferettoClient.FollowSshShellOutputAsync(ShellSession, timeout, stopPattern, Lookback, options, CancelToken).ConfigureAwait(false);
+			}
+			else
+			{
+				sendToPipeline = await TransferettoClient.ReadSshShellAsync(ShellSession, timeout, ReadLine.IsPresent, ExpectText, Lookback, RegexPattern, ReadUntilIdle.IsPresent, idleTimeout, ExpectPrompt.IsPresent, promptPattern, options, CancelToken).ConfigureAwait(false);
+			}
 			WriteObject(sendToPipeline);
+		}
+		catch (OperationCanceledException) when (CancelToken.IsCancellationRequested)
+		{
+			// StopProcessing requested cancellation.
 		}
 		catch (Exception exception)
 		{
@@ -90,4 +139,3 @@ public sealed class CmdletReadSshShell : PSCmdlet
 		}
 	}
 }
-

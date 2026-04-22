@@ -21,6 +21,12 @@ public sealed class CmdletSetSshShellPrompt : PSCmdlet
 	[Parameter]
 	public string? PromptPattern { get; set; }
 	/// <summary>
+	/// Gets or sets the reusable prompt preset applied when no explicit prompt pattern is supplied.
+	/// </summary>
+
+	[Parameter]
+	public TransferettoSshShellPromptPreset PromptPreset { get; set; }
+	/// <summary>
 	/// Gets or sets the pass Thru.
 	/// </summary>
 
@@ -36,7 +42,7 @@ public sealed class CmdletSetSshShellPrompt : PSCmdlet
 		}
 		try
 		{
-			TransferettoClient.SetSshShellPromptPattern(ShellSession, PromptPattern!);
+			TransferettoClient.SetSshShellPromptPattern(ShellSession, PromptPattern!, PromptPreset);
 			if (PassThru.IsPresent)
 			{
 				WriteObject(ShellSession);
@@ -48,4 +54,3 @@ public sealed class CmdletSetSshShellPrompt : PSCmdlet
 		}
 	}
 }
-

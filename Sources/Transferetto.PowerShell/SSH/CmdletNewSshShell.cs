@@ -62,6 +62,12 @@ public sealed class CmdletNewSshShell : PSCmdlet
 
 	[Parameter]
 	public string? PromptPattern { get; set; }
+	/// <summary>
+	/// Gets or sets the reusable prompt preset applied when no explicit prompt pattern is supplied.
+	/// </summary>
+
+	[Parameter]
+	public TransferettoSshShellPromptPreset PromptPreset { get; set; }
 
 	/// <inheritdoc/>
 	protected override void ProcessRecord()
@@ -81,7 +87,8 @@ public sealed class CmdletNewSshShell : PSCmdlet
 				Height = Height,
 				BufferSize = BufferSize,
 				NoTerminal = NoTerminal.IsPresent,
-				PromptPattern = PromptPattern
+				PromptPattern = PromptPattern,
+				PromptPreset = PromptPreset
 			};
 			WriteObject(TransferettoClient.CreateSshShell(SshClient, options));
 		}
@@ -91,4 +98,3 @@ public sealed class CmdletNewSshShell : PSCmdlet
 		}
 	}
 }
-

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-using System.Threading;
+using System.Threading.Tasks;
 using FluentFTP;
 
 namespace Transferetto.PowerShell;
@@ -13,9 +13,7 @@ namespace Transferetto.PowerShell;
 
 [Alias(new string[] { "Get-FTPFile" })]
 [Cmdlet("Receive", "FTPFile", DefaultParameterSetName = "Text")]
-public sealed class CmdletReceiveFtpFile : PSCmdlet
-{
-	private readonly CancellationTokenSource cancellationTokenSource = new();
+public sealed class CmdletReceiveFtpFile : AsyncPSCmdlet {
 	/// <summary>
 	/// Gets or sets the session object used by the cmdlet.
 	/// </summary>
@@ -86,104 +84,84 @@ public sealed class CmdletReceiveFtpFile : PSCmdlet
 	public long ProgressIntervalBytes { get; set; } = 65536;
 
 	/// <inheritdoc/>
-	protected override void ProcessRecord()
-	{
-		if (Client == null || string.IsNullOrWhiteSpace(LocalPath))
-		{
+	protected override async Task ProcessRecordAsync() {
+		if (Client == null || string.IsNullOrWhiteSpace(LocalPath)) {
 			return;
 		}
-		try
-		{
+
+		try {
 			string localPath = LocalPath!;
-			List<string> list = ResolveRemotePaths().ToList();
-			if (list.Count != 0)
-			{
-				bool flag = Directory.Exists(localPath);
-				if (list.Count > 1 && File.Exists(localPath))
-				{
-					throw new PSArgumentException("LocalPath must reference a directory when downloading multiple remote files.", nameof(LocalPath));
-				}
-				TransferettoTransferOptions options = new()
-				{
-					CancellationToken = cancellationTokenSource.Token,
-					ProgressIntervalBytes = ProgressIntervalBytes,
-					Progress = ShowProgress.IsPresent ? new CmdletTransferProgress(this) : null
-				};
-				IReadOnlyList<TransferettoTransferResult> sendToPipeline = ((!(list.Count > 1 || flag)) ? new TransferettoTransferResult[1] { TransferettoClient.DownloadFtpFile(Client, localPath, list[0], LocalExists, VerifyOptions, options) } : TransferettoClient.DownloadFtpFiles(Client, localPath, list, LocalExists, VerifyOptions, FtpError, options));
-				if (!Suppress.IsPresent)
-				{
-					WriteObject(sendToPipeline, enumerateCollection: true);
-				}
+			List<string> remotePaths = ResolveRemotePaths().ToList();
+			if (remotePaths.Count == 0) {
+				return;
 			}
-		}
-		catch (Exception exception)
-		{
+
+			bool localPathIsDirectory = Directory.Exists(localPath);
+			if (remotePaths.Count > 1 && File.Exists(localPath)) {
+				throw new PSArgumentException("LocalPath must reference a directory when downloading multiple remote files.", nameof(LocalPath));
+			}
+
+			TransferettoTransferOptions options = new() {
+				CancellationToken = CancelToken,
+				ProgressIntervalBytes = ProgressIntervalBytes,
+				Progress = ShowProgress.IsPresent ? new TransferettoCmdletTransferProgress(this) : null
+			};
+			IReadOnlyList<TransferettoTransferResult> sendToPipeline = !(remotePaths.Count > 1 || localPathIsDirectory)
+				? new[] {
+					await TransferettoClient.DownloadFtpFileAsync(
+						Client,
+						localPath,
+						remotePaths[0],
+						LocalExists,
+						VerifyOptions,
+						options,
+						CancelToken).ConfigureAwait(false)
+				}
+				: await TransferettoClient.DownloadFtpFilesAsync(
+					Client,
+					localPath,
+					remotePaths,
+					LocalExists,
+					VerifyOptions,
+					FtpError,
+					options,
+					CancelToken).ConfigureAwait(false);
+			if (!Suppress.IsPresent) {
+				WriteObject(sendToPipeline, enumerateCollection: true);
+			}
+		} catch (OperationCanceledException) when (CancelToken.IsCancellationRequested) {
+			// StopProcessing requested cancellation.
+		} catch (Exception exception) {
 			WriteError(new ErrorRecord(exception, "ReceiveFtpFileFailed", ErrorCategory.ReadError, LocalPath));
 		}
 	}
 
-	/// <inheritdoc/>
-	protected override void StopProcessing()
-	{
-		cancellationTokenSource.Cancel();
-		base.StopProcessing();
-	}
-
-	private IEnumerable<string> ResolveRemotePaths()
-	{
+	private IEnumerable<string> ResolveRemotePaths() {
 		PSObject[]? remoteFile = RemoteFile;
-		if (remoteFile != null && remoteFile.Length > 0)
-		{
-			PSObject[]? remoteFile2 = RemoteFile;
-			foreach (PSObject remoteFile3 in remoteFile2!)
-			{
-				string? type = remoteFile3.Properties["Type"]?.Value?.ToString();
-				string? fullName = remoteFile3.Properties["FullName"]?.Value?.ToString();
-				if (!string.IsNullOrWhiteSpace(fullName))
-				{
-					if (!string.Equals(type, "File", StringComparison.OrdinalIgnoreCase) && !string.Equals(type, "0", StringComparison.OrdinalIgnoreCase))
-					{
-						WriteWarning($"Receive-FTPFile - Given path {fullName} is {type}. Skipping.");
-					}
-					else
-					{
-						yield return fullName!;
-					}
+		if (remoteFile != null && remoteFile.Length > 0) {
+			foreach (PSObject remoteFileItem in remoteFile) {
+				string? type = remoteFileItem.Properties["Type"]?.Value?.ToString();
+				if (remoteFileItem.Properties["FullName"]?.Value?.ToString() is not string fullNameValue || string.IsNullOrWhiteSpace(fullNameValue)) {
+					continue;
+				}
+
+				if (!string.Equals(type, "File", StringComparison.OrdinalIgnoreCase) && !string.Equals(type, "0", StringComparison.OrdinalIgnoreCase)) {
+					WriteWarning($"Receive-FTPFile - Given path {fullNameValue} is {type}. Skipping.");
+				} else {
+					yield return fullNameValue;
 				}
 			}
 		}
+
 		string[]? remotePath = RemotePath;
-		if (remotePath == null || remotePath.Length <= 0)
-		{
+		if (remotePath == null || remotePath.Length <= 0) {
 			yield break;
 		}
-		foreach (string item in RemotePath!.Where((string path) => !string.IsNullOrWhiteSpace(path)))
-		{
-			yield return item;
-		}
-	}
 
-	private sealed class CmdletTransferProgress : IProgress<TransferettoTransferProgress>
-	{
-		private readonly PSCmdlet cmdlet;
-
-		public CmdletTransferProgress(PSCmdlet cmdlet)
-		{
-			this.cmdlet = cmdlet;
-		}
-
-		public void Report(TransferettoTransferProgress value)
-		{
-			int percentComplete = value.PercentComplete ?? -1;
-			string activity = $"{value.Protocol} {value.Direction}";
-			string status = value.TotalBytes.HasValue
-				? $"{value.BytesTransferred} of {value.TotalBytes.Value} bytes"
-				: $"{value.BytesTransferred} bytes";
-			cmdlet.WriteProgress(new ProgressRecord(0, activity, status)
-			{
-				PercentComplete = percentComplete,
-				CurrentOperation = value.RemotePath ?? value.LocalPath
-			});
+		foreach (string? item in remotePath) {
+			if (!string.IsNullOrWhiteSpace(item)) {
+				yield return item;
+			}
 		}
 	}
 }
