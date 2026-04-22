@@ -9,8 +9,10 @@ namespace Transferetto;
 /// </summary>
 
 public sealed class TransferettoSshShellSession : IDisposable {
+    private readonly object _pendingReadSync = new();
     private readonly object _transcriptSync = new();
     private readonly List<TransferettoSshShellTranscriptEntry> _transcriptEntries = new();
+    private string _pendingReadOutput = string.Empty;
     private int _transcriptCharacterCount;
     private int _droppedTranscriptEntryCount;
 
@@ -24,7 +26,8 @@ public sealed class TransferettoSshShellSession : IDisposable {
         Height = options.Height;
         BufferSize = options.BufferSize;
         NoTerminal = options.NoTerminal;
-        PromptPattern = options.PromptPattern;
+        PromptPreset = options.PromptPreset;
+        PromptPattern = TransferettoClient.ResolveSshShellPromptPattern(options.PromptPattern, options.PromptPreset);
         EnableTranscript = options.EnableTranscript;
         MaxTranscriptEntries = options.MaxTranscriptEntries > 0 ? options.MaxTranscriptEntries : 500;
         MaxTranscriptCharacters = options.MaxTranscriptCharacters > 0 ? options.MaxTranscriptCharacters : 262144;
@@ -52,7 +55,7 @@ public sealed class TransferettoSshShellSession : IDisposable {
     /// Gets the data Available.
     /// </summary>
 
-    public bool DataAvailable => ShellStream.DataAvailable;
+    public bool DataAvailable => HasPendingReadOutput() || ShellStream.DataAvailable;
     /// <summary>
     /// Gets the terminal Name.
     /// </summary>
@@ -94,6 +97,11 @@ public sealed class TransferettoSshShellSession : IDisposable {
 
     public string? PromptPattern { get; private set; }
     /// <summary>
+    /// Gets the configured prompt preset.
+    /// </summary>
+
+    public TransferettoSshShellPromptPreset PromptPreset { get; private set; }
+    /// <summary>
     /// Gets a value indicating whether enable Transcript.
     /// </summary>
 
@@ -116,8 +124,33 @@ public sealed class TransferettoSshShellSession : IDisposable {
         Height = height;
     }
 
-    internal void UpdatePromptPattern(string? promptPattern) {
+    internal void UpdatePromptPattern(string? promptPattern, TransferettoSshShellPromptPreset promptPreset) {
         PromptPattern = promptPattern;
+        PromptPreset = promptPreset;
+    }
+
+    internal bool HasPendingReadOutput() {
+        lock (_pendingReadSync) {
+            return !string.IsNullOrEmpty(_pendingReadOutput);
+        }
+    }
+
+    internal string ConsumePendingReadOutput() {
+        lock (_pendingReadSync) {
+            string pendingReadOutput = _pendingReadOutput;
+            _pendingReadOutput = string.Empty;
+            return pendingReadOutput;
+        }
+    }
+
+    internal void AppendPendingReadOutput(string? text) {
+        if (string.IsNullOrEmpty(text)) {
+            return;
+        }
+
+        lock (_pendingReadSync) {
+            _pendingReadOutput += text;
+        }
     }
 
     internal void RecordTranscript(TransferettoSshShellTranscriptDirection direction, string? text) {

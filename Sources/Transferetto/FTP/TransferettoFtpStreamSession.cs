@@ -14,11 +14,18 @@ public sealed class TransferettoFtpStreamSession : IDisposable {
         Stream = stream ?? throw new ArgumentNullException(nameof(stream));
         RemotePath = remotePath ?? throw new ArgumentNullException(nameof(remotePath));
         Mode = mode;
+        OpenedPosition = stream.CanSeek ? stream.Position : 0;
     }
 
     internal TransferettoFtpSession Session { get; }
 
     internal Stream Stream { get; }
+
+    internal long OpenedPosition { get; }
+
+    internal long ProcessedBytes { get; set; }
+
+    internal long LastReportedBytes { get; set; }
     /// <summary>
     /// Gets the remote host name.
     /// </summary>

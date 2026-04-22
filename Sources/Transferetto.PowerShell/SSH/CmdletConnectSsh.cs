@@ -3,9 +3,21 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Connect-SSH cmdlet.
+/// <para type="synopsis">Creates a reusable SSH session for one-shot commands, interactive shells, and SSH tunnels.</para>
+/// <para type="description">Supports password, PSCredential, and private-key authentication together with keyboard-interactive auth, TOFU or known-hosts validation, retry and keepalive settings, and SSH proxy configuration for shell, tunnel, and command-based workflows.</para>
+/// <example>
+///   <para>Connect with a credential prompt and trust host keys on first use.</para>
+///   <code>$ssh = Connect-SSH -Server 'test.rebex.net' -Credential (Get-Credential) -HostKeyPolicy TrustOnFirstUse</code>
+/// </example>
+/// <example>
+///   <para>Connect with a private key and a reusable known-hosts file for repeatable administration sessions.</para>
+///   <code>$ssh = Connect-SSH -Server 'linux.example.com' -Username 'deploy' -PrivateKey '.\id_ed25519' -KnownHostsPath '.\ssh-known-hosts.tsv'</code>
+/// </example>
+/// <example>
+///   <para>Connect through a SOCKS proxy with keepalive and timeout tuning.</para>
+///   <code>$ssh = Connect-SSH -Server 'linux.example.com' -Credential (Get-Credential) -ProxyType Socks5 -ProxyHost 'proxy.example.com' -ProxyPort 1080 -KeepAliveIntervalSeconds 30 -ConnectionTimeoutSeconds 15</code>
+/// </example>
 /// </summary>
-
 [Cmdlet("Connect", "SSH", DefaultParameterSetName = "Password")]
 public sealed class CmdletConnectSsh : PSCmdlet
 {
@@ -170,4 +182,3 @@ public sealed class CmdletConnectSsh : PSCmdlet
 		}
 	}
 }
-

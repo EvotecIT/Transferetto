@@ -4,7 +4,12 @@ using FluentFTP;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Move-FTPDirectory cmdlet.
+/// <para type="synopsis">Moves or renames a directory on an FTP or FTPS server.</para>
+/// <para type="description">Relocates a remote FTP directory to a new path, with optional destination collision handling that follows FluentFTP remote-exists behavior.</para>
+/// <example>
+///   <para>Rename a directory in place.</para>
+///   <code>Move-FTPDirectory -Client $ftp -RemoteSource '/incoming/site-next' -RemoteDestination '/incoming/site-current'</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Move", "FTPDirectory")]
@@ -51,4 +56,3 @@ public sealed class CmdletMoveFtpDirectory : PSCmdlet
 		}
 	}
 }
-

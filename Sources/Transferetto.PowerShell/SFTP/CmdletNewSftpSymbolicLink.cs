@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the New-SFTPSymbolicLink cmdlet.
+/// <para type="synopsis">Creates a symbolic link on an SFTP server.</para>
+/// <para type="description">Creates a remote symlink from the requested link path to the target path and can suppress the returned operation result for quieter automation.</para>
+/// <example>
+///   <para>Create a current-release symlink.</para>
+///   <code>New-SFTPSymbolicLink -SftpClient $sftp -TargetPath '/srv/releases/2026-04-22' -LinkPath '/srv/releases/current'</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("New", "SFTPSymbolicLink")]
@@ -54,4 +59,3 @@ public sealed class CmdletNewSftpSymbolicLink : PSCmdlet
 		}
 	}
 }
-

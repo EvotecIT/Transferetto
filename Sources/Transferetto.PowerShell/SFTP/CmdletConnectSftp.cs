@@ -3,9 +3,21 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Connect-SFTP cmdlet.
+/// <para type="synopsis">Creates an SFTP session with SSH host-key trust, proxy support, and password or private-key authentication.</para>
+/// <para type="description">Supports clear-text credentials, PSCredential objects, private keys, keyboard-interactive auth, trust-on-first-use and known-hosts validation, connection retries, keepalive settings, and SSH proxy configuration that can be reused by later SFTP cmdlets.</para>
+/// <example>
+///   <para>Connect to an SFTP server with an interactive credential prompt and trust-on-first-use host-key validation.</para>
+///   <code>$sftp = Connect-SFTP -Server 'test.rebex.net' -Credential (Get-Credential) -HostKeyPolicy TrustOnFirstUse</code>
+/// </example>
+/// <example>
+///   <para>Connect with a private key and persist trusted host keys to a reusable file.</para>
+///   <code>$sftp = Connect-SFTP -Server 'sftp.example.com' -Username 'deploy' -PrivateKey '.\id_ed25519' -PrivateKeyPassphrase 'secret' -KnownHostsPath '.\ssh-known-hosts.tsv'</code>
+/// </example>
+/// <example>
+///   <para>Connect through a SOCKS proxy with retry and keepalive tuning.</para>
+///   <code>$sftp = Connect-SFTP -Server 'sftp.example.com' -Credential (Get-Credential) -ProxyType Socks5 -ProxyHost 'proxy.example.com' -ProxyPort 1080 -RetryAttempts 2 -KeepAliveIntervalSeconds 30</code>
+/// </example>
 /// </summary>
-
 [Cmdlet("Connect", "SFTP", DefaultParameterSetName = "Password")]
 public sealed class CmdletConnectSftp : PSCmdlet
 {

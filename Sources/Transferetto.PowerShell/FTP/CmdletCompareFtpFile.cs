@@ -4,7 +4,16 @@ using FluentFTP;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Compare-FTPFile cmdlet.
+/// <para type="synopsis">Compares a local file with a remote FTP file.</para>
+/// <para type="description">Uses FluentFTP comparison strategies to determine whether a local file matches a remote file by size, hash, or server-supported auto-detection logic.</para>
+/// <example>
+///   <para>Compare a local artifact with the remote copy.</para>
+///   <code>Compare-FTPFile -Client $ftp -LocalPath '.\publish\site.zip' -RemotePath '/incoming/site.zip'</code>
+/// </example>
+/// <example>
+///   <para>Force checksum-based comparison when supported.</para>
+///   <code>Compare-FTPFile -Client $ftp -LocalPath '.\publish\site.zip' -RemotePath '/incoming/site.zip' -CompareOption Checksum</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Compare", "FTPFile")]
@@ -51,4 +60,3 @@ public sealed class CmdletCompareFtpFile : PSCmdlet
 		}
 	}
 }
-

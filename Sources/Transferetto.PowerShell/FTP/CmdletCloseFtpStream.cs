@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Close-FTPStream cmdlet.
+/// <para type="synopsis">Closes an open FTP stream session.</para>
+/// <para type="description">Releases the low-level FTP stream created by <c>Open-FTPStream</c> so the remote file handle and associated transfer resources are closed cleanly.</para>
+/// <example>
+///   <para>Close the FTP stream after reading or writing is complete.</para>
+///   <code>Close-FTPStream -StreamSession $stream</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Close", "FTPStream")]
@@ -32,4 +37,3 @@ public sealed class CmdletCloseFtpStream : PSCmdlet
 		}
 	}
 }
-

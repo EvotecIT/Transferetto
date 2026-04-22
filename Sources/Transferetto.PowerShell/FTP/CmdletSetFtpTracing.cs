@@ -2,7 +2,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Set-FTPTracing cmdlet.
+/// <para type="synopsis">Enables or disables global FTP protocol tracing for the current PowerShell session.</para>
+/// <para type="description">Configures diagnostic logging visibility for usernames, passwords, and hosts so troubleshooting can be more detailed or more redacted depending on the scenario.</para>
+/// <example>
+///   <para>Enable safe console tracing that hides usernames and passwords.</para>
+///   <code>Set-FTPTracing -Enable -HideUserName -HideIP</code>
+/// </example>
+/// <example>
+///   <para>Turn FTP tracing off.</para>
+///   <code>Set-FTPTracing -Disable</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Set", "FTPTracing")]
@@ -60,4 +69,3 @@ public sealed class CmdletSetFtpTracing : PSCmdlet
 		};
 	}
 }
-

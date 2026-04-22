@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Get-FTPWorkingDirectory cmdlet.
+/// <para type="synopsis">Returns the current working directory for an FTP or FTPS session.</para>
+/// <para type="description">Exposes the session’s active remote working directory so scripts can confirm navigation state before relative listing, upload, download, or rename operations.</para>
+/// <example>
+///   <para>Show the current FTP working directory.</para>
+///   <code>Get-FTPWorkingDirectory -Client $ftp</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Get", "FTPWorkingDirectory")]
@@ -32,4 +37,3 @@ public sealed class CmdletGetFtpWorkingDirectory : PSCmdlet
 		}
 	}
 }
-

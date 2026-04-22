@@ -4,7 +4,20 @@ using System.Text;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Set-SFTPContent cmdlet.
+/// <para type="synopsis">Writes text or bytes to a remote SFTP file.</para>
+/// <para type="description">Provides a simple content-oriented shortcut over the SFTP stream APIs for smaller files, supporting text writes, append mode, or raw byte content.</para>
+/// <example>
+///   <para>Write a text file on the server.</para>
+///   <code>Set-SFTPContent -SftpClient $sftp -Path '/srv/app/version.txt' -Value '2026.04.22'</code>
+/// </example>
+/// <example>
+///   <para>Append a line to a remote log or marker file.</para>
+///   <code>Set-SFTPContent -SftpClient $sftp -Path '/srv/app/deploy.log' -Value 'deployment finished' -Append</code>
+/// </example>
+/// <example>
+///   <para>Write raw byte content to a remote file.</para>
+///   <code>Set-SFTPContent -SftpClient $sftp -Path '/srv/app/blob.bin' -ByteContent ([byte[]](1,2,3,4))</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Set", "SFTPContent", DefaultParameterSetName = "Text")]
@@ -64,4 +77,3 @@ public sealed class CmdletSetSftpContent : PSCmdlet
 		}
 	}
 }
-

@@ -5,7 +5,16 @@ using FluentFTP;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Get-FTPList cmdlet.
+/// <para type="synopsis">Lists files and directories from an FTP or FTPS session.</para>
+/// <para type="description">Returns Transferetto remote item objects for a target FTP path, with optional FluentFTP listing flags for recursive, force-listing, or link-aware enumeration scenarios.</para>
+/// <example>
+///   <para>List the current remote working directory.</para>
+///   <code>Get-FTPList -Client $ftp</code>
+/// </example>
+/// <example>
+///   <para>List a specific remote directory with explicit listing options.</para>
+///   <code>Get-FTPList -Client $ftp -Path '/pub/example' -Options AllFiles</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Get", "FTPList")]
@@ -49,4 +58,3 @@ public sealed class CmdletGetFtpList : PSCmdlet
 		}
 	}
 }
-

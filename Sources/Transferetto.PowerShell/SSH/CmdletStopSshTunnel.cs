@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Stop-SSHTunnel cmdlet.
+/// <para type="synopsis">Stops an SSH tunnel session.</para>
+/// <para type="description">Closes a tunnel created by <c>Start-SSHLocalTunnel</c> or <c>Start-SSHRemoteTunnel</c>, releasing the forwarded port cleanly.</para>
+/// <example>
+///   <para>Stop an active SSH tunnel when forwarding is no longer needed.</para>
+///   <code>Stop-SSHTunnel -TunnelSession $tunnel</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Stop", "SSHTunnel")]
@@ -32,4 +37,3 @@ public sealed class CmdletStopSshTunnel : PSCmdlet
 		}
 	}
 }
-

@@ -5,9 +5,21 @@ using FluentFTP;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Connect-FTP cmdlet.
+/// <para type="synopsis">Creates an FTP or FTPS session with runtime tuning, proxy support, and certificate trust controls.</para>
+/// <para type="description">Supports classic username/password and credential-based authentication, FluentFTP profiles, FTPS encryption modes, proxy settings, trust-on-first-use and known-certificate validation, plus transfer/runtime tuning that can be reused by later FTP and FTPS cmdlets.</para>
+/// <example>
+///   <para>Connect to a plain FTP server with a credential prompt.</para>
+///   <code>$ftp = Connect-FTP -Server 'test.rebex.net' -Credential (Get-Credential)</code>
+/// </example>
+/// <example>
+///   <para>Connect to an FTPS endpoint and pin trust in a reusable known-certificate store.</para>
+///   <code>$ftp = Connect-FTP -Server 'ftps.example.com' -Credential (Get-Credential) -EncryptionMode Explicit -CertificatePolicy TrustOnFirstUse -KnownCertificatesPath '.\ftps-known-certificates.tsv'</code>
+/// </example>
+/// <example>
+///   <para>Reuse a FluentFTP profile and still override proxy/runtime settings for the session.</para>
+///   <code>$ftp = Connect-FTP -FtpProfile $profile -ProxyType UserAtHost -ProxyHost 'proxy.example.com' -ProxyPort 21 -ConnectTimeout 15000</code>
+/// </example>
 /// </summary>
-
 [Cmdlet("Connect", "FTP", DefaultParameterSetName = "Password")]
 public sealed class CmdletConnectFtp : PSCmdlet
 {

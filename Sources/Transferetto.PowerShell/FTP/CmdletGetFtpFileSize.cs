@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Get-FTPFileSize cmdlet.
+/// <para type="synopsis">Returns the size of a remote FTP file.</para>
+/// <para type="description">Reads the remote file length and can fall back to a caller-supplied default value when the size cannot be determined reliably.</para>
+/// <example>
+///   <para>Return the size of a remote archive.</para>
+///   <code>Get-FTPFileSize -Client $ftp -RemotePath '/incoming/site.zip'</code>
+/// </example>
+/// <example>
+///   <para>Return zero when the server cannot report the size.</para>
+///   <code>Get-FTPFileSize -Client $ftp -RemotePath '/incoming/site.zip' -DefaultValue 0</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Get", "FTPFileSize")]
@@ -44,4 +53,3 @@ public sealed class CmdletGetFtpFileSize : PSCmdlet
 		}
 	}
 }
-

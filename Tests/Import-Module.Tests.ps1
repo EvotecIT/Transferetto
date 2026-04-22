@@ -1,4 +1,20 @@
 Describe 'Transferetto module import' {
+    It 'has modern manifest metadata for discovery and help' {
+        $ManifestPath = Join-Path $PSScriptRoot '..\Transferetto.psd1'
+        $Manifest = Import-PowerShellDataFile -Path $ManifestPath
+
+        $Manifest.HelpInfoURI | Should -Be 'https://github.com/EvotecIT/Transferetto/blob/master/README.md'
+        $Manifest.Description | Should -Match 'FTP'
+        $Manifest.Description | Should -Match 'SFTP'
+        $Manifest.Description | Should -Match 'SCP'
+        $Manifest.Description | Should -Match 'FXP'
+        $Manifest.Description | Should -Match 'SSH'
+        $Manifest.PrivateData.PSData.ProjectUri | Should -Be 'https://github.com/EvotecIT/Transferetto'
+        $Manifest.PrivateData.PSData.Tags | Should -Contain 'fxp'
+        $Manifest.PrivateData.PSData.Tags | Should -Contain 'scp'
+        $Manifest.PrivateData.PSData.Tags | Should -Contain 'ssh'
+    }
+
     It 'exports the binary Connect-FTP cmdlet with advanced connection parameters' {
         $Command = Get-Command -Name Connect-FTP -ErrorAction Stop
         $Command.CommandType | Should -Be 'Cmdlet'
@@ -40,6 +56,35 @@ Describe 'Transferetto module import' {
         $Command.CommandType | Should -Be 'Cmdlet'
         $Command.Parameters.Keys | Should -Contain 'TransferKind'
         $Command.Parameters.Keys | Should -Contain 'CreateRemoteDirectory'
+    }
+
+    It 'exports the SSH shell recipe cmdlet with administration parameters' {
+        $Command = Get-Command -Name Invoke-SSHShellRecipe -ErrorAction Stop
+        $Command.CommandType | Should -Be 'Cmdlet'
+        $Command.Parameters.Keys | Should -Contain 'Recipe'
+        $Command.Parameters.Keys | Should -Contain 'Command'
+        $Command.Parameters.Keys | Should -Contain 'RemotePath'
+        $Command.Parameters.Keys | Should -Contain 'ServiceName'
+        $Command.Parameters.Keys | Should -Contain 'Password'
+        $Command.Parameters.Keys | Should -Contain 'PromptPreset'
+    }
+
+    It 'shows examples for every exported cmdlet' {
+        $ExampleCommands = Get-Command -Module Transferetto -CommandType Cmdlet | Sort-Object Name | Select-Object -ExpandProperty Name
+        $ExampleCommands.Count | Should -BeGreaterThan 0
+
+        foreach ($CommandName in $ExampleCommands) {
+            $Examples = Get-Help -Name $CommandName -Examples | Out-String -Width 200
+            $Examples | Should -Match '(?i)Example 1'
+        }
+    }
+
+    It 'does not leave placeholder XML doc summaries in PowerShell source' {
+        $SourceRoot = Join-Path $PSScriptRoot '..\Sources\Transferetto.PowerShell'
+        $PlaceholderMatches = Get-ChildItem -Path $SourceRoot -Recurse -Filter '*.cs' |
+            Select-String -Pattern 'Implements the .* cmdlet\.'
+
+        @($PlaceholderMatches).Count | Should -Be 0
     }
 
     It 'rejects conflicting SSH host key trust settings before connecting' {

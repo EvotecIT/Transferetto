@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the New-SFTPDirectory cmdlet.
+/// <para type="synopsis">Creates a directory on an SFTP server.</para>
+/// <para type="description">Creates a remote SFTP directory and returns the operation result unless output is suppressed, making it easy to compose idempotent provisioning flows.</para>
+/// <example>
+///   <para>Create a remote SFTP directory.</para>
+///   <code>New-SFTPDirectory -SftpClient $sftp -Path '/srv/uploads'</code>
+/// </example>
+/// <example>
+///   <para>Create a directory but keep the pipeline quiet in a larger script.</para>
+///   <code>New-SFTPDirectory -SftpClient $sftp -Path '/srv/releases/next' -Suppress</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("New", "SFTPDirectory")]
@@ -48,4 +57,3 @@ public sealed class CmdletNewSftpDirectory : PSCmdlet
 		}
 	}
 }
-

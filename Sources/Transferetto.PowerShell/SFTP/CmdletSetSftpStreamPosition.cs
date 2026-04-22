@@ -4,7 +4,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Set-SFTPStreamPosition cmdlet.
+/// <para type="synopsis">Moves the current position within an open SFTP stream session.</para>
+/// <para type="description">Seeks to a new offset in the SFTP stream so callers can reread, skip ahead, or resume low-level stream-based operations from a specific location.</para>
+/// <example>
+///   <para>Seek to the beginning of the stream.</para>
+///   <code>Set-SFTPStreamPosition -StreamSession $stream -Offset 0 -Origin Begin</code>
+/// </example>
+/// <example>
+///   <para>Skip forward 128 bytes from the current position.</para>
+///   <code>Set-SFTPStreamPosition -StreamSession $stream -Offset 128 -Origin Current</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Set", "SFTPStreamPosition")]
@@ -45,4 +54,3 @@ public sealed class CmdletSetSftpStreamPosition : PSCmdlet
 		}
 	}
 }
-

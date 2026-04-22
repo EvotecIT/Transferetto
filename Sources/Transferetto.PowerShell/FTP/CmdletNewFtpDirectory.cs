@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the New-FTPDirectory cmdlet.
+/// <para type="synopsis">Creates a directory on an FTP or FTPS server.</para>
+/// <para type="description">Creates a remote directory and can force parent creation when needed, returning a structured result unless output is intentionally suppressed.</para>
+/// <example>
+///   <para>Create a remote directory.</para>
+///   <code>New-FTPDirectory -Client $ftp -RemotePath '/incoming/releases'</code>
+/// </example>
+/// <example>
+///   <para>Create nested parent directories when they do not exist yet.</para>
+///   <code>New-FTPDirectory -Client $ftp -RemotePath '/archive/2026/04/22' -Force</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("New", "FTPDirectory")]
@@ -54,4 +63,3 @@ public sealed class CmdletNewFtpDirectory : PSCmdlet
 		}
 	}
 }
-

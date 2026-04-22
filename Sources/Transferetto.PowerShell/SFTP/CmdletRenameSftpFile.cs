@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Rename-SFTPFile cmdlet.
+/// <para type="synopsis">Renames a remote SFTP file or relocates it to a new path.</para>
+/// <para type="description">Performs a server-side rename for a remote SFTP item, which is useful for finalizing staged uploads or rotating files in place.</para>
+/// <example>
+///   <para>Rename a remote SFTP file.</para>
+///   <code>Rename-SFTPFile -SftpClient $sftp -SourcePath '/srv/app/config.new.json' -DestinationPath '/srv/app/config.json'</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Rename", "SFTPFile")]
@@ -56,4 +61,3 @@ public sealed class CmdletRenameSftpFile : PSCmdlet
 		}
 	}
 }
-

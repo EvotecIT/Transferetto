@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Remove-SFTPFile cmdlet.
+/// <para type="synopsis">Removes a file from an SFTP server.</para>
+/// <para type="description">Deletes a single remote SFTP file and can suppress the returned operation result when used inside larger maintenance scripts.</para>
+/// <example>
+///   <para>Delete a remote SFTP file.</para>
+///   <code>Remove-SFTPFile -SftpClient $sftp -RemotePath '/srv/app/old-config.json'</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Remove", "SFTPFile")]
@@ -48,4 +53,3 @@ public sealed class CmdletRemoveSftpFile : PSCmdlet
 		}
 	}
 }
-

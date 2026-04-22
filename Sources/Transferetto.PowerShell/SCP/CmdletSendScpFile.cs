@@ -1,17 +1,24 @@
 using System;
 using System.Management.Automation;
-using System.Threading;
+using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Send-SCPFile cmdlet.
+/// <para type="synopsis">Uploads a local file through an SCP session.</para>
+/// <para type="description">Provides a simple SCP upload path with the shared Transferetto async transfer options so scripts can show progress and cancel long uploads consistently.</para>
+/// <example>
+///   <para>Upload a deployment package to a Linux host with SCP.</para>
+///   <code>Send-SCPFile -ScpClient $scp -LocalPath '.\deploy\site.tar.gz' -RemotePath '/tmp/site.tar.gz'</code>
+/// </example>
+/// <example>
+///   <para>Upload a file and emit progress records while it transfers.</para>
+///   <code>Send-SCPFile -ScpClient $scp -LocalPath '.\backup\database.sql.gz' -RemotePath '/var/backups/database.sql.gz' -ShowProgress</code>
+/// </example>
 /// </summary>
 
 [Alias(new string[] { "Add-SCPFile" })]
 [Cmdlet("Send", "SCPFile")]
-public sealed class CmdletSendScpFile : PSCmdlet
-{
-	private readonly CancellationTokenSource cancellationTokenSource = new();
+public sealed class CmdletSendScpFile : AsyncPSCmdlet {
 	/// <summary>
 	/// Gets or sets the session object used by the cmdlet.
 	/// </summary>
@@ -43,56 +50,28 @@ public sealed class CmdletSendScpFile : PSCmdlet
 	public long ProgressIntervalBytes { get; set; } = 65536;
 
 	/// <inheritdoc/>
-	protected override void ProcessRecord()
-	{
-		if (ScpClient == null || string.IsNullOrWhiteSpace(LocalPath) || string.IsNullOrWhiteSpace(RemotePath))
-		{
+	protected override async Task ProcessRecordAsync() {
+		if (ScpClient == null || string.IsNullOrWhiteSpace(LocalPath) || string.IsNullOrWhiteSpace(RemotePath)) {
 			return;
 		}
-		try
-		{
-			TransferettoTransferOptions options = new()
-			{
-				CancellationToken = cancellationTokenSource.Token,
+
+		try {
+			TransferettoTransferOptions options = new() {
+				CancellationToken = CancelToken,
 				ProgressIntervalBytes = ProgressIntervalBytes,
-				Progress = ShowProgress.IsPresent ? new CmdletTransferProgress(this) : null
+				Progress = ShowProgress.IsPresent ? new TransferettoCmdletTransferProgress(this) : null
 			};
-			WriteObject(TransferettoClient.UploadScpFile(ScpClient, LocalPath!, RemotePath!, options));
-		}
-		catch (Exception exception)
-		{
+			TransferettoTransferResult result = await TransferettoClient.UploadScpFileAsync(
+				ScpClient,
+				LocalPath!,
+				RemotePath!,
+				options,
+				CancelToken).ConfigureAwait(false);
+			WriteObject(result);
+		} catch (OperationCanceledException) when (CancelToken.IsCancellationRequested) {
+			// StopProcessing requested cancellation.
+		} catch (Exception exception) {
 			WriteError(new ErrorRecord(exception, "SendScpFileFailed", ErrorCategory.WriteError, RemotePath));
-		}
-	}
-
-	/// <inheritdoc/>
-	protected override void StopProcessing()
-	{
-		cancellationTokenSource.Cancel();
-		base.StopProcessing();
-	}
-
-	private sealed class CmdletTransferProgress : IProgress<TransferettoTransferProgress>
-	{
-		private readonly PSCmdlet cmdlet;
-
-		public CmdletTransferProgress(PSCmdlet cmdlet)
-		{
-			this.cmdlet = cmdlet;
-		}
-
-		public void Report(TransferettoTransferProgress value)
-		{
-			int percentComplete = value.PercentComplete ?? -1;
-			string activity = $"{value.Protocol} {value.Direction}";
-			string status = value.TotalBytes.HasValue
-				? $"{value.BytesTransferred} of {value.TotalBytes.Value} bytes"
-				: $"{value.BytesTransferred} bytes";
-			cmdlet.WriteProgress(new ProgressRecord(0, activity, status)
-			{
-				PercentComplete = percentComplete,
-				CurrentOperation = value.RemotePath ?? value.LocalPath
-			});
 		}
 	}
 }

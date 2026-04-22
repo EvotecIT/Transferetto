@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Start-SSHRemoteTunnel cmdlet.
+/// <para type="synopsis">Starts a remote SSH port-forwarding tunnel.</para>
+/// <para type="description">Requests the SSH server to bind a remote host and port, then forwards traffic back through the SSH session to a target host and port reachable from the client side.</para>
+/// <example>
+///   <para>Expose a local web application on the remote server.</para>
+///   <code>Start-SSHRemoteTunnel -SshClient $ssh -BoundPort 8080 -TargetHost '127.0.0.1' -TargetPort 3000</code>
+/// </example>
+/// <example>
+///   <para>Bind the remote tunnel to a specific interface for controlled access.</para>
+///   <code>Start-SSHRemoteTunnel -SshClient $ssh -BoundHost '127.0.0.1' -BoundPort 9000 -TargetHost '127.0.0.1' -TargetPort 9000</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Start", "SSHRemoteTunnel")]
@@ -56,4 +65,3 @@ public sealed class CmdletStartSshRemoteTunnel : PSCmdlet
 		}
 	}
 }
-

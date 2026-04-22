@@ -1,19 +1,27 @@
 using System;
+using System.Collections.Generic;
 using System.Management.Automation;
-using System.Threading;
+using System.Threading.Tasks;
 using FluentFTP;
 using FluentFTP.Rules;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Start-FXPDirectoryTransfer cmdlet.
+/// <para type="synopsis">Transfers a directory tree directly between two FTP/FTPS servers by using FXP.</para>
+/// <para type="description">Starts a server-to-server directory sync through the reusable Transferetto FXP layer, with folder sync mode, verification, rules, collision handling, and progress reporting.</para>
+/// <example>
+///   <para>Copy a remote directory from one FTP server to another.</para>
+///   <code>Start-FXPDirectoryTransfer -Client $source -SourcePath '/pub/site' -DestinationClient $destination -DestinationPath '/incoming/site'</code>
+/// </example>
+/// <example>
+///   <para>Mirror a directory between servers while applying transfer rules and showing progress.</para>
+///   <code>Start-FXPDirectoryTransfer -Client $source -SourcePath '/pub/site' -DestinationClient $destination -DestinationPath '/mirror/site' -FolderSyncMode Mirror -Rules $rules -ShowProgress</code>
+/// </example>
 /// </summary>
 
 [Alias(new string[] { "Start-FXPDirectory" })]
 [Cmdlet("Start", "FXPDirectoryTransfer")]
-public sealed class CmdletStartFxpDirectoryTransfer : PSCmdlet
-{
-	private readonly CancellationTokenSource cancellationTokenSource = new();
+public sealed class CmdletStartFxpDirectoryTransfer : AsyncPSCmdlet {
 	/// <summary>
 	/// Gets or sets the session object used by the cmdlet.
 	/// </summary>
@@ -76,56 +84,33 @@ public sealed class CmdletStartFxpDirectoryTransfer : PSCmdlet
 	public long ProgressIntervalBytes { get; set; } = 65536;
 
 	/// <inheritdoc/>
-	protected override void ProcessRecord()
-	{
-		if (Client == null || DestinationClient == null || string.IsNullOrWhiteSpace(SourcePath) || string.IsNullOrWhiteSpace(DestinationPath))
-		{
+	protected override async Task ProcessRecordAsync() {
+		if (Client == null || DestinationClient == null || string.IsNullOrWhiteSpace(SourcePath) || string.IsNullOrWhiteSpace(DestinationPath)) {
 			return;
 		}
-		try
-		{
-			TransferettoTransferOptions options = new()
-			{
-				CancellationToken = cancellationTokenSource.Token,
+
+		try {
+			TransferettoTransferOptions options = new() {
+				CancellationToken = CancelToken,
 				ProgressIntervalBytes = ProgressIntervalBytes,
-				Progress = ShowProgress.IsPresent ? new CmdletTransferProgress(this) : null
+				Progress = ShowProgress.IsPresent ? new TransferettoCmdletTransferProgress(this) : null
 			};
-			WriteObject(TransferettoClient.StartFxpDirectoryTransfer(Client, SourcePath!, DestinationClient, DestinationPath!, FolderSyncMode, RemoteExists, VerifyOptions.CombineFlags(), Rules, options), enumerateCollection: true);
-		}
-		catch (Exception exception)
-		{
+			IReadOnlyList<TransferettoTransferResult> result = await TransferettoClient.StartFxpDirectoryTransferAsync(
+				Client,
+				SourcePath!,
+				DestinationClient,
+				DestinationPath!,
+				FolderSyncMode,
+				RemoteExists,
+				VerifyOptions.CombineFlags(),
+				Rules,
+				options,
+				CancelToken).ConfigureAwait(false);
+			WriteObject(result, enumerateCollection: true);
+		} catch (OperationCanceledException) when (CancelToken.IsCancellationRequested) {
+			// StopProcessing requested cancellation.
+		} catch (Exception exception) {
 			WriteError(new ErrorRecord(exception, "StartFxpDirectoryTransferFailed", ErrorCategory.WriteError, DestinationPath));
-		}
-	}
-
-	/// <inheritdoc/>
-	protected override void StopProcessing()
-	{
-		cancellationTokenSource.Cancel();
-		base.StopProcessing();
-	}
-
-	private sealed class CmdletTransferProgress : IProgress<TransferettoTransferProgress>
-	{
-		private readonly PSCmdlet cmdlet;
-
-		public CmdletTransferProgress(PSCmdlet cmdlet)
-		{
-			this.cmdlet = cmdlet;
-		}
-
-		public void Report(TransferettoTransferProgress value)
-		{
-			int percentComplete = value.PercentComplete ?? -1;
-			string activity = $"{value.Protocol} {value.Direction}";
-			string status = value.TotalBytes.HasValue
-				? $"{value.BytesTransferred} of {value.TotalBytes.Value} bytes"
-				: $"{value.BytesTransferred} bytes";
-			cmdlet.WriteProgress(new ProgressRecord(0, activity, status)
-			{
-				PercentComplete = percentComplete,
-				CurrentOperation = value.RemotePath ?? value.LocalPath
-			});
 		}
 	}
 }

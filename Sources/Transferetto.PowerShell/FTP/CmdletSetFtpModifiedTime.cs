@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Set-FTPModifiedTime cmdlet.
+/// <para type="synopsis">Sets the last modified time for a remote FTP item.</para>
+/// <para type="description">Writes a remote timestamp and can optionally return the updated item metadata, which is helpful for preserving deployment timestamps after upload.</para>
+/// <example>
+///   <para>Set a remote file timestamp to a specific value.</para>
+///   <code>Set-FTPModifiedTime -Client $ftp -RemotePath '/wwwroot/index.html' -ModifiedTime (Get-Date '2026-04-22T12:00:00Z')</code>
+/// </example>
+/// <example>
+///   <para>Update the timestamp and return the refreshed remote item.</para>
+///   <code>Set-FTPModifiedTime -Client $ftp -RemotePath '/wwwroot/index.html' -ModifiedTime (Get-Date) -PassThru</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Set", "FTPModifiedTime")]
@@ -58,4 +67,3 @@ public sealed class CmdletSetFtpModifiedTime : PSCmdlet
 		}
 	}
 }
-

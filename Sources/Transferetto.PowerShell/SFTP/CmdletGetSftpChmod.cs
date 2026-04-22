@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Get-SFTPChmod cmdlet.
+/// <para type="synopsis">Reads POSIX-style permission bits for a remote SFTP item.</para>
+/// <para type="description">Returns the remote mode/permission information reported by the SFTP server so scripts can inspect Unix-style access flags before applying changes.</para>
+/// <example>
+///   <para>Read permissions for a remote script.</para>
+///   <code>Get-SFTPChmod -SftpClient $sftp -Path '/srv/app/deploy.sh'</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Get", "SFTPChmod")]
@@ -38,4 +43,3 @@ public sealed class CmdletGetSftpChmod : PSCmdlet
 		}
 	}
 }
-

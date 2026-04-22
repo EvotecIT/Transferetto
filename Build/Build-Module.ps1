@@ -6,8 +6,9 @@ Build-Module -ModuleName 'Transferetto' {
         Author               = 'Przemyslaw Klys'
         CompanyName          = 'Evotec'
         Copyright            = "(c) 2011 - $((Get-Date).Year) Przemyslaw Klys @ Evotec. All rights reserved."
-        Description          = 'Transferetto is a PowerShell module and reusable .NET library for FTP, FTPS, SFTP, SSH, and future automation tooling.'
-        Tags                 = @('Windows', 'MacOS', 'Linux', 'ftp', 'ftps', 'sftp', 'ssh')
+        Description          = 'Transferetto is a PowerShell module and reusable .NET library for FTP, FTPS, SFTP, SCP, FXP, SSH commands, SSH shells, and SSH tunnels.'
+        HelpInfoURI          = 'https://github.com/EvotecIT/Transferetto/blob/master/README.md'
+        Tags                 = @('Windows', 'MacOS', 'Linux', 'ftp', 'ftps', 'sftp', 'scp', 'fxp', 'ssh')
         IconUri              = 'https://evotec.xyz/wp-content/uploads/2021/03/Transferetto.png'
         ProjectUri           = 'https://github.com/EvotecIT/Transferetto'
         PowerShellVersion    = '5.1'

@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Set-FTPWorkingDirectory cmdlet.
+/// <para type="synopsis">Changes the working directory for an FTP or FTPS session.</para>
+/// <para type="description">Updates the session’s active FTP path so later relative operations run against the intended remote location.</para>
+/// <example>
+///   <para>Change the remote working directory.</para>
+///   <code>Set-FTPWorkingDirectory -Client $ftp -Path '/wwwroot/releases'</code>
+/// </example>
+/// <example>
+///   <para>Change the directory and keep using the same session in the pipeline.</para>
+///   <code>$ftp = Set-FTPWorkingDirectory -Client $ftp -Path '/wwwroot/releases' -PassThru</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Set", "FTPWorkingDirectory")]
@@ -48,4 +57,3 @@ public sealed class CmdletSetFtpWorkingDirectory : PSCmdlet
 		}
 	}
 }
-

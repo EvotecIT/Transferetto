@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Get-SFTPWorkingDirectory cmdlet.
+/// <para type="synopsis">Returns the current working directory for an SFTP session.</para>
+/// <para type="description">Exposes the session’s active SFTP path so scripts can coordinate relative reads, writes, and directory-management steps safely.</para>
+/// <example>
+///   <para>Show the current SFTP working directory.</para>
+///   <code>Get-SFTPWorkingDirectory -SftpClient $sftp</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Get", "SFTPWorkingDirectory")]
@@ -32,4 +37,3 @@ public sealed class CmdletGetSftpWorkingDirectory : PSCmdlet
 		}
 	}
 }
-

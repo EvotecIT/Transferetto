@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Clear-SSHShellTranscript cmdlet.
+/// <para type="synopsis">Clears the in-memory transcript stored for an interactive SSH shell session.</para>
+/// <para type="description">Returns the removed transcript snapshot by default so callers can archive it before clearing, or suppress output when they simply want to reset transcript state before the next automation step.</para>
+/// <example>
+///   <para>Clear the transcript and inspect the snapshot that was removed.</para>
+///   <code>$previous = Clear-SSHShellTranscript -ShellSession $shell</code>
+/// </example>
+/// <example>
+///   <para>Reset transcript capture without writing anything to the pipeline.</para>
+///   <code>Clear-SSHShellTranscript -ShellSession $shell -Suppress</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Clear", "SSHShellTranscript")]
@@ -42,4 +51,3 @@ public sealed class CmdletClearSshShellTranscript : PSCmdlet
 		}
 	}
 }
-

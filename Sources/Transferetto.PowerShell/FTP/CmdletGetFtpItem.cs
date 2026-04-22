@@ -3,7 +3,16 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Get-FTPItem cmdlet.
+/// <para type="synopsis">Retrieves metadata for a single FTP or FTPS file-system item.</para>
+/// <para type="description">Returns a single remote item with file or directory metadata, optionally following symbolic links when the remote server exposes them through the FTP listing surface.</para>
+/// <example>
+///   <para>Inspect metadata for a remote file.</para>
+///   <code>Get-FTPItem -Client $ftp -RemotePath '/pub/example/readme.txt'</code>
+/// </example>
+/// <example>
+///   <para>Resolve a link target when supported by the server.</para>
+///   <code>Get-FTPItem -Client $ftp -RemotePath '/pub/current' -FollowLinks</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Get", "FTPItem")]
@@ -44,4 +53,3 @@ public sealed class CmdletGetFtpItem : PSCmdlet
 		}
 	}
 }
-

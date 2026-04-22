@@ -1,17 +1,23 @@
 using System;
 using System.Management.Automation;
-using System.Threading;
+using System.Threading.Tasks;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Receive-SFTPFile cmdlet.
+/// <para type="synopsis">Downloads a file from an SFTP session to the local machine.</para>
+/// <para type="description">Uses the shared async transfer pipeline so SFTP downloads support cancellation and progress reporting consistently with the FTP, SCP, and broader Transferetto file-transfer surface.</para>
+/// <example>
+///   <para>Download a log file from a Linux server with progress reporting.</para>
+///   <code>Receive-SFTPFile -SftpClient $sftp -RemotePath '/var/log/app.log' -LocalPath '.\logs\app.log' -ShowProgress</code>
+/// </example>
+/// <example>
+///   <para>Back up a remote configuration file before making changes.</para>
+///   <code>Receive-SFTPFile -SftpClient $sftp -RemotePath '/etc/nginx/nginx.conf' -LocalPath '.\backup\nginx.conf'</code>
+/// </example>
 /// </summary>
-
 [Alias(new string[] { "Get-SFTPFile" })]
 [Cmdlet("Receive", "SFTPFile")]
-public sealed class CmdletReceiveSftpFile : PSCmdlet
-{
-	private readonly CancellationTokenSource cancellationTokenSource = new();
+public sealed class CmdletReceiveSftpFile : AsyncPSCmdlet {
 	/// <summary>
 	/// Gets or sets the session object used by the cmdlet.
 	/// </summary>
@@ -43,56 +49,28 @@ public sealed class CmdletReceiveSftpFile : PSCmdlet
 	public long ProgressIntervalBytes { get; set; } = 65536;
 
 	/// <inheritdoc/>
-	protected override void ProcessRecord()
-	{
-		if (SftpClient == null || string.IsNullOrWhiteSpace(RemotePath) || string.IsNullOrWhiteSpace(LocalPath))
-		{
+	protected override async Task ProcessRecordAsync() {
+		if (SftpClient == null || string.IsNullOrWhiteSpace(RemotePath) || string.IsNullOrWhiteSpace(LocalPath)) {
 			return;
 		}
-		try
-		{
-			TransferettoTransferOptions options = new()
-			{
-				CancellationToken = cancellationTokenSource.Token,
+
+		try {
+			TransferettoTransferOptions options = new() {
+				CancellationToken = CancelToken,
 				ProgressIntervalBytes = ProgressIntervalBytes,
-				Progress = ShowProgress.IsPresent ? new CmdletTransferProgress(this) : null
+				Progress = ShowProgress.IsPresent ? new TransferettoCmdletTransferProgress(this) : null
 			};
-			WriteObject(TransferettoClient.DownloadSftpFile(SftpClient, RemotePath!, LocalPath!, options));
-		}
-		catch (Exception exception)
-		{
+			TransferettoTransferResult result = await TransferettoClient.DownloadSftpFileAsync(
+				SftpClient,
+				RemotePath!,
+				LocalPath!,
+				options,
+				CancelToken).ConfigureAwait(false);
+			WriteObject(result);
+		} catch (OperationCanceledException) when (CancelToken.IsCancellationRequested) {
+			// StopProcessing requested cancellation.
+		} catch (Exception exception) {
 			WriteError(new ErrorRecord(exception, "ReceiveSftpFileFailed", ErrorCategory.ReadError, RemotePath));
-		}
-	}
-
-	/// <inheritdoc/>
-	protected override void StopProcessing()
-	{
-		cancellationTokenSource.Cancel();
-		base.StopProcessing();
-	}
-
-	private sealed class CmdletTransferProgress : IProgress<TransferettoTransferProgress>
-	{
-		private readonly PSCmdlet cmdlet;
-
-		public CmdletTransferProgress(PSCmdlet cmdlet)
-		{
-			this.cmdlet = cmdlet;
-		}
-
-		public void Report(TransferettoTransferProgress value)
-		{
-			int percentComplete = value.PercentComplete ?? -1;
-			string activity = $"{value.Protocol} {value.Direction}";
-			string status = value.TotalBytes.HasValue
-				? $"{value.BytesTransferred} of {value.TotalBytes.Value} bytes"
-				: $"{value.BytesTransferred} bytes";
-			cmdlet.WriteProgress(new ProgressRecord(0, activity, status)
-			{
-				PercentComplete = percentComplete,
-				CurrentOperation = value.RemotePath ?? value.LocalPath
-			});
 		}
 	}
 }

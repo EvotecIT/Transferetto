@@ -3,7 +3,12 @@ using System.Management.Automation;
 
 namespace Transferetto.PowerShell;
 /// <summary>
-/// Implements the Remove-FTPFile cmdlet.
+/// <para type="synopsis">Removes a file from an FTP or FTPS server.</para>
+/// <para type="description">Deletes a single remote FTP file, which fits cleanup, rollback, and artifact rotation workflows.</para>
+/// <example>
+///   <para>Delete a remote file.</para>
+///   <code>Remove-FTPFile -Client $ftp -RemotePath '/incoming/old-site.zip'</code>
+/// </example>
 /// </summary>
 
 [Cmdlet("Remove", "FTPFile")]
@@ -38,4 +43,3 @@ public sealed class CmdletRemoveFtpFile : PSCmdlet
 		}
 	}
 }
-
