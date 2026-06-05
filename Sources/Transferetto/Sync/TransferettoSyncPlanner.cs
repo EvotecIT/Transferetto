@@ -32,6 +32,7 @@ public static class TransferettoSyncPlanner {
             StringComparer.Ordinal);
 
         List<TransferettoSyncPlanItem> plan = new();
+        List<(TransferettoSyncEntry Source, TransferettoSyncEntry Destination, TransferettoSyncAction TransferAction)> directoryReplacementTransfers = new();
         foreach (TransferettoSyncEntry sourceDirectory in source.Values
                      .Where(entry => entry.IsDirectory && ShouldIncludeDirectory(entry.RelativePath, includedSourceFiles, resolvedOptions))
                      .OrderBy(entry => entry.RelativePath.Count(static character => character == '/'))
@@ -79,7 +80,12 @@ public static class TransferettoSyncPlanner {
             }
 
             if (destinationEntry.IsDirectory) {
-                plan.Add(CreatePlanItem(TransferettoSyncAction.Skip, sourceFile, destinationEntry, resolvedOptions, "Destination path is a directory."));
+                if (resolvedOptions.Mode == TransferettoSyncMode.Mirror && resolvedOptions.OverwriteExisting) {
+                    directoryReplacementTransfers.Add((sourceFile, destinationEntry, transferAction));
+                } else {
+                    plan.Add(CreatePlanItem(TransferettoSyncAction.Skip, sourceFile, destinationEntry, resolvedOptions, "Destination path is a directory."));
+                }
+
                 continue;
             }
 
@@ -94,7 +100,11 @@ public static class TransferettoSyncPlanner {
         }
 
         if (resolvedOptions.Mode == TransferettoSyncMode.Mirror) {
-            AddMirrorDeletes(plan, source, destination, resolvedOptions);
+            HashSet<string> replacementDirectoryPaths = new(
+                directoryReplacementTransfers.Select(item => NormalizeRelativePath(item.Destination.RelativePath)),
+                StringComparer.Ordinal);
+            AddMirrorDeletes(plan, source, destination, resolvedOptions, replacementDirectoryPaths);
+            AddDirectoryReplacementTransfers(plan, directoryReplacementTransfers, resolvedOptions);
         }
 
         return plan;
@@ -158,7 +168,8 @@ public static class TransferettoSyncPlanner {
         ICollection<TransferettoSyncPlanItem> plan,
         IReadOnlyDictionary<string, TransferettoSyncEntry> source,
         IEnumerable<KeyValuePair<string, TransferettoSyncEntry>> destination,
-        TransferettoSyncOptions options) {
+        TransferettoSyncOptions options,
+        ISet<string> replacementDirectoryPaths) {
         TransferettoSyncAction deleteFile = options.Direction == TransferettoSyncDirection.Upload
             ? TransferettoSyncAction.DeleteRemoteFile
             : TransferettoSyncAction.DeleteLocalFile;
@@ -173,7 +184,7 @@ public static class TransferettoSyncPlanner {
         HashSet<string> extraFilePaths = new(extraFiles.Select(entry => NormalizeRelativePath(entry.RelativePath)), StringComparer.Ordinal);
         TransferettoSyncEntry[] extraDirectories = destinationEntries
             .Where(pair => pair.Value.IsDirectory
-                && !source.ContainsKey(pair.Key)
+                && (!source.ContainsKey(pair.Key) || replacementDirectoryPaths.Contains(pair.Key))
                 && IsIncluded(pair.Value.RelativePath, options)
                 && CanDeleteDestinationDirectory(pair.Key, source, destinationEntries, extraFilePaths, options))
             .Select(static pair => pair.Value)
@@ -187,6 +198,25 @@ public static class TransferettoSyncPlanner {
 
         foreach (TransferettoSyncEntry directory in extraDirectories) {
             plan.Add(CreatePlanItem(deleteDirectory, null, directory, options, "Destination directory is not present in source."));
+        }
+    }
+
+    private static void AddDirectoryReplacementTransfers(
+        ICollection<TransferettoSyncPlanItem> plan,
+        IEnumerable<(TransferettoSyncEntry Source, TransferettoSyncEntry Destination, TransferettoSyncAction TransferAction)> directoryReplacementTransfers,
+        TransferettoSyncOptions options) {
+        TransferettoSyncAction deleteDirectoryAction = GetDeleteDirectoryAction(options);
+        HashSet<string> deletedDirectoryPaths = new(
+            plan
+                .Where(item => item.Action == deleteDirectoryAction)
+                .Select(item => NormalizeRelativePath(item.RelativePath)),
+            StringComparer.Ordinal);
+
+        foreach ((TransferettoSyncEntry source, TransferettoSyncEntry destination, TransferettoSyncAction transferAction) in directoryReplacementTransfers) {
+            string relativePath = NormalizeRelativePath(destination.RelativePath);
+            plan.Add(deletedDirectoryPaths.Contains(relativePath)
+                ? CreatePlanItem(transferAction, source, destination, options, "Destination directory is replaced by source file.")
+                : CreatePlanItem(TransferettoSyncAction.Skip, source, destination, options, "Destination directory contains content that cannot be replaced."));
         }
     }
 

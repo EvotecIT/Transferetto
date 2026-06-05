@@ -21,21 +21,24 @@ public static partial class TransferettoClient {
         TransferettoTransferOptions resolvedTransferOptions = transferOptions ?? new TransferettoTransferOptions();
         string normalizedRemotePath = NormalizeRemotePath(remotePath);
 
-        if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Download
-            && (!session.Client.Exists(normalizedRemotePath) || !session.Client.GetAttributes(normalizedRemotePath).IsDirectory)) {
+        bool remoteRootExists = session.Client.Exists(normalizedRemotePath) && session.Client.GetAttributes(normalizedRemotePath).IsDirectory;
+        if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Download && !remoteRootExists) {
             throw new DirectoryNotFoundException($"Remote directory {normalizedRemotePath} does not exist.");
         }
 
         IReadOnlyList<TransferettoSyncEntry> localManifest = resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload
             ? BuildLocalSyncManifest(localPath, normalizedRemotePath)
             : BuildLocalSyncManifestOrEmpty(localPath, normalizedRemotePath);
-        IReadOnlyList<TransferettoSyncEntry> remoteManifest = session.Client.Exists(normalizedRemotePath)
+        IReadOnlyList<TransferettoSyncEntry> remoteManifest = remoteRootExists
             ? BuildSftpRemoteSyncManifest(session, normalizedRemotePath, localPath)
             : Array.Empty<TransferettoSyncEntry>();
         IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(
             resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload ? localManifest : remoteManifest,
             resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload ? remoteManifest : localManifest,
             resolvedSyncOptions);
+        if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload && !remoteRootExists) {
+            plan = PrependDestinationRootCreate(plan, localPath, normalizedRemotePath, resolvedSyncOptions);
+        }
 
         if (resolvedSyncOptions.DryRun) {
             return ExecuteDryRunSyncPlan(plan);
@@ -48,7 +51,11 @@ public static partial class TransferettoClient {
         List<TransferettoSyncResult> results = new();
         foreach (TransferettoSyncPlanItem item in plan) {
             resolvedTransferOptions.CancellationToken.ThrowIfCancellationRequested();
-            results.Add(ExecuteSftpSyncPlanItem(session, item, resolvedSyncOptions, resolvedTransferOptions));
+            TransferettoSyncResult result = ExecuteSftpSyncPlanItem(session, item, resolvedSyncOptions, resolvedTransferOptions);
+            results.Add(result);
+            if (ShouldStopMirrorAfterFileTransferFailure(item, result, resolvedSyncOptions)) {
+                break;
+            }
         }
 
         return results;
@@ -78,14 +85,14 @@ public static partial class TransferettoClient {
                 }
 
                 TransferettoTransferResult uploadResult = UploadSftpFile(session, item.LocalPath!, item.RemotePath!, syncOptions.OverwriteExisting, transferOptions);
-                if (syncOptions.PreserveTimestamps && item.Source?.LastWriteTimeUtc is DateTime uploadTimestamp) {
+                if (syncOptions.PreserveTimestamps && IsCompletedFileTransfer(uploadResult) && item.Source?.LastWriteTimeUtc is DateTime uploadTimestamp) {
                     SetSftpTimestamp(session, item.RemotePath!, null, uploadTimestamp, useUtc: true);
                 }
 
                 return CreateSyncResult(item, uploadResult);
             case TransferettoSyncAction.DownloadFile:
                 TransferettoTransferResult downloadResult = DownloadSftpFile(session, item.RemotePath!, item.LocalPath!, transferOptions);
-                if (syncOptions.PreserveTimestamps && item.Source?.LastWriteTimeUtc is DateTime downloadTimestamp && File.Exists(item.LocalPath)) {
+                if (syncOptions.PreserveTimestamps && IsCompletedFileTransfer(downloadResult) && item.Source?.LastWriteTimeUtc is DateTime downloadTimestamp && File.Exists(item.LocalPath)) {
                     File.SetLastWriteTimeUtc(item.LocalPath!, downloadTimestamp);
                 }
 

@@ -228,6 +228,61 @@ public sealed class TransferettoSyncPlannerTests {
         Assert.DoesNotContain(plan, item => item.Action == TransferettoSyncAction.DeleteRemoteDirectory);
     }
 
+    [Fact]
+    public void PlannerReplacesDestinationDirectoryThatConflictsWithSourceFileInMirrorMode() {
+        DateTime now = DateTime.UtcNow;
+        TransferettoSyncEntry[] source = {
+            File("assets", @"C:\site\assets", "/wwwroot/assets", 10, now)
+        };
+        TransferettoSyncEntry[] destination = {
+            Directory("assets", null, "/wwwroot/assets"),
+            File("assets/old.css", null, "/wwwroot/assets/old.css", 4, now)
+        };
+
+        IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(
+            source,
+            destination,
+            new TransferettoSyncOptions {
+                Mode = TransferettoSyncMode.Mirror
+            });
+
+        Assert.Equal(
+            new[] {
+                TransferettoSyncAction.DeleteRemoteFile,
+                TransferettoSyncAction.DeleteRemoteDirectory,
+                TransferettoSyncAction.UploadFile
+            },
+            plan.Select(item => item.Action).ToArray());
+        Assert.Equal("assets/old.css", plan[0].RelativePath);
+        Assert.Equal("assets", plan[1].RelativePath);
+        Assert.Equal("assets", plan[2].RelativePath);
+    }
+
+    [Fact]
+    public void PlannerDoesNotReplaceConflictingDestinationDirectoryThatContainsExcludedFiles() {
+        DateTime now = DateTime.UtcNow;
+        TransferettoSyncEntry[] source = {
+            File("assets", @"C:\site\assets", "/wwwroot/assets", 10, now)
+        };
+        TransferettoSyncEntry[] destination = {
+            Directory("assets", null, "/wwwroot/assets"),
+            File("assets/keep.bak", null, "/wwwroot/assets/keep.bak", 4, now)
+        };
+
+        IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(
+            source,
+            destination,
+            new TransferettoSyncOptions {
+                Mode = TransferettoSyncMode.Mirror,
+                ExcludePatterns = new[] { "*.bak" }
+            });
+
+        Assert.DoesNotContain(plan, item => item.Action == TransferettoSyncAction.DeleteRemoteDirectory);
+        TransferettoSyncPlanItem item = Assert.Single(plan);
+        Assert.Equal(TransferettoSyncAction.Skip, item.Action);
+        Assert.Contains("cannot be replaced", item.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static TransferettoSyncEntry Directory(string relativePath, string? localPath, string? remotePath) {
         return new TransferettoSyncEntry {
             RelativePath = relativePath,

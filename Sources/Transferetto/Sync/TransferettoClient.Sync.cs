@@ -134,4 +134,45 @@ public static partial class TransferettoClient {
     private static IReadOnlyList<TransferettoSyncResult> ExecuteDryRunSyncPlan(IEnumerable<TransferettoSyncPlanItem> plan) {
         return plan.Select(CreateDryRunSyncResult).ToArray();
     }
+
+    private static IReadOnlyList<TransferettoSyncPlanItem> PrependDestinationRootCreate(
+        IReadOnlyList<TransferettoSyncPlanItem> plan,
+        string localPath,
+        string remotePath,
+        TransferettoSyncOptions options) {
+        if (options.Direction != TransferettoSyncDirection.Upload || !options.CreateDestinationDirectories) {
+            return plan;
+        }
+
+        TransferettoSyncEntry sourceRoot = new() {
+            RelativePath = string.Empty,
+            LocalPath = localPath,
+            RemotePath = remotePath,
+            IsDirectory = true
+        };
+        TransferettoSyncPlanItem rootCreate = new() {
+            Action = TransferettoSyncAction.CreateDirectory,
+            Direction = options.Direction,
+            RelativePath = string.Empty,
+            LocalPath = localPath,
+            RemotePath = remotePath,
+            Source = sourceRoot,
+            Message = "Destination root directory is missing."
+        };
+
+        return new[] { rootCreate }.Concat(plan).ToArray();
+    }
+
+    private static bool IsCompletedFileTransfer(TransferettoTransferResult result) {
+        return result.IsSuccess && !result.IsSkipped && !result.IsFailed;
+    }
+
+    private static bool ShouldStopMirrorAfterFileTransferFailure(
+        TransferettoSyncPlanItem item,
+        TransferettoSyncResult result,
+        TransferettoSyncOptions options) {
+        return options.Mode == TransferettoSyncMode.Mirror
+            && !result.Status
+            && (item.Action == TransferettoSyncAction.UploadFile || item.Action == TransferettoSyncAction.DownloadFile);
+    }
 }

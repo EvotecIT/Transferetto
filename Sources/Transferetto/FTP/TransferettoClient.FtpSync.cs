@@ -30,13 +30,17 @@ public static partial class TransferettoClient {
         IReadOnlyList<TransferettoSyncEntry> localManifest = resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload
             ? BuildLocalSyncManifest(localPath, normalizedRemotePath)
             : BuildLocalSyncManifestOrEmpty(localPath, normalizedRemotePath);
-        IReadOnlyList<TransferettoSyncEntry> remoteManifest = session.Client.DirectoryExists(normalizedRemotePath)
+        bool remoteRootExists = session.Client.DirectoryExists(normalizedRemotePath);
+        IReadOnlyList<TransferettoSyncEntry> remoteManifest = remoteRootExists
             ? BuildFtpRemoteSyncManifest(session, normalizedRemotePath, localPath)
             : Array.Empty<TransferettoSyncEntry>();
         IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(
             resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload ? localManifest : remoteManifest,
             resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload ? remoteManifest : localManifest,
             resolvedSyncOptions);
+        if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload && !remoteRootExists) {
+            plan = PrependDestinationRootCreate(plan, localPath, normalizedRemotePath, resolvedSyncOptions);
+        }
 
         if (resolvedSyncOptions.DryRun) {
             return ExecuteDryRunSyncPlan(plan);
@@ -49,7 +53,11 @@ public static partial class TransferettoClient {
         List<TransferettoSyncResult> results = new();
         foreach (TransferettoSyncPlanItem item in plan) {
             resolvedTransferOptions.CancellationToken.ThrowIfCancellationRequested();
-            results.Add(ExecuteFtpSyncPlanItem(session, item, resolvedSyncOptions, resolvedTransferOptions));
+            TransferettoSyncResult result = ExecuteFtpSyncPlanItem(session, item, resolvedSyncOptions, resolvedTransferOptions);
+            results.Add(result);
+            if (ShouldStopMirrorAfterFileTransferFailure(item, result, resolvedSyncOptions)) {
+                break;
+            }
         }
 
         return results;
@@ -84,11 +92,12 @@ public static partial class TransferettoClient {
                     FtpError.Throw,
                     syncOptions.CreateDestinationDirectories,
                     transferOptions);
-                if (syncOptions.PreserveTimestamps && item.Source?.LastWriteTimeUtc is DateTime uploadTimestamp) {
+                TransferettoTransferResult uploadResult = uploadResults.Count > 0 ? uploadResults[0] : EmptyTransferResult(item);
+                if (syncOptions.PreserveTimestamps && IsCompletedFileTransfer(uploadResult) && item.Source?.LastWriteTimeUtc is DateTime uploadTimestamp) {
                     SetFtpModifiedTime(session, item.RemotePath!, uploadTimestamp);
                 }
 
-                return CreateSyncResult(item, uploadResults.Count > 0 ? uploadResults[0] : EmptyTransferResult(item));
+                return CreateSyncResult(item, uploadResult);
             case TransferettoSyncAction.DownloadFile:
                 TransferettoTransferResult downloadResult = DownloadFtpFile(
                     session,
@@ -97,7 +106,7 @@ public static partial class TransferettoClient {
                     syncOptions.OverwriteExisting ? FtpLocalExists.Overwrite : FtpLocalExists.Skip,
                     FtpVerify.None,
                     transferOptions);
-                if (syncOptions.PreserveTimestamps && item.Source?.LastWriteTimeUtc is DateTime downloadTimestamp && File.Exists(item.LocalPath)) {
+                if (syncOptions.PreserveTimestamps && IsCompletedFileTransfer(downloadResult) && item.Source?.LastWriteTimeUtc is DateTime downloadTimestamp && File.Exists(item.LocalPath)) {
                     File.SetLastWriteTimeUtc(item.LocalPath!, downloadTimestamp);
                 }
 
