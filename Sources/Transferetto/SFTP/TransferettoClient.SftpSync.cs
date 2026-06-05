@@ -21,30 +21,40 @@ public static partial class TransferettoClient {
         TransferettoTransferOptions resolvedTransferOptions = transferOptions ?? new TransferettoTransferOptions();
         string normalizedRemotePath = NormalizeRemotePath(remotePath);
 
-        bool remoteRootExists = session.Client.Exists(normalizedRemotePath) && session.Client.GetAttributes(normalizedRemotePath).IsDirectory;
-        if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Download && !remoteRootExists) {
+        bool remoteRootExists = session.Client.Exists(normalizedRemotePath);
+        bool remoteRootIsDirectory = remoteRootExists && session.Client.GetAttributes(normalizedRemotePath).IsDirectory;
+        if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Download && !remoteRootIsDirectory) {
+            if (remoteRootExists) {
+                throw new InvalidOperationException($"Remote path {normalizedRemotePath} exists but is not a directory.");
+            }
+
             throw new DirectoryNotFoundException($"Remote directory {normalizedRemotePath} does not exist.");
         }
 
         IReadOnlyList<TransferettoSyncEntry> localManifest = resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload
             ? BuildLocalSyncManifest(localPath, normalizedRemotePath)
             : BuildLocalSyncManifestOrEmpty(localPath, normalizedRemotePath);
-        IReadOnlyList<TransferettoSyncEntry> remoteManifest = remoteRootExists
+        IReadOnlyList<TransferettoSyncEntry> remoteManifest = remoteRootIsDirectory
             ? BuildSftpRemoteSyncManifest(session, normalizedRemotePath, localPath)
             : Array.Empty<TransferettoSyncEntry>();
         IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(
             resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload ? localManifest : remoteManifest,
             resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload ? remoteManifest : localManifest,
             resolvedSyncOptions);
-        if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload && !remoteRootExists) {
+        if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload && remoteRootExists && !remoteRootIsDirectory) {
+            plan = HandleConflictingUploadRootFile(plan, localPath, normalizedRemotePath, resolvedSyncOptions);
+        } else if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload && !remoteRootExists) {
             plan = HandleMissingUploadRoot(plan, localPath, normalizedRemotePath, resolvedSyncOptions);
         }
+
+        bool localRootIsFile = resolvedSyncOptions.Direction == TransferettoSyncDirection.Download && File.Exists(localPath);
+        plan = HandleConflictingDownloadRootFile(plan, localPath, normalizedRemotePath, resolvedSyncOptions);
 
         if (resolvedSyncOptions.DryRun) {
             return ExecuteDryRunSyncPlan(plan);
         }
 
-        if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Download && resolvedSyncOptions.CreateDestinationDirectories) {
+        if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Download && resolvedSyncOptions.CreateDestinationDirectories && !localRootIsFile) {
             Directory.CreateDirectory(localPath);
         }
 

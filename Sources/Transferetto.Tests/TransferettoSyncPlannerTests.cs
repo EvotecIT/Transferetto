@@ -400,6 +400,16 @@ public sealed class TransferettoSyncPlannerTests {
     }
 
     [Fact]
+    public void RemoteRelativePathPreservesServerBackslashes() {
+        MethodInfo method = typeof(TransferettoClient).GetMethod("GetRemoteRelativePath", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("GetRemoteRelativePath was not found.");
+
+        string relativePath = (string)method.Invoke(null, new object[] { "/root", @"/root/a\b.txt" })!;
+
+        Assert.Equal(@"a\b.txt", relativePath);
+    }
+
+    [Fact]
     public void MissingUploadRootSkipsTransfersWhenDirectoryCreationIsDisabled() {
         DateTime now = DateTime.UtcNow;
         TransferettoSyncPlanItem[] plan = {
@@ -425,6 +435,145 @@ public sealed class TransferettoSyncPlannerTests {
         TransferettoSyncPlanItem item = Assert.Single(result);
         Assert.Equal(TransferettoSyncAction.Skip, item.Action);
         Assert.Contains("root directory is missing", item.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void UploadRootFileConflictPlansReplacementBeforeTransfers() {
+        DateTime now = DateTime.UtcNow;
+        TransferettoSyncPlanItem[] plan = {
+            new() {
+                Action = TransferettoSyncAction.UploadFile,
+                Direction = TransferettoSyncDirection.Upload,
+                RelativePath = "file.txt",
+                LocalPath = @"C:\site\file.txt",
+                RemotePath = "/wwwroot/file.txt",
+                Source = File("file.txt", @"C:\site\file.txt", "/wwwroot/file.txt", 1, now),
+                Message = "Destination file is missing."
+            }
+        };
+        TransferettoSyncOptions options = new() {
+            Direction = TransferettoSyncDirection.Upload
+        };
+
+        MethodInfo method = typeof(TransferettoClient).GetMethod("HandleConflictingUploadRootFile", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("HandleConflictingUploadRootFile was not found.");
+        IReadOnlyList<TransferettoSyncPlanItem> result = (IReadOnlyList<TransferettoSyncPlanItem>)method.Invoke(null, new object[] { plan, @"C:\site", "/wwwroot", options })!;
+
+        Assert.Equal(
+            new[] {
+                TransferettoSyncAction.DeleteRemoteFile,
+                TransferettoSyncAction.CreateDirectory,
+                TransferettoSyncAction.UploadFile
+            },
+            result.Select(item => item.Action).ToArray());
+        Assert.Equal(string.Empty, result[0].RelativePath);
+        Assert.Equal("/wwwroot", result[0].RemotePath);
+    }
+
+    [Fact]
+    public void UploadRootFileConflictSkipsWhenOverwriteIsDisabled() {
+        TransferettoSyncPlanItem[] plan = {
+            new() {
+                Action = TransferettoSyncAction.UploadFile,
+                Direction = TransferettoSyncDirection.Upload,
+                RelativePath = "file.txt",
+                LocalPath = @"C:\site\file.txt",
+                RemotePath = "/wwwroot/file.txt",
+                Source = File("file.txt", @"C:\site\file.txt", "/wwwroot/file.txt", 1, DateTime.UtcNow),
+                Message = "Destination file is missing."
+            }
+        };
+        TransferettoSyncOptions options = new() {
+            Direction = TransferettoSyncDirection.Upload,
+            OverwriteExisting = false
+        };
+
+        MethodInfo method = typeof(TransferettoClient).GetMethod("HandleConflictingUploadRootFile", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("HandleConflictingUploadRootFile was not found.");
+        IReadOnlyList<TransferettoSyncPlanItem> result = (IReadOnlyList<TransferettoSyncPlanItem>)method.Invoke(null, new object[] { plan, @"C:\site", "/wwwroot", options })!;
+
+        TransferettoSyncPlanItem item = Assert.Single(result);
+        Assert.Equal(TransferettoSyncAction.Skip, item.Action);
+        Assert.Contains("cannot be replaced", item.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void DownloadRootFileConflictPlansReplacementBeforeTransfers() {
+        string root = Path.Combine(Path.GetTempPath(), "Transferetto.Tests", Guid.NewGuid().ToString("N"));
+        string localRootFile = Path.Combine(root, "download-root");
+        System.IO.Directory.CreateDirectory(root);
+        System.IO.File.WriteAllText(localRootFile, "existing");
+        try {
+            TransferettoSyncPlanItem[] plan = {
+                new() {
+                    Action = TransferettoSyncAction.DownloadFile,
+                    Direction = TransferettoSyncDirection.Download,
+                    RelativePath = "file.txt",
+                    LocalPath = Path.Combine(localRootFile, "file.txt"),
+                    RemotePath = "/wwwroot/file.txt",
+                    Source = File("file.txt", Path.Combine(localRootFile, "file.txt"), "/wwwroot/file.txt", 1, DateTime.UtcNow),
+                    Message = "Destination file is missing."
+                }
+            };
+            TransferettoSyncOptions options = new() {
+                Direction = TransferettoSyncDirection.Download
+            };
+
+            MethodInfo method = typeof(TransferettoClient).GetMethod("HandleConflictingDownloadRootFile", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("HandleConflictingDownloadRootFile was not found.");
+            IReadOnlyList<TransferettoSyncPlanItem> result = (IReadOnlyList<TransferettoSyncPlanItem>)method.Invoke(null, new object[] { plan, localRootFile, "/wwwroot", options })!;
+
+            Assert.Equal(
+                new[] {
+                    TransferettoSyncAction.DeleteLocalFile,
+                    TransferettoSyncAction.CreateDirectory,
+                    TransferettoSyncAction.DownloadFile
+                },
+                result.Select(item => item.Action).ToArray());
+            Assert.Equal(string.Empty, result[0].RelativePath);
+            Assert.Equal(localRootFile, result[0].LocalPath);
+        } finally {
+            if (System.IO.Directory.Exists(root)) {
+                System.IO.Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void DownloadRootFileConflictSkipsWhenOverwriteIsDisabled() {
+        string root = Path.Combine(Path.GetTempPath(), "Transferetto.Tests", Guid.NewGuid().ToString("N"));
+        string localRootFile = Path.Combine(root, "download-root");
+        System.IO.Directory.CreateDirectory(root);
+        System.IO.File.WriteAllText(localRootFile, "existing");
+        try {
+            TransferettoSyncPlanItem[] plan = {
+                new() {
+                    Action = TransferettoSyncAction.DownloadFile,
+                    Direction = TransferettoSyncDirection.Download,
+                    RelativePath = "file.txt",
+                    LocalPath = Path.Combine(localRootFile, "file.txt"),
+                    RemotePath = "/wwwroot/file.txt",
+                    Source = File("file.txt", Path.Combine(localRootFile, "file.txt"), "/wwwroot/file.txt", 1, DateTime.UtcNow),
+                    Message = "Destination file is missing."
+                }
+            };
+            TransferettoSyncOptions options = new() {
+                Direction = TransferettoSyncDirection.Download,
+                OverwriteExisting = false
+            };
+
+            MethodInfo method = typeof(TransferettoClient).GetMethod("HandleConflictingDownloadRootFile", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("HandleConflictingDownloadRootFile was not found.");
+            IReadOnlyList<TransferettoSyncPlanItem> result = (IReadOnlyList<TransferettoSyncPlanItem>)method.Invoke(null, new object[] { plan, localRootFile, "/wwwroot", options })!;
+
+            TransferettoSyncPlanItem item = Assert.Single(result);
+            Assert.Equal(TransferettoSyncAction.Skip, item.Action);
+            Assert.Contains("cannot be replaced", item.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (System.IO.Directory.Exists(root)) {
+                System.IO.Directory.Delete(root, recursive: true);
+            }
+        }
     }
 
     [Fact]

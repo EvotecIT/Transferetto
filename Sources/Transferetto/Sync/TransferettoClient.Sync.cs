@@ -74,7 +74,7 @@ public static partial class TransferettoClient {
 
     private static string GetRemoteRelativePath(string remoteRoot, string remotePath) {
         string normalizedRoot = NormalizeRemotePath(remoteRoot).TrimEnd('/');
-        string normalizedPath = NormalizeRemotePath(remotePath);
+        string normalizedPath = NormalizeRemoteManifestPath(remotePath);
         if (normalizedRoot == string.Empty || normalizedRoot == "/") {
             return TransferettoSyncPlanner.NormalizeRelativePath(normalizedPath);
         }
@@ -83,7 +83,24 @@ public static partial class TransferettoClient {
             return TransferettoSyncPlanner.NormalizeRelativePath(normalizedPath.Substring(normalizedRoot.Length + 1));
         }
 
-        return TransferettoSyncPlanner.NormalizeRelativePath(GetRemoteName(normalizedPath));
+        return TransferettoSyncPlanner.NormalizeRelativePath(GetRemoteManifestName(normalizedPath));
+    }
+
+    private static string NormalizeRemoteManifestPath(string path) {
+        return path.Length > 1
+            ? path.TrimEnd('/')
+            : path;
+    }
+
+    private static string GetRemoteManifestName(string path) {
+        if (string.IsNullOrWhiteSpace(path) || path == "/") {
+            return path;
+        }
+
+        int separatorIndex = path.LastIndexOf('/');
+        return separatorIndex < 0
+            ? path
+            : path.Substring(separatorIndex + 1);
     }
 
     private static DateTime? ToUtcTimestamp(DateTime value) {
@@ -182,6 +199,110 @@ public static partial class TransferettoClient {
         };
 
         return new[] { rootCreate }.Concat(plan).ToArray();
+    }
+
+    private static IReadOnlyList<TransferettoSyncPlanItem> HandleConflictingUploadRootFile(
+        IReadOnlyList<TransferettoSyncPlanItem> plan,
+        string localPath,
+        string remotePath,
+        TransferettoSyncOptions options) {
+        if (options.Direction != TransferettoSyncDirection.Upload) {
+            return plan;
+        }
+
+        TransferettoSyncEntry sourceRoot = CreateRootSyncEntry(localPath, remotePath, isDirectory: true);
+        TransferettoSyncEntry destinationRoot = CreateRootSyncEntry(localPath, remotePath, isDirectory: false);
+        if (!options.CreateDestinationDirectories || !options.OverwriteExisting) {
+            return new[] {
+                CreateRootSyncPlanItem(
+                    TransferettoSyncAction.Skip,
+                    options.Direction,
+                    sourceRoot,
+                    destinationRoot,
+                    "Destination root path is a file and cannot be replaced.")
+            };
+        }
+
+        return new[] {
+            CreateRootSyncPlanItem(
+                TransferettoSyncAction.DeleteRemoteFile,
+                options.Direction,
+                sourceRoot,
+                destinationRoot,
+                "Destination root file conflicts with source directory."),
+            CreateRootSyncPlanItem(
+                TransferettoSyncAction.CreateDirectory,
+                options.Direction,
+                sourceRoot,
+                null,
+                "Destination root directory replaces conflicting file.")
+        }.Concat(plan).ToArray();
+    }
+
+    private static IReadOnlyList<TransferettoSyncPlanItem> HandleConflictingDownloadRootFile(
+        IReadOnlyList<TransferettoSyncPlanItem> plan,
+        string localPath,
+        string remotePath,
+        TransferettoSyncOptions options) {
+        if (options.Direction != TransferettoSyncDirection.Download || !File.Exists(localPath)) {
+            return plan;
+        }
+
+        TransferettoSyncEntry sourceRoot = CreateRootSyncEntry(localPath, remotePath, isDirectory: true);
+        TransferettoSyncEntry destinationRoot = CreateRootSyncEntry(localPath, remotePath, isDirectory: false);
+        if (!options.CreateDestinationDirectories || !options.OverwriteExisting) {
+            return new[] {
+                CreateRootSyncPlanItem(
+                    TransferettoSyncAction.Skip,
+                    options.Direction,
+                    sourceRoot,
+                    destinationRoot,
+                    "Destination root path is a file and cannot be replaced.")
+            };
+        }
+
+        return new[] {
+            CreateRootSyncPlanItem(
+                TransferettoSyncAction.DeleteLocalFile,
+                options.Direction,
+                sourceRoot,
+                destinationRoot,
+                "Destination root file conflicts with source directory."),
+            CreateRootSyncPlanItem(
+                TransferettoSyncAction.CreateDirectory,
+                options.Direction,
+                sourceRoot,
+                null,
+                "Destination root directory replaces conflicting file.")
+        }.Concat(plan).ToArray();
+    }
+
+    private static TransferettoSyncEntry CreateRootSyncEntry(string localPath, string remotePath, bool isDirectory) {
+        return new TransferettoSyncEntry {
+            RelativePath = string.Empty,
+            LocalPath = localPath,
+            RemotePath = remotePath,
+            IsDirectory = isDirectory
+        };
+    }
+
+    private static TransferettoSyncPlanItem CreateRootSyncPlanItem(
+        TransferettoSyncAction action,
+        TransferettoSyncDirection direction,
+        TransferettoSyncEntry? source,
+        TransferettoSyncEntry? destination,
+        string message) {
+        TransferettoSyncEntry? item = source ?? destination;
+        return new TransferettoSyncPlanItem {
+            Action = action,
+            Direction = direction,
+            RelativePath = string.Empty,
+            LocalPath = item?.LocalPath,
+            RemotePath = item?.RemotePath,
+            Source = source,
+            Destination = destination,
+            Message = message
+        };
     }
 
     private static bool IsCompletedFileTransfer(TransferettoTransferResult result) {
