@@ -7,7 +7,6 @@ Build-Module -ModuleName 'Transferetto' {
         CompanyName          = 'Evotec'
         Copyright            = "(c) 2011 - $((Get-Date).Year) Przemyslaw Klys @ Evotec. All rights reserved."
         Description          = 'Transferetto is a PowerShell module and reusable .NET library for FTP, FTPS, SFTP, SCP, FXP, SSH commands, SSH shells, and SSH tunnels.'
-        HelpInfoURI          = 'https://github.com/EvotecIT/Transferetto/blob/master/README.md'
         Tags                 = @('Windows', 'MacOS', 'Linux', 'ftp', 'ftps', 'sftp', 'scp', 'fxp', 'ssh')
         IconUri              = 'https://evotec.xyz/wp-content/uploads/2021/03/Transferetto.png'
         ProjectUri           = 'https://github.com/EvotecIT/Transferetto'
@@ -44,12 +43,13 @@ Build-Module -ModuleName 'Transferetto' {
     New-ConfigurationFormat -ApplyTo 'DefaultPSD1', 'DefaultPSM1' -EnableFormatting -Sort None
     New-ConfigurationFormat -ApplyTo 'DefaultPSD1', 'OnMergePSD1' -PSD1Style 'Minimal'
 
-    New-ConfigurationDocumentation -Enable:$false -StartClean -UpdateWhenNew -PathReadme 'Docs\Readme.md' -Path 'Docs'
-    New-ConfigurationImportModule -ImportSelf -ImportRequiredModules
+    New-ConfigurationDocumentation -Enable:$false -PathReadme 'Docs\Readme.md' -Path 'Docs'
+    $ImportSelf = if ([string]::IsNullOrWhiteSpace($Env:ImportSelf)) { $true } else { [bool]::Parse($Env:ImportSelf) }
+    New-ConfigurationImportModule -ImportSelf:$ImportSelf -ImportRequiredModules
 
     $newConfigurationBuildSplat = @{
         Enable                            = $true
-        SignModule                        = $true
+        SignModule                        = if ([string]::IsNullOrWhiteSpace($Env:SignModule)) { $true } else { [bool]::Parse($Env:SignModule) }
         MergeModuleOnBuild                = $true
         MergeFunctionsFromApprovedModules = $true
         CertificateThumbprint             = '483292C9E317AA13B07BB7A96AE9D1A5ED9E7703'
@@ -59,11 +59,23 @@ Build-Module -ModuleName 'Transferetto' {
         NETProjectName                    = 'Transferetto.PowerShell'
         NETBinaryModule                   = 'Transferetto.PowerShell.dll'
         NETConfiguration                  = 'Release'
-        NETFramework                      = 'net472', 'net8.0'
+        NETFramework                      = 'net8.0', 'net472'
+        NETHandleAssemblyWithSameName     = $true
+        NETAssemblyLoadContext            = $true
+        NETAssemblyTypeAcceleratorMode    = 'None'
+        NETIgnoreLibraryOnLoad            = @(
+            'libgcc_s_seh-1.dll'
+            'libgmp-10.dll'
+            'libgnutls-30.dll'
+            'libhogweed-6.dll'
+            'libnettle-8.dll'
+            'libwinpthread-1.dll'
+        )
         DotSourceLibraries                = $true
         NETSearchClass                    = 'Transferetto.PowerShell.CmdletConnectFtp'
         NETBinaryModuleDocumentation      = $true
-        RefreshPSD1Only                   = $true
+        DeleteTargetModuleBeforeBuild     = $true
+        RefreshPSD1Only                   = if ([string]::IsNullOrWhiteSpace($Env:RefreshPSD1Only)) { $true } else { [bool]::Parse($Env:RefreshPSD1Only) }
     }
     New-ConfigurationBuild @newConfigurationBuildSplat
 
