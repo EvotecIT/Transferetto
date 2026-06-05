@@ -41,7 +41,7 @@ public static class TransferettoSyncPlanner {
             destination.TryGetValue(relativePath, out TransferettoSyncEntry? destinationEntry);
             if (destinationEntry is null && resolvedOptions.CreateDestinationDirectories) {
                 plan.Add(CreatePlanItem(TransferettoSyncAction.CreateDirectory, sourceDirectory, null, resolvedOptions, "Destination directory is missing."));
-            } else if (destinationEntry is { IsDirectory: false } && resolvedOptions.CreateDestinationDirectories) {
+            } else if (destinationEntry is { IsDirectory: false } && resolvedOptions.CreateDestinationDirectories && resolvedOptions.OverwriteExisting) {
                 plan.Add(CreatePlanItem(GetDeleteFileAction(resolvedOptions), null, destinationEntry, resolvedOptions, "Destination file conflicts with source directory."));
                 plan.Add(CreatePlanItem(TransferettoSyncAction.CreateDirectory, sourceDirectory, null, resolvedOptions, "Destination directory replaces conflicting file."));
             } else {
@@ -185,8 +185,7 @@ public static class TransferettoSyncPlanner {
         TransferettoSyncEntry[] extraDirectories = destinationEntries
             .Where(pair => pair.Value.IsDirectory
                 && (!source.ContainsKey(pair.Key) || replacementDirectoryPaths.Contains(pair.Key))
-                && IsIncluded(pair.Value.RelativePath, options)
-                && CanDeleteDestinationDirectory(pair.Key, source, destinationEntries, extraFilePaths, options))
+                && CanDeleteDestinationDirectory(pair.Key, source, destinationEntries, extraFilePaths, replacementDirectoryPaths, options))
             .Select(static pair => pair.Value)
             .OrderByDescending(entry => entry.RelativePath.Count(static character => character == '/'))
             .ThenByDescending(entry => entry.RelativePath, StringComparer.Ordinal)
@@ -225,18 +224,31 @@ public static class TransferettoSyncPlanner {
         IReadOnlyDictionary<string, TransferettoSyncEntry> source,
         IEnumerable<KeyValuePair<string, TransferettoSyncEntry>> destination,
         ISet<string> extraFilePaths,
+        ISet<string> replacementDirectoryPaths,
         TransferettoSyncOptions options) {
-        string childPrefix = NormalizeRelativePath(relativePath) + "/";
+        string normalizedPath = NormalizeRelativePath(relativePath);
+        string childPrefix = normalizedPath + "/";
+        bool hasDeleteReason = replacementDirectoryPaths.Contains(normalizedPath)
+            || IsIncluded(normalizedPath, options)
+            || extraFilePaths.Any(path => path.StartsWith(childPrefix, StringComparison.Ordinal));
+        if (!hasDeleteReason) {
+            return false;
+        }
+
         foreach (KeyValuePair<string, TransferettoSyncEntry> child in destination.Where(pair => pair.Key.StartsWith(childPrefix, StringComparison.Ordinal))) {
             if (source.ContainsKey(child.Key)) {
                 return false;
             }
 
-            if (!IsIncluded(child.Value.RelativePath, options)) {
-                return false;
+            if (child.Value.IsDirectory) {
+                if (!CanDeleteDestinationDirectory(child.Key, source, destination, extraFilePaths, replacementDirectoryPaths, options)) {
+                    return false;
+                }
+
+                continue;
             }
 
-            if (!child.Value.IsDirectory && !extraFilePaths.Contains(child.Key)) {
+            if (!IsIncluded(child.Value.RelativePath, options) || !extraFilePaths.Contains(child.Key)) {
                 return false;
             }
         }

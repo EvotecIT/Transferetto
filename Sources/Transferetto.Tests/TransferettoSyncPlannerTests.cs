@@ -190,6 +190,29 @@ public sealed class TransferettoSyncPlannerTests {
     }
 
     [Fact]
+    public void PlannerDoesNotReplaceDestinationFileWithSourceDirectoryWhenOverwriteIsDisabled() {
+        DateTime now = DateTime.UtcNow;
+        TransferettoSyncEntry[] source = {
+            Directory("assets", @"C:\site\assets", "/wwwroot/assets"),
+            File("assets/app.css", @"C:\site\assets\app.css", "/wwwroot/assets/app.css", 10, now)
+        };
+        TransferettoSyncEntry[] destination = {
+            File("assets", null, "/wwwroot/assets", 4, now)
+        };
+
+        IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(
+            source,
+            destination,
+            new TransferettoSyncOptions {
+                OverwriteExisting = false
+            });
+
+        Assert.DoesNotContain(plan, item => item.Action == TransferettoSyncAction.DeleteRemoteFile && item.RelativePath == "assets");
+        Assert.DoesNotContain(plan, item => item.Action == TransferettoSyncAction.CreateDirectory && item.RelativePath == "assets");
+        Assert.Contains(plan, item => item.Action == TransferettoSyncAction.Skip && item.RelativePath == "assets");
+    }
+
+    [Fact]
     public void PlannerSkipsMissingFileWhenParentDirectoryCreationIsDisabled() {
         DateTime now = DateTime.UtcNow;
         TransferettoSyncEntry[] source = {
@@ -281,6 +304,35 @@ public sealed class TransferettoSyncPlannerTests {
         TransferettoSyncPlanItem item = Assert.Single(plan);
         Assert.Equal(TransferettoSyncAction.Skip, item.Action);
         Assert.Contains("cannot be replaced", item.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void PlannerDeletesIncludedParentDirectoriesAfterFilteredMirrorFileDeletes() {
+        DateTime now = DateTime.UtcNow;
+        TransferettoSyncEntry[] destination = {
+            Directory("old", null, "/wwwroot/old"),
+            Directory("old/nested", null, "/wwwroot/old/nested"),
+            File("old/nested/app.log", null, "/wwwroot/old/nested/app.log", 4, now)
+        };
+
+        IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(
+            Array.Empty<TransferettoSyncEntry>(),
+            destination,
+            new TransferettoSyncOptions {
+                Mode = TransferettoSyncMode.Mirror,
+                IncludePatterns = new[] { "*.log" }
+            });
+
+        Assert.Equal(
+            new[] {
+                TransferettoSyncAction.DeleteRemoteFile,
+                TransferettoSyncAction.DeleteRemoteDirectory,
+                TransferettoSyncAction.DeleteRemoteDirectory
+            },
+            plan.Select(item => item.Action).ToArray());
+        Assert.Equal("old/nested/app.log", plan[0].RelativePath);
+        Assert.Equal("old/nested", plan[1].RelativePath);
+        Assert.Equal("old", plan[2].RelativePath);
     }
 
     private static TransferettoSyncEntry Directory(string relativePath, string? localPath, string? remotePath) {
