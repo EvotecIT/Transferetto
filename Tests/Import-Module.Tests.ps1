@@ -58,6 +58,20 @@ Describe 'Transferetto module import' {
         $Command.Parameters.Keys | Should -Contain 'CreateRemoteDirectory'
     }
 
+    It 'exports FTP and SFTP synchronization cmdlets with planning parameters' {
+        foreach ($CommandName in @('Sync-FTPDirectory', 'Sync-SFTPDirectory')) {
+            $Command = Get-Command -Name $CommandName -ErrorAction Stop
+            $Command.CommandType | Should -Be 'Cmdlet'
+            $Command.Parameters.Keys | Should -Contain 'Direction'
+            $Command.Parameters.Keys | Should -Contain 'Mode'
+            $Command.Parameters.Keys | Should -Contain 'Comparison'
+            $Command.Parameters.Keys | Should -Contain 'Include'
+            $Command.Parameters.Keys | Should -Contain 'Exclude'
+            $Command.Parameters.Keys | Should -Contain 'DryRun'
+            $Command.Parameters.Keys | Should -Contain 'NoOverwrite'
+        }
+    }
+
     It 'exports the SSH shell recipe cmdlet with administration parameters' {
         $Command = Get-Command -Name Invoke-SSHShellRecipe -ErrorAction Stop
         $Command.CommandType | Should -Be 'Cmdlet'
