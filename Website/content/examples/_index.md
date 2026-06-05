@@ -29,6 +29,11 @@ These examples keep credentials outside the page and show realistic transfer and
     <h3>Sync a folder with SFTP</h3>
     <p>Send or receive a whole directory tree over SFTP.</p>
   </a>
+  <a class="ev-example-card" href="./sync-directories/">
+    <span class="ev-example-card__eyebrow">Sync</span>
+    <h3>Synchronize FTP and SFTP directories</h3>
+    <p>Preview, update, or mirror directory trees with include and exclude filters.</p>
+  </a>
   <a class="ev-example-card" href="./run-ssh-shell-command/">
     <span class="ev-example-card__eyebrow">Shell</span>
     <h3>Run an interactive SSH command</h3>

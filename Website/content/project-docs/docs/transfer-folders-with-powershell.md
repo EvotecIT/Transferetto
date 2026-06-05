@@ -16,6 +16,7 @@ Folder transfer is usually where ad-hoc scripts get messy. Transferetto gives yo
 
 - `Send-SFTPDirectory` and `Receive-SFTPDirectory` for secure recursive transfer
 - `Send-FTPDirectory` and `Receive-FTPDirectory` for classic FTP and FTPS endpoints
+- `Sync-SFTPDirectory` and `Sync-FTPDirectory` when you want comparison, dry-run, update, or mirror semantics
 - `Send-SCPDirectory` and `Receive-SCPDirectory` when the server exposes SCP
 
 ## When to prefer each one
@@ -44,15 +45,28 @@ Receive-SFTPDirectory -SftpClient $sftpClient -RemotePath '/exports/nightly' -Lo
 Disconnect-SFTP -SftpClient $sftpClient
 ```
 
+## Preview and mirror a folder
+
+```powershell
+Import-Module Transferetto
+
+$sftpClient = Connect-SFTP -Server 'sftp.example.com' -Credential (Get-Credential)
+Sync-SFTPDirectory -SftpClient $sftpClient -LocalPath "$PSScriptRoot\Upload" -RemotePath '/incoming/releases' -Mode Mirror -DryRun
+Sync-SFTPDirectory -SftpClient $sftpClient -LocalPath "$PSScriptRoot\Upload" -RemotePath '/incoming/releases' -Mode Mirror -ShowProgress
+Disconnect-SFTP -SftpClient $sftpClient
+```
+
 ## Practical guidance
 
 - Use deterministic local and remote root paths.
 - Decide whether existing files should be updated or preserved.
+- Use `-DryRun` before `-Mode Mirror` when deleting extra destination files matters.
 - Review the returned transfer results when the folder contents matter.
 
 ## Related pages
 
 - [Transfer files with PowerShell](../transfer-files-with-powershell/)
 - [SFTP and SCP workflows](../sftp-and-scp-workflows/)
+- [Synchronize FTP and SFTP directories example](/projects/transferetto/examples/sync-directories/)
 - [Sync a folder with SFTP example](/projects/transferetto/examples/upload-sftp-directory/)
 - [Manage SFTP folders example](/projects/transferetto/examples/manage-sftp-folders/)
