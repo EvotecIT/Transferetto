@@ -112,7 +112,7 @@ public static class TransferettoSyncPlanner {
     }
 
     internal static string NormalizeRelativePath(string path) {
-        string normalized = path.Replace('\\', '/').Trim('/');
+        string normalized = path.Trim('/');
         while (normalized.Contains("//")) {
             normalized = normalized.Replace("//", "/");
         }
@@ -159,7 +159,7 @@ public static class TransferettoSyncPlanner {
     }
 
     private static bool WildcardMatches(string value, string pattern) {
-        string regexPattern = "^" + Regex.Escape(pattern.Replace('\\', '/').Trim('/'))
+        string regexPattern = "^" + Regex.Escape(pattern.Trim('/'))
             .Replace("\\*", ".*")
             .Replace("\\?", ".") + "$";
         return Regex.IsMatch(value, regexPattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);

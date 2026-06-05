@@ -385,6 +385,21 @@ public sealed class TransferettoSyncPlannerTests {
     }
 
     [Fact]
+    public void PlannerPreservesBackslashesInRelativePaths() {
+        DateTime now = DateTime.UtcNow;
+        TransferettoSyncEntry[] source = {
+            File(@"a\b.txt", @"/src/a\b.txt", @"/wwwroot/a\b.txt", 1, now),
+            File("a/b.txt", @"/src/a/b.txt", "/wwwroot/a/b.txt", 1, now)
+        };
+
+        IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(source, Array.Empty<TransferettoSyncEntry>());
+
+        Assert.Contains(plan, item => item.Action == TransferettoSyncAction.UploadFile && item.RelativePath == @"a\b.txt");
+        Assert.Contains(plan, item => item.Action == TransferettoSyncAction.UploadFile && item.RelativePath == "a/b.txt");
+        Assert.Equal(2, plan.Count(item => item.Action == TransferettoSyncAction.UploadFile));
+    }
+
+    [Fact]
     public void MissingUploadRootSkipsTransfersWhenDirectoryCreationIsDisabled() {
         DateTime now = DateTime.UtcNow;
         TransferettoSyncPlanItem[] plan = {
@@ -410,6 +425,43 @@ public sealed class TransferettoSyncPlannerTests {
         TransferettoSyncPlanItem item = Assert.Single(result);
         Assert.Equal(TransferettoSyncAction.Skip, item.Action);
         Assert.Contains("root directory is missing", item.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void SftpDownloadNoOverwriteSkipsExistingLocalFileBeforeTransfer() {
+        string root = Path.Combine(Path.GetTempPath(), "Transferetto.Tests", Guid.NewGuid().ToString("N"));
+        string localFile = Path.Combine(root, "existing.txt");
+        System.IO.Directory.CreateDirectory(root);
+        System.IO.File.WriteAllText(localFile, "existing");
+        try {
+            TransferettoSyncPlanItem planItem = new() {
+                Action = TransferettoSyncAction.DownloadFile,
+                Direction = TransferettoSyncDirection.Download,
+                RelativePath = "existing.txt",
+                LocalPath = localFile,
+                RemotePath = "/remote/existing.txt",
+                Source = File("existing.txt", localFile, "/remote/existing.txt", 1, DateTime.UtcNow),
+                Message = "Destination file is missing."
+            };
+            TransferettoSyncOptions options = new() {
+                Direction = TransferettoSyncDirection.Download,
+                OverwriteExisting = false
+            };
+
+            MethodInfo method = typeof(TransferettoClient).GetMethod("ExecuteSftpSyncPlanItem", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("ExecuteSftpSyncPlanItem was not found.");
+            TransferettoSyncResult result = (TransferettoSyncResult)method.Invoke(null, new object?[] { null, planItem, options, new TransferettoTransferOptions() })!;
+
+            Assert.True(result.Status);
+            Assert.True(result.IsSkipped);
+            Assert.Equal(TransferettoSyncAction.DownloadFile, result.Action);
+            Assert.Contains("overwrite is disabled", result.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("existing", System.IO.File.ReadAllText(localFile));
+        } finally {
+            if (System.IO.Directory.Exists(root)) {
+                System.IO.Directory.Delete(root, recursive: true);
+            }
+        }
     }
 
     private static TransferettoSyncEntry Directory(string relativePath, string? localPath, string? remotePath) {

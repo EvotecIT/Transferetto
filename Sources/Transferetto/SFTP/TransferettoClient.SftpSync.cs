@@ -91,6 +91,10 @@ public static partial class TransferettoClient {
 
                 return CreateSyncResult(item, uploadResult);
             case TransferettoSyncAction.DownloadFile:
+                if (!syncOptions.OverwriteExisting && File.Exists(item.LocalPath!)) {
+                    return CreateSyncResult(item, true, false, true, null, "Local file exists and overwrite is disabled.");
+                }
+
                 TransferettoTransferResult downloadResult = DownloadSftpFile(session, item.RemotePath!, item.LocalPath!, transferOptions);
                 if (syncOptions.PreserveTimestamps && IsCompletedFileTransfer(downloadResult) && item.Source?.LastWriteTimeUtc is DateTime downloadTimestamp && File.Exists(item.LocalPath)) {
                     File.SetLastWriteTimeUtc(item.LocalPath!, downloadTimestamp);

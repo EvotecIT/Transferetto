@@ -22,15 +22,15 @@ public static partial class TransferettoClient {
         TransferettoSyncOptions resolvedSyncOptions = syncOptions ?? new TransferettoSyncOptions();
         TransferettoTransferOptions resolvedTransferOptions = transferOptions ?? new TransferettoTransferOptions();
         string normalizedRemotePath = NormalizeRemotePath(remotePath);
+        bool remoteRootExists = session.Client.DirectoryExists(normalizedRemotePath);
 
-        if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Download && !session.Client.DirectoryExists(normalizedRemotePath)) {
+        if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Download && !remoteRootExists) {
             throw new DirectoryNotFoundException($"Remote directory {normalizedRemotePath} does not exist.");
         }
 
         IReadOnlyList<TransferettoSyncEntry> localManifest = resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload
             ? BuildLocalSyncManifest(localPath, normalizedRemotePath)
             : BuildLocalSyncManifestOrEmpty(localPath, normalizedRemotePath);
-        bool remoteRootExists = session.Client.DirectoryExists(normalizedRemotePath);
         IReadOnlyList<TransferettoSyncEntry> remoteManifest = remoteRootExists
             ? BuildFtpRemoteSyncManifest(session, normalizedRemotePath, localPath)
             : Array.Empty<TransferettoSyncEntry>();

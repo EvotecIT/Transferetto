@@ -53,6 +53,10 @@ public static partial class TransferettoClient {
         string relativePath = normalizedPath.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase)
             ? normalizedPath.Substring(normalizedRoot.Length)
             : Path.GetFileName(normalizedPath);
+        if (Path.DirectorySeparatorChar == '\\') {
+            relativePath = relativePath.Replace('\\', '/');
+        }
+
         return TransferettoSyncPlanner.NormalizeRelativePath(relativePath);
     }
 
