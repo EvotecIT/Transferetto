@@ -27,10 +27,6 @@ public static partial class TransferettoClient {
             throw new DirectoryNotFoundException($"Remote directory {normalizedRemotePath} does not exist.");
         }
 
-        if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Download && resolvedSyncOptions.CreateDestinationDirectories) {
-            Directory.CreateDirectory(localPath);
-        }
-
         IReadOnlyList<TransferettoSyncEntry> localManifest = resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload
             ? BuildLocalSyncManifest(localPath, normalizedRemotePath)
             : BuildLocalSyncManifestOrEmpty(localPath, normalizedRemotePath);
@@ -44,6 +40,10 @@ public static partial class TransferettoClient {
 
         if (resolvedSyncOptions.DryRun) {
             return ExecuteDryRunSyncPlan(plan);
+        }
+
+        if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Download && resolvedSyncOptions.CreateDestinationDirectories) {
+            Directory.CreateDirectory(localPath);
         }
 
         List<TransferettoSyncResult> results = new();

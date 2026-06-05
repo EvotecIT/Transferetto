@@ -155,6 +155,79 @@ public sealed class TransferettoSyncPlannerTests {
         Assert.Equal("old", plan[2].RelativePath);
     }
 
+    [Fact]
+    public void PlannerPreservesCaseSensitiveRelativePaths() {
+        DateTime now = DateTime.UtcNow;
+        TransferettoSyncEntry[] source = {
+            File("Readme.md", @"/src/Readme.md", "/wwwroot/Readme.md", 1, now),
+            File("README.md", @"/src/README.md", "/wwwroot/README.md", 2, now)
+        };
+
+        IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(source, Array.Empty<TransferettoSyncEntry>());
+
+        Assert.Contains(plan, item => item.Action == TransferettoSyncAction.UploadFile && item.RelativePath == "Readme.md");
+        Assert.Contains(plan, item => item.Action == TransferettoSyncAction.UploadFile && item.RelativePath == "README.md");
+        Assert.Equal(2, plan.Count(item => item.Action == TransferettoSyncAction.UploadFile));
+    }
+
+    [Fact]
+    public void PlannerReplacesDestinationFileThatConflictsWithSourceDirectory() {
+        DateTime now = DateTime.UtcNow;
+        TransferettoSyncEntry[] source = {
+            Directory("assets", @"C:\site\assets", "/wwwroot/assets"),
+            File("assets/app.css", @"C:\site\assets\app.css", "/wwwroot/assets/app.css", 10, now)
+        };
+        TransferettoSyncEntry[] destination = {
+            File("assets", null, "/wwwroot/assets", 4, now)
+        };
+
+        IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(source, destination);
+
+        Assert.Equal(TransferettoSyncAction.DeleteRemoteFile, plan[0].Action);
+        Assert.Equal("assets", plan[0].RelativePath);
+        Assert.Equal(TransferettoSyncAction.CreateDirectory, plan[1].Action);
+        Assert.Contains(plan, item => item.Action == TransferettoSyncAction.UploadFile && item.RelativePath == "assets/app.css");
+    }
+
+    [Fact]
+    public void PlannerSkipsMissingFileWhenParentDirectoryCreationIsDisabled() {
+        DateTime now = DateTime.UtcNow;
+        TransferettoSyncEntry[] source = {
+            File("assets/app.css", @"C:\site\assets\app.css", "/wwwroot/assets/app.css", 10, now)
+        };
+
+        IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(
+            source,
+            Array.Empty<TransferettoSyncEntry>(),
+            new TransferettoSyncOptions {
+                CreateDestinationDirectories = false
+            });
+
+        TransferettoSyncPlanItem item = Assert.Single(plan);
+        Assert.Equal(TransferettoSyncAction.Skip, item.Action);
+        Assert.Contains("parent directory is missing", item.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void PlannerDoesNotDeleteDirectoryThatContainsExcludedDestinationFiles() {
+        DateTime now = DateTime.UtcNow;
+        TransferettoSyncEntry[] destination = {
+            Directory("old", @"C:\sync\old", "/sync/old"),
+            File("old/keep.bak", @"C:\sync\old\keep.bak", "/sync/old/keep.bak", 1, now)
+        };
+
+        IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(
+            Array.Empty<TransferettoSyncEntry>(),
+            destination,
+            new TransferettoSyncOptions {
+                Mode = TransferettoSyncMode.Mirror,
+                ExcludePatterns = new[] { "*.bak" }
+            });
+
+        Assert.DoesNotContain(plan, item => item.Action == TransferettoSyncAction.DeleteRemoteFile);
+        Assert.DoesNotContain(plan, item => item.Action == TransferettoSyncAction.DeleteRemoteDirectory);
+    }
+
     private static TransferettoSyncEntry Directory(string relativePath, string? localPath, string? remotePath) {
         return new TransferettoSyncEntry {
             RelativePath = relativePath,
