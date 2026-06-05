@@ -50,6 +50,11 @@ public static partial class TransferettoClient {
         }
 
         bool localRootIsFile = resolvedSyncOptions.Direction == TransferettoSyncDirection.Download && File.Exists(localPath);
+        bool localRootExists = resolvedSyncOptions.Direction == TransferettoSyncDirection.Download && Directory.Exists(localPath);
+        if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Download && !localRootExists && !localRootIsFile) {
+            plan = HandleMissingDownloadRoot(plan, localPath, normalizedRemotePath, resolvedSyncOptions);
+        }
+
         plan = HandleConflictingDownloadRootFile(plan, localPath, normalizedRemotePath, resolvedSyncOptions);
 
         if (resolvedSyncOptions.DryRun) {

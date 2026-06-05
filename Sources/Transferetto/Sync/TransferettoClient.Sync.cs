@@ -201,6 +201,31 @@ public static partial class TransferettoClient {
         return new[] { rootCreate }.Concat(plan).ToArray();
     }
 
+    private static IReadOnlyList<TransferettoSyncPlanItem> HandleMissingDownloadRoot(
+        IReadOnlyList<TransferettoSyncPlanItem> plan,
+        string localPath,
+        string remotePath,
+        TransferettoSyncOptions options) {
+        if (options.Direction != TransferettoSyncDirection.Download || options.CreateDestinationDirectories) {
+            return plan;
+        }
+
+        return plan
+            .Select(item => item.Action == TransferettoSyncAction.DownloadFile
+                ? new TransferettoSyncPlanItem {
+                    Action = TransferettoSyncAction.Skip,
+                    Direction = item.Direction,
+                    RelativePath = item.RelativePath,
+                    LocalPath = item.LocalPath,
+                    RemotePath = item.RemotePath,
+                    Source = item.Source,
+                    Destination = item.Destination,
+                    Message = "Destination root directory is missing and directory creation is disabled."
+                }
+                : item)
+            .ToArray();
+    }
+
     private static IReadOnlyList<TransferettoSyncPlanItem> HandleConflictingUploadRootFile(
         IReadOnlyList<TransferettoSyncPlanItem> plan,
         string localPath,

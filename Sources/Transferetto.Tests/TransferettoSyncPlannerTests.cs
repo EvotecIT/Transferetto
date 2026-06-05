@@ -438,6 +438,34 @@ public sealed class TransferettoSyncPlannerTests {
     }
 
     [Fact]
+    public void MissingDownloadRootSkipsTopLevelTransfersWhenDirectoryCreationIsDisabled() {
+        DateTime now = DateTime.UtcNow;
+        TransferettoSyncPlanItem[] plan = {
+            new() {
+                Action = TransferettoSyncAction.DownloadFile,
+                Direction = TransferettoSyncDirection.Download,
+                RelativePath = "file.txt",
+                LocalPath = @"C:\download\file.txt",
+                RemotePath = "/wwwroot/file.txt",
+                Source = File("file.txt", @"C:\download\file.txt", "/wwwroot/file.txt", 1, now),
+                Message = "Destination file is missing."
+            }
+        };
+        TransferettoSyncOptions options = new() {
+            Direction = TransferettoSyncDirection.Download,
+            CreateDestinationDirectories = false
+        };
+
+        MethodInfo method = typeof(TransferettoClient).GetMethod("HandleMissingDownloadRoot", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("HandleMissingDownloadRoot was not found.");
+        IReadOnlyList<TransferettoSyncPlanItem> result = (IReadOnlyList<TransferettoSyncPlanItem>)method.Invoke(null, new object[] { plan, @"C:\download", "/wwwroot", options })!;
+
+        TransferettoSyncPlanItem item = Assert.Single(result);
+        Assert.Equal(TransferettoSyncAction.Skip, item.Action);
+        Assert.Contains("root directory is missing", item.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void UploadRootFileConflictPlansReplacementBeforeTransfers() {
         DateTime now = DateTime.UtcNow;
         TransferettoSyncPlanItem[] plan = {
