@@ -103,15 +103,16 @@ public static class TransferettoSyncPlanner {
             HashSet<string> replacementDirectoryPaths = new(
                 directoryReplacementTransfers.Select(item => NormalizeRelativePath(item.Destination.RelativePath)),
                 StringComparer.Ordinal);
-            AddMirrorDeletes(plan, source, destination, resolvedOptions, replacementDirectoryPaths);
+            AddMirrorDeletes(plan, source, destination, resolvedOptions, replacementDirectoryPaths, true);
             AddDirectoryReplacementTransfers(plan, directoryReplacementTransfers, resolvedOptions);
+            AddMirrorDeletes(plan, source, destination, resolvedOptions, replacementDirectoryPaths, false);
         }
 
         return plan;
     }
 
     internal static string NormalizeRelativePath(string path) {
-        string normalized = path.Replace('\\', '/').Trim().Trim('/');
+        string normalized = path.Replace('\\', '/').Trim('/');
         while (normalized.Contains("//")) {
             normalized = normalized.Replace("//", "/");
         }
@@ -158,7 +159,7 @@ public static class TransferettoSyncPlanner {
     }
 
     private static bool WildcardMatches(string value, string pattern) {
-        string regexPattern = "^" + Regex.Escape(pattern.Replace('\\', '/').Trim())
+        string regexPattern = "^" + Regex.Escape(pattern.Replace('\\', '/').Trim('/'))
             .Replace("\\*", ".*")
             .Replace("\\?", ".") + "$";
         return Regex.IsMatch(value, regexPattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
@@ -169,7 +170,8 @@ public static class TransferettoSyncPlanner {
         IReadOnlyDictionary<string, TransferettoSyncEntry> source,
         IEnumerable<KeyValuePair<string, TransferettoSyncEntry>> destination,
         TransferettoSyncOptions options,
-        ISet<string> replacementDirectoryPaths) {
+        ISet<string> replacementDirectoryPaths,
+        bool replacementOnly) {
         TransferettoSyncAction deleteFile = options.Direction == TransferettoSyncDirection.Upload
             ? TransferettoSyncAction.DeleteRemoteFile
             : TransferettoSyncAction.DeleteLocalFile;
@@ -177,6 +179,7 @@ public static class TransferettoSyncPlanner {
         KeyValuePair<string, TransferettoSyncEntry>[] destinationEntries = destination.ToArray();
         TransferettoSyncEntry[] extraFiles = destination
             .Where(pair => !pair.Value.IsDirectory && !source.ContainsKey(pair.Key) && IsIncluded(pair.Value.RelativePath, options))
+            .Where(pair => IsInReplacementDirectory(pair.Key, replacementDirectoryPaths) == replacementOnly)
             .Select(static pair => pair.Value)
             .OrderByDescending(entry => entry.RelativePath.Count(static character => character == '/'))
             .ThenByDescending(entry => entry.RelativePath, StringComparer.Ordinal)
@@ -185,6 +188,7 @@ public static class TransferettoSyncPlanner {
         TransferettoSyncEntry[] extraDirectories = destinationEntries
             .Where(pair => pair.Value.IsDirectory
                 && (!source.ContainsKey(pair.Key) || replacementDirectoryPaths.Contains(pair.Key))
+                && IsInReplacementDirectory(pair.Key, replacementDirectoryPaths) == replacementOnly
                 && CanDeleteDestinationDirectory(pair.Key, source, destinationEntries, extraFilePaths, replacementDirectoryPaths, options))
             .Select(static pair => pair.Value)
             .OrderByDescending(entry => entry.RelativePath.Count(static character => character == '/'))
@@ -198,6 +202,13 @@ public static class TransferettoSyncPlanner {
         foreach (TransferettoSyncEntry directory in extraDirectories) {
             plan.Add(CreatePlanItem(deleteDirectory, null, directory, options, "Destination directory is not present in source."));
         }
+    }
+
+    private static bool IsInReplacementDirectory(string relativePath, ISet<string> replacementDirectoryPaths) {
+        string normalizedPath = NormalizeRelativePath(relativePath);
+        return replacementDirectoryPaths.Any(path =>
+            string.Equals(normalizedPath, path, StringComparison.Ordinal)
+            || normalizedPath.StartsWith(path + "/", StringComparison.Ordinal));
     }
 
     private static void AddDirectoryReplacementTransfers(

@@ -1,3 +1,4 @@
+using System.Reflection;
 using Transferetto;
 
 namespace Transferetto.Tests;
@@ -282,6 +283,39 @@ public sealed class TransferettoSyncPlannerTests {
     }
 
     [Fact]
+    public void PlannerRunsDirectoryReplacementTransferBeforeUnrelatedMirrorDeletes() {
+        DateTime now = DateTime.UtcNow;
+        TransferettoSyncEntry[] source = {
+            File("assets", @"C:\site\assets", "/wwwroot/assets", 10, now)
+        };
+        TransferettoSyncEntry[] destination = {
+            Directory("assets", null, "/wwwroot/assets"),
+            File("assets/old.css", null, "/wwwroot/assets/old.css", 4, now),
+            File("old.txt", null, "/wwwroot/old.txt", 4, now)
+        };
+
+        IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(
+            source,
+            destination,
+            new TransferettoSyncOptions {
+                Mode = TransferettoSyncMode.Mirror
+            });
+
+        Assert.Equal(
+            new[] {
+                TransferettoSyncAction.DeleteRemoteFile,
+                TransferettoSyncAction.DeleteRemoteDirectory,
+                TransferettoSyncAction.UploadFile,
+                TransferettoSyncAction.DeleteRemoteFile
+            },
+            plan.Select(item => item.Action).ToArray());
+        Assert.Equal("assets/old.css", plan[0].RelativePath);
+        Assert.Equal("assets", plan[1].RelativePath);
+        Assert.Equal("assets", plan[2].RelativePath);
+        Assert.Equal("old.txt", plan[3].RelativePath);
+    }
+
+    [Fact]
     public void PlannerDoesNotReplaceConflictingDestinationDirectoryThatContainsExcludedFiles() {
         DateTime now = DateTime.UtcNow;
         TransferettoSyncEntry[] source = {
@@ -333,6 +367,49 @@ public sealed class TransferettoSyncPlannerTests {
         Assert.Equal("old/nested/app.log", plan[0].RelativePath);
         Assert.Equal("old/nested", plan[1].RelativePath);
         Assert.Equal("old", plan[2].RelativePath);
+    }
+
+    [Fact]
+    public void PlannerPreservesLeadingAndTrailingSpacesInRelativePaths() {
+        DateTime now = DateTime.UtcNow;
+        TransferettoSyncEntry[] source = {
+            File(" release ", @"/src/ release ", "/wwwroot/ release ", 1, now),
+            File("release", @"/src/release", "/wwwroot/release", 1, now)
+        };
+
+        IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(source, Array.Empty<TransferettoSyncEntry>());
+
+        Assert.Contains(plan, item => item.Action == TransferettoSyncAction.UploadFile && item.RelativePath == " release ");
+        Assert.Contains(plan, item => item.Action == TransferettoSyncAction.UploadFile && item.RelativePath == "release");
+        Assert.Equal(2, plan.Count(item => item.Action == TransferettoSyncAction.UploadFile));
+    }
+
+    [Fact]
+    public void MissingUploadRootSkipsTransfersWhenDirectoryCreationIsDisabled() {
+        DateTime now = DateTime.UtcNow;
+        TransferettoSyncPlanItem[] plan = {
+            new() {
+                Action = TransferettoSyncAction.UploadFile,
+                Direction = TransferettoSyncDirection.Upload,
+                RelativePath = "file.txt",
+                LocalPath = @"C:\site\file.txt",
+                RemotePath = "/missing/file.txt",
+                Source = File("file.txt", @"C:\site\file.txt", "/missing/file.txt", 1, now),
+                Message = "Destination file is missing."
+            }
+        };
+        TransferettoSyncOptions options = new() {
+            Direction = TransferettoSyncDirection.Upload,
+            CreateDestinationDirectories = false
+        };
+
+        MethodInfo method = typeof(TransferettoClient).GetMethod("HandleMissingUploadRoot", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("HandleMissingUploadRoot was not found.");
+        IReadOnlyList<TransferettoSyncPlanItem> result = (IReadOnlyList<TransferettoSyncPlanItem>)method.Invoke(null, new object[] { plan, @"C:\site", "/missing", options })!;
+
+        TransferettoSyncPlanItem item = Assert.Single(result);
+        Assert.Equal(TransferettoSyncAction.Skip, item.Action);
+        Assert.Contains("root directory is missing", item.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private static TransferettoSyncEntry Directory(string relativePath, string? localPath, string? remotePath) {

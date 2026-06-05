@@ -39,7 +39,7 @@ public static partial class TransferettoClient {
             resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload ? remoteManifest : localManifest,
             resolvedSyncOptions);
         if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload && !remoteRootExists) {
-            plan = PrependDestinationRootCreate(plan, localPath, normalizedRemotePath, resolvedSyncOptions);
+            plan = HandleMissingUploadRoot(plan, localPath, normalizedRemotePath, resolvedSyncOptions);
         }
 
         if (resolvedSyncOptions.DryRun) {
