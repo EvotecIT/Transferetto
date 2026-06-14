@@ -1,4 +1,4 @@
-# Remaining PowerShell script assets, if any, are intentionally ignored at runtime.
+﻿# Remaining PowerShell script assets, if any, are intentionally ignored at runtime.
 $Classes = @(Get-ChildItem -Path ([IO.Path]::Combine($PSScriptRoot, 'Classes', '*.ps1')) -ErrorAction SilentlyContinue -Recurse)
 $Enums = @(Get-ChildItem -Path ([IO.Path]::Combine($PSScriptRoot, 'Enums', '*.ps1')) -ErrorAction SilentlyContinue -Recurse)
 

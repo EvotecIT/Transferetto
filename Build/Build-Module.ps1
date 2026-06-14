@@ -1,6 +1,6 @@
 Build-Module -ModuleName 'Transferetto' {
     $Manifest = [ordered] @{
-        ModuleVersion        = '1.0.X'
+        ModuleVersion        = '2.0.X'
         CompatiblePSEditions = @('Desktop', 'Core')
         GUID                 = '7d61db15-9efe-41d1-a1c0-81d738975dec'
         Author               = 'Przemyslaw Klys'
@@ -52,7 +52,7 @@ Build-Module -ModuleName 'Transferetto' {
         SignModule                        = if ([string]::IsNullOrWhiteSpace($Env:SignModule)) { $true } else { [bool]::Parse($Env:SignModule) }
         MergeModuleOnBuild                = $true
         MergeFunctionsFromApprovedModules = $true
-        CertificateThumbprint             = '483292C9E317AA13B07BB7A96AE9D1A5ED9E7703'
+        CertificateThumbprint             = '92e95fb58effa6a4a75e77a33cdd6bfe6dd30f1a'
         NETProjectPath                    = "$PSScriptRoot\..\Sources\Transferetto.PowerShell"
         ResolveBinaryConflicts            = $true
         ResolveBinaryConflictsName        = 'Transferetto.PowerShell'
@@ -81,4 +81,7 @@ Build-Module -ModuleName 'Transferetto' {
 
     New-ConfigurationArtefact -Type Unpacked -Enable -Path "$PSScriptRoot\..\Artefacts\Unpacked" -RequiredModulesPath "$PSScriptRoot\..\Artefacts\Unpacked\Modules"
     New-ConfigurationArtefact -Type Packed -Enable -Path "$PSScriptRoot\..\Artefacts\Packed" -IncludeTagName -ArtefactName "Transferetto-PowerShellModule.<TagModuleVersionWithPreRelease>.zip" -ID 'ToGitHub'
+
+    #New-ConfigurationPublish -Type PowerShellGallery -FilePath 'C:\Support\Important\PowerShellGalleryAPI.txt' -Enabled:$true
+    #New-ConfigurationPublish -Type GitHub -FilePath 'C:\Support\Important\GitHubAPI.txt' -UserName 'EvotecIT' -Enabled:$true -GenerateReleaseNotes -OverwriteTagName '{ModuleName}-v{ModuleVersionWithPreRelease}'
 }
