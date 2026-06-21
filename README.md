@@ -21,7 +21,7 @@
 </p>
 
 Transferetto is a PowerShell module that aims to provide FTP, FTPS, and SFTP functionality.
-To find out more about it I've created a blog post [Easy](https://evotec.xyz/easy-way-to-connect-to-ftps-and-sftp-using-powershell/).
+To find out more about it I've created a blog post [Easy way to conjnect to ftps and sftp using PowerShell](https://evotec.xyz/easy-way-to-connect-to-ftps-and-sftp-using-powershell/).
 
 It uses the following .NET libraries to deliver this functionality:
 
