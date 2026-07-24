@@ -20,4 +20,6 @@ The engine streams content without loading the complete item into memory. A succ
 
 Endpoints implement inspect, list, read, write, and delete through `ITransferEndpoint`. `FileSystemTransferEndpoint` provides the built-in local or mounted-filesystem implementation.
 
+Provider-specific metadata remains visible on inspected items. Automatic cross-provider copies carry only metadata names accepted by every supported object provider; explicit destination metadata is validated rather than silently discarded.
+
 `FileSystemTransferEndpoint` is intended for a root controlled by the caller's security context. It rejects symbolic links and reparse points observed while resolving a path, but it is not an operating-system sandbox against another process that can concurrently replace path components. Do not use a privileged process with a root writable by less-trusted identities.

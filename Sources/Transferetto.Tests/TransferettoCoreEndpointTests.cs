@@ -61,6 +61,22 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
     }
 
     [Fact]
+    public async Task CopyAsync_FiltersProviderSpecificSourceMetadata() {
+        byte[] content = Encoding.UTF8.GetBytes("metadata");
+        RecordingEndpoint destination = new();
+        TransferReceipt receipt = await TransferEngine.CopyAsync(
+            new MetadataSourceEndpoint(content),
+            "source.bin",
+            destination,
+            "destination.bin");
+
+        Assert.Equal(TransferReceiptOutcome.Copied, receipt.Outcome);
+        Assert.NotNull(destination.Options);
+        Assert.Equal("portable", destination.Options!.Metadata["evidence_id"]);
+        Assert.DoesNotContain("build-id", destination.Options.Metadata.Keys);
+    }
+
+    [Fact]
     public async Task FileSystemEndpoint_RejectsRootEscapeAcrossOperations() {
         FileSystemTransferEndpoint endpoint = new(_root);
 
@@ -243,5 +259,95 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    private sealed class MetadataSourceEndpoint : ITransferEndpoint {
+        private readonly byte[] _content;
+
+        internal MetadataSourceEndpoint(byte[] content) {
+            _content = content;
+        }
+
+        public string Scheme => "source";
+        public string DisplayName => "source://test/";
+        public TransferEndpointCapabilities Capabilities => TransferEndpointCapabilities.Read;
+
+        public Task<TransferReadHandle> OpenReadAsync(
+            string path,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new TransferReadHandle(
+                new TransferItem {
+                    Path = path,
+                    Length = _content.LongLength,
+                    Metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+                        ["build-id"] = "provider-specific",
+                        ["evidence_id"] = "portable"
+                    }
+                },
+                new MemoryStream(_content, writable: false)));
+
+        public Task<TransferItem?> GetItemAsync(
+            string path,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<TransferItem>> ListAsync(
+            string prefix,
+            bool recursive = true,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<TransferWriteResult> WriteAsync(
+            string path,
+            Stream content,
+            long? length,
+            TransferWriteOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<bool> DeleteAsync(string path, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+    }
+
+    private sealed class RecordingEndpoint : ITransferEndpoint {
+        internal TransferWriteOptions? Options { get; private set; }
+
+        public string Scheme => "destination";
+        public string DisplayName => "destination://test/";
+        public TransferEndpointCapabilities Capabilities => TransferEndpointCapabilities.Write;
+
+        public async Task<TransferWriteResult> WriteAsync(
+            string path,
+            Stream content,
+            long? length,
+            TransferWriteOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            Options = options;
+            using MemoryStream sink = new();
+            await content.CopyToAsync(sink, 81920, cancellationToken);
+            return new TransferWriteResult(new TransferItem {
+                Path = path,
+                Length = sink.Length
+            }, wasWritten: true);
+        }
+
+        public Task<TransferItem?> GetItemAsync(
+            string path,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<IReadOnlyList<TransferItem>> ListAsync(
+            string prefix,
+            bool recursive = true,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<TransferReadHandle> OpenReadAsync(
+            string path,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task<bool> DeleteAsync(string path, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 }

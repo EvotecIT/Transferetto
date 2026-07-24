@@ -87,7 +87,9 @@ public static class TransferEngine {
             ContentType = options.ContentType ?? sourceItem.ContentType
         };
         foreach (var pair in sourceItem.Metadata) {
-            clone.Metadata[pair.Key] = pair.Value;
+            if (TransferMetadata.IsPortableName(pair.Key) && pair.Value != null) {
+                clone.Metadata[pair.Key] = pair.Value;
+            }
         }
         foreach (var pair in options.Metadata) {
             clone.Metadata[pair.Key] = pair.Value;

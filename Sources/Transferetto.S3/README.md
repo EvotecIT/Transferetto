@@ -14,4 +14,8 @@ using S3TransferEndpoint endpoint = new(new S3EndpointOptions {
 
 The default AWS credential chain is used when explicit credentials are not supplied. Custom service URLs support S3-compatible providers and must use HTTPS unless the endpoint is loopback.
 
+Uploads with an unknown length or content beyond the 5 GiB single-request limit use multipart upload. Failed or cancelled uploads are aborted, and no-overwrite modes are enforced again when the multipart upload is completed.
+
+Metadata returned by S3 is preserved even when its names are provider-specific. Transferetto automatically carries only portable metadata names into another provider; metadata supplied explicitly for a destination remains validated.
+
 The provider performs object data-plane operations only. Bucket creation, access policy, lifecycle, replication, and account administration stay with infrastructure tooling.

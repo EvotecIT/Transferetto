@@ -145,23 +145,17 @@ public sealed class S3TransferEndpoint : ITransferEndpoint, IDisposable {
             }
         }
 
-        PutObjectRequest request = new() {
-            BucketName = _bucketName,
-            Key = ResolveKey(path),
-            InputStream = content,
-            AutoCloseStream = false,
-            ContentType = resolvedOptions.ContentType,
-            IfNoneMatch = resolvedOptions.Mode == TransferWriteMode.Overwrite ? null : "*"
-        };
-        foreach (KeyValuePair<string, string> pair in TransferMetadata.CopyPortable(resolvedOptions.Metadata)) {
-            request.Metadata[pair.Key] = pair.Value;
-        }
-        if (length.HasValue) {
-            request.Headers.ContentLength = length.Value;
-        }
-        PutObjectResponse response;
+        string key = ResolveKey(path);
+        Dictionary<string, string> metadata = TransferMetadata.CopyPortable(resolvedOptions.Metadata);
+        S3ObjectWriteResult response;
         try {
-            response = await _client.PutObjectAsync(request, cancellationToken).ConfigureAwait(false);
+            response = await WriteObjectAsync(
+                key,
+                content,
+                length,
+                resolvedOptions,
+                metadata,
+                cancellationToken).ConfigureAwait(false);
         } catch (AmazonS3Exception exception) when (
             exception.StatusCode == HttpStatusCode.PreconditionFailed &&
             resolvedOptions.Mode == TransferWriteMode.SkipIfExists) {
@@ -177,12 +171,12 @@ public sealed class S3TransferEndpoint : ITransferEndpoint, IDisposable {
         }
         return new TransferWriteResult(new TransferItem {
             Path = path,
-            Length = length,
+            Length = response.Length,
             LastModifiedUtc = DateTimeOffset.UtcNow,
             ETag = TrimETag(response.ETag),
             VersionId = response.VersionId,
             ContentType = resolvedOptions.ContentType,
-            Metadata = new Dictionary<string, string>(resolvedOptions.Metadata, StringComparer.OrdinalIgnoreCase)
+            Metadata = metadata
         }, wasWritten: true);
     }
 
@@ -262,10 +256,50 @@ public sealed class S3TransferEndpoint : ITransferEndpoint, IDisposable {
             string portableKey = key.StartsWith(headerPrefix, StringComparison.OrdinalIgnoreCase)
                 ? key.Substring(headerPrefix.Length)
                 : key;
-            TransferMetadata.ValidateName(portableKey);
             values[portableKey] = metadata[key];
         }
         return values;
+    }
+
+    private async Task<S3ObjectWriteResult> WriteObjectAsync(
+        string key,
+        Stream content,
+        long? length,
+        TransferWriteOptions options,
+        IReadOnlyDictionary<string, string> metadata,
+        CancellationToken cancellationToken) {
+        if (S3MultipartUploader.RequiresMultipartUpload(length)) {
+            S3ObjectWriteResult? multipart = await S3MultipartUploader.UploadAsync(
+                _client,
+                _bucketName,
+                key,
+                content,
+                length,
+                options,
+                metadata,
+                cancellationToken).ConfigureAwait(false);
+            if (multipart != null) {
+                return multipart;
+            }
+            length = 0;
+        }
+
+        PutObjectRequest request = new() {
+            BucketName = _bucketName,
+            Key = key,
+            InputStream = content,
+            AutoCloseStream = false,
+            ContentType = options.ContentType,
+            IfNoneMatch = options.Mode == TransferWriteMode.Overwrite ? null : "*"
+        };
+        foreach (KeyValuePair<string, string> pair in metadata) {
+            request.Metadata[pair.Key] = pair.Value;
+        }
+        if (length.HasValue) {
+            request.Headers.ContentLength = length.Value;
+        }
+        PutObjectResponse response = await _client.PutObjectAsync(request, cancellationToken).ConfigureAwait(false);
+        return new S3ObjectWriteResult(response.ETag, response.VersionId, length);
     }
 
     private string ResolveKey(string path, bool allowEmpty = false) {

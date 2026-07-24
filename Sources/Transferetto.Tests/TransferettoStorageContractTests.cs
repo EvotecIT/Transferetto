@@ -1,3 +1,7 @@
+using System.Reflection;
+using Amazon.S3.Model;
+using Azure;
+using Azure.Storage.Blobs.Models;
 using Transferetto.AzureBlob;
 using Transferetto.Core;
 using Transferetto.S3;
@@ -50,6 +54,46 @@ public sealed class TransferettoStorageContractTests {
         Assert.Throws<ArgumentException>(() => new AzureBlobTransferEndpoint(
             new Azure.Storage.Blobs.BlobContainerClient(
                 new Uri("https://user:secret@storage.example.com/evidence"))));
+    }
+
+    [Fact]
+    public void AzureBlobEndpoint_BindsOpenReadToInspectedETag() {
+        MethodInfo method = typeof(AzureBlobTransferEndpoint).GetMethod(
+            "CreateOpenReadOptions",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        BlobOpenReadOptions options = (BlobOpenReadOptions)method.Invoke(
+            null,
+            new object[] { new ETag("\"source-version\"") })!;
+
+        Assert.Equal(new ETag("\"source-version\""), options.Conditions!.IfMatch);
+    }
+
+    [Fact]
+    public void S3Endpoint_PreservesProviderMetadataOnRead() {
+        MetadataCollection metadata = new();
+        metadata["x-amz-meta-build-id"] = "external";
+        MethodInfo method = typeof(S3TransferEndpoint).GetMethod(
+            "ReadMetadata",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        IReadOnlyDictionary<string, string> result =
+            (IReadOnlyDictionary<string, string>)method.Invoke(null, new object[] { metadata })!;
+
+        Assert.Equal("external", result["build-id"]);
+    }
+
+    [Fact]
+    public void S3Endpoint_SelectsMultipartForUnknownAndOversizedContent() {
+        Type uploader = typeof(S3TransferEndpoint).Assembly.GetType(
+            "Transferetto.S3.S3MultipartUploader",
+            throwOnError: true)!;
+        MethodInfo method = uploader.GetMethod(
+            "RequiresMultipartUpload",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        const long maximumSinglePut = 5L * 1024 * 1024 * 1024;
+
+        Assert.True((bool)method.Invoke(null, new object?[] { null })!);
+        Assert.False((bool)method.Invoke(null, new object?[] { maximumSinglePut })!);
+        Assert.True((bool)method.Invoke(null, new object?[] { maximumSinglePut + 1 })!);
     }
 
     [Theory]

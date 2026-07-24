@@ -46,6 +46,37 @@ public sealed class StorageProviderLiveTests {
                 content.LongLength,
                 writeOptions);
             Assert.True(uploaded.WasWritten);
+            TransferWriteResult multipart = await s3.WriteAsync(
+                "incoming/unknown-length.bin",
+                new MemoryStream(content),
+                null,
+                writeOptions);
+            Assert.True(multipart.WasWritten);
+            Assert.Equal(content.LongLength, multipart.Item.Length);
+            using (TransferReadHandle multipartDownload = await s3.OpenReadAsync("incoming/unknown-length.bin")) {
+                using MemoryStream multipartCopy = new();
+                await multipartDownload.Stream.CopyToAsync(multipartCopy);
+                Assert.Equal(content, multipartCopy.ToArray());
+            }
+
+            PutObjectRequest foreignMetadataRequest = new() {
+                BucketName = bucket,
+                Key = "company/incoming/foreign-metadata.bin",
+                InputStream = new MemoryStream(content)
+            };
+            foreignMetadataRequest.Metadata["build-id"] = "external";
+            await s3Client.PutObjectAsync(foreignMetadataRequest);
+            TransferItem? foreignMetadata = await s3.GetItemAsync("incoming/foreign-metadata.bin");
+            Assert.Equal("external", foreignMetadata!.Metadata["build-id"]);
+            TransferReceipt filteredMetadataReceipt = await TransferEngine.CopyAsync(
+                s3,
+                "incoming/foreign-metadata.bin",
+                blob,
+                "archive/foreign-metadata.bin");
+            Assert.Equal(TransferReceiptOutcome.Copied, filteredMetadataReceipt.Outcome);
+            TransferItem? filteredMetadata = await blob.GetItemAsync("archive/foreign-metadata.bin");
+            Assert.DoesNotContain("build-id", filteredMetadata!.Metadata.Keys);
+
             TransferWriteResult skipped = await s3.WriteAsync(
                 "incoming/evidence.json",
                 new MemoryStream(Encoding.UTF8.GetBytes("must-not-overwrite")),

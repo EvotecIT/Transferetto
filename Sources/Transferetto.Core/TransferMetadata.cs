@@ -8,6 +8,25 @@ namespace Transferetto.Core;
 /// </summary>
 public static class TransferMetadata {
     /// <summary>
+    /// Returns whether a metadata name can be written unchanged to every supported object provider.
+    /// </summary>
+    public static bool IsPortableName(string? name) {
+        if (string.IsNullOrWhiteSpace(name)) {
+            return false;
+        }
+        string value = name!;
+        if (!(IsAsciiLetter(value[0]) || value[0] == '_')) {
+            return false;
+        }
+        for (int index = 1; index < value.Length; index++) {
+            if (!(IsAsciiLetter(value[index]) || IsAsciiDigit(value[index]) || value[index] == '_')) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
     /// Copies metadata after validating names that are portable across S3 and Azure Blob Storage.
     /// </summary>
     public static Dictionary<string, string> CopyPortable(

@@ -152,7 +152,7 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
         Response<BlobProperties> properties = await blob.GetPropertiesAsync(cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         Stream stream = await blob.OpenReadAsync(
-            new BlobOpenReadOptions(allowModifications: false),
+            CreateOpenReadOptions(properties.Value.ETag),
             cancellationToken).ConfigureAwait(false);
         return new TransferReadHandle(ToItem(path, properties.Value), stream);
     }
@@ -239,6 +239,11 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
         ContentType = properties.ContentType,
         Metadata = new Dictionary<string, string>(properties.Metadata, StringComparer.OrdinalIgnoreCase)
     };
+
+    private static BlobOpenReadOptions CreateOpenReadOptions(ETag eTag) =>
+        new(allowModifications: false) {
+            Conditions = new BlobRequestConditions { IfMatch = eTag }
+        };
 
     private string ResolveName(string path, bool allowEmpty = false) {
         string normalized = (path ?? string.Empty).Replace('\\', '/').TrimStart('/');
