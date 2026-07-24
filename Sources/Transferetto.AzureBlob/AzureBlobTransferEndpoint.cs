@@ -32,6 +32,7 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
             throw new ArgumentException("A container name is required.", nameof(containerName));
         }
         _container = new BlobContainerClient(connectionString, containerName);
+        ValidateContainerUri(_container.Uri);
         _prefix = NormalizePrefix(prefix);
     }
 
@@ -81,6 +82,7 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
     /// <summary>Initializes an endpoint with a caller-owned Azure SDK client.</summary>
     public AzureBlobTransferEndpoint(BlobContainerClient container, string? prefix = null) {
         _container = container ?? throw new ArgumentNullException(nameof(container));
+        ValidateContainerUri(_container.Uri);
         _prefix = NormalizePrefix(prefix);
     }
 

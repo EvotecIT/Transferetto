@@ -73,13 +73,10 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
             return Task.FromResult<IReadOnlyList<TransferItem>>(Array.Empty<TransferItem>());
         }
 
-        SearchOption searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-        IReadOnlyList<TransferItem> items = Directory
-            .EnumerateFiles(fullPath, "*", searchOption)
-            .Select(file => {
-                cancellationToken.ThrowIfCancellationRequested();
-                return CreateItem(file);
-            })
+        IReadOnlyList<TransferItem> items = EnumerateFilesSafely(
+                fullPath,
+                recursive,
+                cancellationToken)
             .OrderBy(item => item.Path, StringComparer.Ordinal)
             .ToArray();
         return Task.FromResult(items);
@@ -143,10 +140,19 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
                 await target.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            if (File.Exists(fullPath)) {
-                File.Replace(tempPath, fullPath, null);
+            EnsureNoLinkTraversal(fullPath);
+            if (resolvedOptions.Mode == TransferWriteMode.Overwrite) {
+                CommitOverwrite(tempPath, fullPath);
             } else {
-                File.Move(tempPath, fullPath);
+                try {
+                    File.Move(tempPath, fullPath);
+                } catch (IOException exception) when (File.Exists(fullPath)) {
+                    EnsureNoLinkTraversal(fullPath);
+                    if (resolvedOptions.Mode == TransferWriteMode.SkipIfExists) {
+                        return new TransferWriteResult(CreateItem(fullPath), wasWritten: false);
+                    }
+                    throw new IOException($"The destination item already exists: {path}", exception);
+                }
             }
             return new TransferWriteResult(
                 CreateItem(
@@ -203,7 +209,82 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
             !candidate.StartsWith(rootWithSeparator, _pathComparison)) {
             throw new ArgumentException("The path escapes the endpoint root.", nameof(path));
         }
+        EnsureNoLinkTraversal(candidate);
         return candidate;
+    }
+
+    private IEnumerable<TransferItem> EnumerateFilesSafely(
+        string directory,
+        bool recursive,
+        CancellationToken cancellationToken) {
+        Stack<string> pending = new();
+        pending.Push(directory);
+        while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string current = pending.Pop();
+            EnsureNoLinkTraversal(current);
+            foreach (string file in Directory.EnumerateFiles(current)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                EnsureNoLinkTraversal(file);
+                yield return CreateItem(file);
+            }
+            if (!recursive) {
+                continue;
+            }
+            foreach (string child in Directory.EnumerateDirectories(current)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                EnsureNoLinkTraversal(child);
+                pending.Push(child);
+            }
+        }
+    }
+
+    private void EnsureNoLinkTraversal(string candidate) {
+        if (candidate.Equals(_rootPath, _pathComparison)) {
+            return;
+        }
+
+        string relativePath = candidate.Substring(_rootPath.Length)
+            .TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        string current = _rootPath;
+        foreach (string segment in relativePath.Split(
+                     new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
+                     StringSplitOptions.RemoveEmptyEntries)) {
+            current = Path.Combine(current, segment);
+            if (!TryGetAttributes(current, out FileAttributes attributes)) {
+                continue;
+            }
+            if ((attributes & FileAttributes.ReparsePoint) != 0) {
+                throw new IOException(
+                    $"The endpoint does not allow symbolic links or reparse points beneath its root: {candidate}");
+            }
+        }
+    }
+
+    private static bool TryGetAttributes(string path, out FileAttributes attributes) {
+        try {
+            attributes = File.GetAttributes(path);
+            return true;
+        } catch (FileNotFoundException) {
+            attributes = default;
+            return false;
+        } catch (DirectoryNotFoundException) {
+            attributes = default;
+            return false;
+        }
+    }
+
+    private void CommitOverwrite(string tempPath, string fullPath) {
+        if (!File.Exists(fullPath)) {
+            try {
+                File.Move(tempPath, fullPath);
+                return;
+            } catch (IOException) when (File.Exists(fullPath)) {
+                // The destination appeared after the check. Replace it below.
+            }
+        }
+        EnsureNoLinkTraversal(fullPath);
+        File.Replace(tempPath, fullPath, null);
     }
 
     private static string EnsureTrailingSeparator(string path) =>

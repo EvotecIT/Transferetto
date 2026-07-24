@@ -104,6 +104,73 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
         Assert.Equal("two", File.ReadAllText(Path.Combine(_root, "item.txt")));
     }
 
+    [Theory]
+    [InlineData(TransferWriteMode.SkipIfExists)]
+    [InlineData(TransferWriteMode.FailIfExists)]
+    public async Task FileSystemEndpoint_DoesNotOverwriteAConcurrentDestination(
+        TransferWriteMode writeMode) {
+        FileSystemTransferEndpoint endpoint = new(_root);
+        using CoordinatedReadStream content = new(Encoding.UTF8.GetBytes("incoming"));
+        Task<TransferWriteResult> write = endpoint.WriteAsync(
+            "race.txt",
+            content,
+            8,
+            new TransferWriteOptions { Mode = writeMode });
+
+        Task readStarted = await Task.WhenAny(content.ReadStarted, Task.Delay(TimeSpan.FromSeconds(5)));
+        Assert.Same(content.ReadStarted, readStarted);
+        File.WriteAllText(Path.Combine(_root, "race.txt"), "concurrent");
+        content.Release();
+
+        if (writeMode == TransferWriteMode.SkipIfExists) {
+            TransferWriteResult result = await write;
+            Assert.False(result.WasWritten);
+        } else {
+            await Assert.ThrowsAsync<IOException>(async () => await write);
+        }
+        Assert.Equal("concurrent", File.ReadAllText(Path.Combine(_root, "race.txt")));
+    }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public async Task FileSystemEndpoint_RejectsDirectorySymlinkTraversal() {
+        string outsideRoot = Path.Combine(
+            Path.GetTempPath(),
+            "Transferetto.Tests.Outside",
+            Guid.NewGuid().ToString("N"));
+        string linkPath = Path.Combine(_root, "linked");
+        Directory.CreateDirectory(outsideRoot);
+        File.WriteAllText(Path.Combine(outsideRoot, "secret.txt"), "outside");
+        try {
+            try {
+                Directory.CreateSymbolicLink(linkPath, outsideRoot);
+            } catch (UnauthorizedAccessException) {
+                return;
+            } catch (PlatformNotSupportedException) {
+                return;
+            }
+
+            FileSystemTransferEndpoint endpoint = new(_root);
+            await Assert.ThrowsAsync<IOException>(() => endpoint.GetItemAsync("linked/secret.txt"));
+            await Assert.ThrowsAsync<IOException>(() => endpoint.OpenReadAsync("linked/secret.txt"));
+            await Assert.ThrowsAsync<IOException>(() => endpoint.WriteAsync(
+                "linked/new.txt",
+                new MemoryStream(new byte[] { 1 }),
+                1));
+            await Assert.ThrowsAsync<IOException>(() => endpoint.DeleteAsync("linked/secret.txt"));
+            await Assert.ThrowsAsync<IOException>(() => endpoint.ListAsync(string.Empty));
+            Assert.False(File.Exists(Path.Combine(outsideRoot, "new.txt")));
+        } finally {
+            if (Directory.Exists(linkPath)) {
+                Directory.Delete(linkPath);
+            }
+            if (Directory.Exists(outsideRoot)) {
+                Directory.Delete(outsideRoot, recursive: true);
+            }
+        }
+    }
+#endif
+
     [Fact]
     public void FileSystemEndpoint_PreservesFilesystemVolumeRoots() {
         string volumeRoot = Path.GetPathRoot(Path.GetFullPath(_root))!;
@@ -122,5 +189,59 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
     private static string CalculateSha256(byte[] content) {
         using SHA256 sha256 = SHA256.Create();
         return BitConverter.ToString(sha256.ComputeHash(content)).Replace("-", string.Empty).ToLowerInvariant();
+    }
+
+    private sealed class CoordinatedReadStream : Stream {
+        private readonly MemoryStream _inner;
+        private readonly TaskCompletionSource<bool> _readStarted =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<bool> _release =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        internal CoordinatedReadStream(byte[] content) {
+            _inner = new MemoryStream(content);
+        }
+
+        internal Task ReadStarted => _readStarted.Task;
+
+        internal void Release() => _release.TrySetResult(true);
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => _inner.Length;
+        public override long Position {
+            get => _inner.Position;
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            _readStarted.TrySetResult(true);
+            _release.Task.GetAwaiter().GetResult();
+            return _inner.Read(buffer, offset, count);
+        }
+
+        public override async Task<int> ReadAsync(
+            byte[] buffer,
+            int offset,
+            int count,
+            CancellationToken cancellationToken) {
+            _readStarted.TrySetResult(true);
+            await _release.Task.ConfigureAwait(false);
+            return await _inner.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
+        }
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) {
+                _release.TrySetResult(true);
+                _inner.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        public override void Flush() => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 }

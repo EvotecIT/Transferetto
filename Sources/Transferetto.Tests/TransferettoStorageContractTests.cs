@@ -34,6 +34,13 @@ public sealed class TransferettoStorageContractTests {
     public void AzureBlobEndpoint_RejectsInsecureRemoteContainerUri() {
         Assert.Throws<ArgumentException>(() => new AzureBlobTransferEndpoint(
             new Uri("http://storage.example.com/evidence?sig=secret")));
+        Assert.Throws<ArgumentException>(() => new AzureBlobTransferEndpoint(
+            "DefaultEndpointsProtocol=http;AccountName=test;AccountKey=YWJjZA==;" +
+            "BlobEndpoint=http://storage.example.com/test;",
+            "evidence"));
+        Assert.Throws<ArgumentException>(() => new AzureBlobTransferEndpoint(
+            new Azure.Storage.Blobs.BlobContainerClient(
+                new Uri("http://storage.example.com/evidence"))));
     }
 
     [Theory]
