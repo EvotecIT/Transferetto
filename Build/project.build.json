@@ -2,7 +2,10 @@
   "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/project.build.schema.json",
   "RootPath": "..",
   "ExpectedVersionMap": {
-    "Transferetto": "1.0.X"
+    "Transferetto": "1.0.X",
+    "Transferetto.Core": "1.0.X",
+    "Transferetto.S3": "1.0.X",
+    "Transferetto.AzureBlob": "1.0.X"
   },
   "ExpectedVersionMapAsInclude": true,
   "ExpectedVersionMapUseWildcards": false,

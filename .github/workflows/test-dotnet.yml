@@ -25,6 +25,50 @@ env:
     SUMMARIZE_FAILURES: true
 
 jobs:
+    storage-integration:
+        name: S3 and Azure Blob integration
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        env:
+            TRANSFERETTO_S3_ENDPOINT: http://127.0.0.1:9000
+            TRANSFERETTO_S3_ACCESS_KEY: minioadmin
+            TRANSFERETTO_S3_SECRET_KEY: minioadmin
+            TRANSFERETTO_AZURE_CONNECTION_STRING: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v7
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v6
+              with:
+                  dotnet-version: ${{ env.DOTNET_VERSION }}
+
+            - name: Start storage emulators
+              shell: bash
+              run: |
+                  docker run --detach --name transferetto-minio \
+                    --publish 9000:9000 \
+                    --env MINIO_ROOT_USER=minioadmin \
+                    --env MINIO_ROOT_PASSWORD=minioadmin \
+                    minio/minio:RELEASE.2025-04-22T22-12-26Z server /data
+                  docker run --detach --name transferetto-azurite \
+                    --publish 10000:10000 \
+                    mcr.microsoft.com/azure-storage/azurite:3.35.0 \
+                    azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck
+                  for attempt in {1..30}; do
+                    if curl --fail --silent http://127.0.0.1:9000/minio/health/live >/dev/null &&
+                       curl --silent http://127.0.0.1:10000/devstoreaccount1?comp=list >/dev/null; then
+                      exit 0
+                    fi
+                    sleep 1
+                  done
+                  docker logs transferetto-minio
+                  docker logs transferetto-azurite
+                  exit 1
+
+            - name: Run storage provider integration tests
+              run: dotnet test Sources/Transferetto.Tests/Transferetto.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --verbosity ${{ env.TEST_VERBOSITY }}
+
     test-windows:
         name: Windows
         runs-on: windows-latest
