@@ -43,6 +43,15 @@ public sealed class TransferettoStorageContractTests {
                 new Uri("http://storage.example.com/evidence"))));
     }
 
+    [Fact]
+    public void AzureBlobEndpoint_RejectsUserInfoThatCouldLeakThroughDisplayName() {
+        Assert.Throws<ArgumentException>(() => new AzureBlobTransferEndpoint(
+            new Uri("https://user:secret@storage.example.com/evidence")));
+        Assert.Throws<ArgumentException>(() => new AzureBlobTransferEndpoint(
+            new Azure.Storage.Blobs.BlobContainerClient(
+                new Uri("https://user:secret@storage.example.com/evidence"))));
+    }
+
     [Theory]
     [InlineData("evidence-id")]
     [InlineData("1evidence")]

@@ -11,6 +11,12 @@ namespace Transferetto.Core;
 /// <summary>
 /// Exposes a rooted local or mounted-network filesystem as a transfer endpoint.
 /// </summary>
+/// <remarks>
+/// The root must be controlled by the caller's security context. This endpoint rejects symbolic links and
+/// reparse points observed during path resolution, but it is not an operating-system sandbox against another
+/// process that can mutate the directory tree concurrently. A privileged process must not use a root writable
+/// by less-trusted identities.
+/// </remarks>
 public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
     private readonly string _rootPath;
     private readonly StringComparison _pathComparison;

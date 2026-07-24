@@ -266,6 +266,11 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
         if (!containerUri.IsAbsoluteUri) {
             throw new ArgumentException("The container URI must be absolute.", nameof(containerUri));
         }
+        if (!string.IsNullOrEmpty(containerUri.UserInfo)) {
+            throw new ArgumentException(
+                "Container URIs must not contain user information.",
+                nameof(containerUri));
+        }
         if (containerUri.Scheme != Uri.UriSchemeHttps && !containerUri.IsLoopback) {
             throw new ArgumentException(
                 "Container URIs must use HTTPS unless they are loopback test endpoints.",
