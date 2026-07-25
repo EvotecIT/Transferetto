@@ -1,0 +1,3718 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Transferetto</name>
+    </assembly>
+    <members>
+        <member name="T:Transferetto.TransferettoClient">
+            <summary>
+            Provides reusable FTP, FTPS, SFTP, SCP, and SSH operations for Transferetto consumers.
+            </summary>
+            <summary>
+            Provides reusable FTP, FTPS, SFTP, SCP, and SSH operations for Transferetto consumers.
+            </summary>
+            <summary>
+            Provides reusable FTP, FTPS, SFTP, SCP, and SSH operations for Transferetto consumers.
+            </summary>
+            <summary>
+            Provides reusable FTP, FTPS, SFTP, SCP, and SSH operations for Transferetto consumers.
+            </summary>
+            <summary>
+            Provides reusable FTP, FTPS, SFTP, SCP, and SSH operations for Transferetto consumers.
+            </summary>
+            <summary>
+            Provides reusable FTP, FTPS, SFTP, SCP, and SSH operations for Transferetto consumers.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ConnectFtp(Transferetto.TransferettoFtpConnectionOptions)">
+            <summary>
+            Creates and connects an FTP or FTPS session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DisconnectFtp(Transferetto.TransferettoFtpSession)">
+            <summary>
+            Closes an FTP or FTPS session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.GetFtpListing(Transferetto.TransferettoFtpSession,System.String,System.Nullable{FluentFTP.FtpListOption})">
+            <summary>
+            Gets a remote FTP or FTPS directory listing.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadFtpFiles(Transferetto.TransferettoFtpSession,System.String,System.Collections.Generic.IEnumerable{System.String},System.Collections.Generic.IEnumerable{System.IO.FileInfo},FluentFTP.FtpRemoteExists,FluentFTP.FtpVerify,FluentFTP.FtpError,System.Boolean)">
+            <summary>
+            Uploads one or more files to an FTP or FTPS server.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadFtpFiles(Transferetto.TransferettoFtpSession,System.String,System.Collections.Generic.IEnumerable{System.String},System.Collections.Generic.IEnumerable{System.IO.FileInfo},FluentFTP.FtpRemoteExists,FluentFTP.FtpVerify,FluentFTP.FtpError,System.Boolean,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Uploads one or more files to an FTP or FTPS server.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadFtpFile(Transferetto.TransferettoFtpSession,System.String,System.String,FluentFTP.FtpLocalExists,FluentFTP.FtpVerify)">
+            <summary>
+            Downloads a file from an FTP or FTPS server.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadFtpFile(Transferetto.TransferettoFtpSession,System.String,System.String,FluentFTP.FtpLocalExists,FluentFTP.FtpVerify,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Downloads a file from an FTP or FTPS server.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadFtpFiles(Transferetto.TransferettoFtpSession,System.String,System.Collections.Generic.IEnumerable{System.String},FluentFTP.FtpLocalExists,FluentFTP.FtpVerify,FluentFTP.FtpError)">
+            <summary>
+            Downloads multiple files from an FTP or FTPS server.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadFtpFiles(Transferetto.TransferettoFtpSession,System.String,System.Collections.Generic.IEnumerable{System.String},FluentFTP.FtpLocalExists,FluentFTP.FtpVerify,FluentFTP.FtpError,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Downloads multiple files from an FTP or FTPS server.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.OpenFtpStream(Transferetto.TransferettoFtpSession,System.String,Transferetto.TransferettoFtpStreamMode)">
+            <summary>
+            Opens a streamed FTP or FTPS file session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ReadFtpStream(Transferetto.TransferettoFtpStreamSession,System.Int32)">
+            <summary>
+            Reads a chunk from an FTP or FTPS stream.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.WriteFtpStream(Transferetto.TransferettoFtpStreamSession,System.Byte[],System.Boolean)">
+            <summary>
+            Writes a chunk to an FTP or FTPS stream.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SeekFtpStream(Transferetto.TransferettoFtpStreamSession,System.Int64,System.IO.SeekOrigin)">
+            <summary>
+            Moves the current position within an FTP or FTPS stream.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.FlushFtpStream(Transferetto.TransferettoFtpStreamSession)">
+            <summary>
+            Flushes buffered data for an FTP or FTPS stream.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.CloseFtpStream(Transferetto.TransferettoFtpStreamSession)">
+            <summary>
+            Closes an FTP or FTPS stream session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.GetFtpWorkingDirectory(Transferetto.TransferettoFtpSession)">
+            <summary>
+            Gets the current FTP or FTPS working directory.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SetFtpWorkingDirectory(Transferetto.TransferettoFtpSession,System.String)">
+            <summary>
+            Changes the current FTP or FTPS working directory.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DetectFtpConfiguration(Transferetto.TransferettoFtpConnectionOptions,System.Boolean)">
+            <summary>
+            Detects a compatible FTP or FTPS configuration profile.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.GetFtpItem(Transferetto.TransferettoFtpSession,System.String,System.Boolean)">
+            <summary>
+            Gets metadata for a single FTP or FTPS item.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.GetFtpFileSize(Transferetto.TransferettoFtpSession,System.String,System.Int64)">
+            <summary>
+            Gets the size of a remote FTP or FTPS file.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.GetFtpModifiedTime(Transferetto.TransferettoFtpSession,System.String)">
+            <summary>
+            Gets the last modified time of a remote FTP or FTPS item.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SetFtpModifiedTime(Transferetto.TransferettoFtpSession,System.String,System.DateTime)">
+            <summary>
+            Updates the last modified time of a remote FTP or FTPS item.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.CompareFtpFile(Transferetto.TransferettoFtpSession,System.String,System.String,FluentFTP.FtpCompareOption)">
+            <summary>
+            Compares a local file with a remote FTP or FTPS file.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.GetFtpChecksum(Transferetto.TransferettoFtpSession,System.String,FluentFTP.FtpHashAlgorithm)">
+            <summary>
+            Gets the checksum reported by an FTP or FTPS server.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.GetFtpChmod(Transferetto.TransferettoFtpSession,System.String)">
+            <summary>
+            Gets permissions for a remote FTP or FTPS item.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SetFtpChmod(Transferetto.TransferettoFtpSession,System.String,System.Int32)">
+            <summary>
+            Sets permissions for a remote FTP or FTPS item.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SetFtpChmod(Transferetto.TransferettoFtpSession,System.String,FluentFTP.FtpPermission,FluentFTP.FtpPermission,FluentFTP.FtpPermission)">
+            <summary>
+            Sets permissions for a remote FTP or FTPS item.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SetFtpOption(Transferetto.TransferettoFtpSession,System.Nullable{System.Int32},System.Nullable{System.Boolean})">
+            <summary>
+            Updates mutable FTP or FTPS session options.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.MoveFtpFile(Transferetto.TransferettoFtpSession,System.String,System.String,FluentFTP.FtpRemoteExists)">
+            <summary>
+            Moves a remote FTP or FTPS file.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.MoveFtpDirectory(Transferetto.TransferettoFtpSession,System.String,System.String,FluentFTP.FtpRemoteExists)">
+            <summary>
+            Moves a remote FTP or FTPS directory.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.RemoveFtpFile(Transferetto.TransferettoFtpSession,System.String)">
+            <summary>
+            Removes a remote FTP or FTPS file.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.RemoveFtpDirectory(Transferetto.TransferettoFtpSession,System.String,System.Nullable{FluentFTP.FtpListOption})">
+            <summary>
+            Removes a remote FTP or FTPS directory.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.CreateFtpDirectory(Transferetto.TransferettoFtpSession,System.String,System.Boolean)">
+            <summary>
+            Creates a remote FTP or FTPS directory.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.RenameFtpFile(Transferetto.TransferettoFtpSession,System.String,System.String)">
+            <summary>
+            Renames a remote FTP or FTPS file.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.TestFtpFile(Transferetto.TransferettoFtpSession,System.String)">
+            <summary>
+            Tests whether a remote FTP or FTPS file exists.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.TestFtpDirectory(Transferetto.TransferettoFtpSession,System.String)">
+            <summary>
+            Tests whether a remote FTP or FTPS directory exists.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadFtpDirectory(Transferetto.TransferettoFtpSession,System.String,System.String,FluentFTP.FtpFolderSyncMode,FluentFTP.FtpRemoteExists,FluentFTP.FtpVerify,System.Collections.Generic.IEnumerable{FluentFTP.Rules.FtpRule})">
+            <summary>
+            Uploads a local directory to an FTP or FTPS server.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadFtpDirectory(Transferetto.TransferettoFtpSession,System.String,System.String,FluentFTP.FtpFolderSyncMode,FluentFTP.FtpRemoteExists,FluentFTP.FtpVerify,System.Collections.Generic.IEnumerable{FluentFTP.Rules.FtpRule},Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Uploads a local directory to an FTP or FTPS server.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadFtpDirectory(Transferetto.TransferettoFtpSession,System.String,System.String,FluentFTP.FtpFolderSyncMode)">
+            <summary>
+            Downloads a remote directory from an FTP or FTPS server.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadFtpDirectory(Transferetto.TransferettoFtpSession,System.String,System.String,FluentFTP.FtpFolderSyncMode,FluentFTP.FtpLocalExists,FluentFTP.FtpVerify,System.Collections.Generic.IEnumerable{FluentFTP.Rules.FtpRule},Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Downloads a remote directory from an FTP or FTPS server.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.TestFxpTransfer(Transferetto.TransferettoFtpSession,System.String,Transferetto.TransferettoFtpSession,System.String,Transferetto.TransferettoFxpTransferKind,System.Boolean)">
+            <summary>
+            Tests whether an FXP transfer is ready to run.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.StartFxpFileTransfer(Transferetto.TransferettoFtpSession,System.String,Transferetto.TransferettoFtpSession,System.String,System.Boolean,FluentFTP.FtpRemoteExists,FluentFTP.FtpVerify)">
+            <summary>
+            Transfers a file directly between two FTP or FTPS sessions.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.StartFxpFileTransfer(Transferetto.TransferettoFtpSession,System.String,Transferetto.TransferettoFtpSession,System.String,System.Boolean,FluentFTP.FtpRemoteExists,FluentFTP.FtpVerify,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Transfers a file directly between two FTP or FTPS sessions.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.StartFxpDirectoryTransfer(Transferetto.TransferettoFtpSession,System.String,Transferetto.TransferettoFtpSession,System.String,FluentFTP.FtpFolderSyncMode,FluentFTP.FtpRemoteExists,FluentFTP.FtpVerify)">
+            <summary>
+            Transfers a directory directly between two FTP or FTPS sessions.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.StartFxpDirectoryTransfer(Transferetto.TransferettoFtpSession,System.String,Transferetto.TransferettoFtpSession,System.String,FluentFTP.FtpFolderSyncMode,FluentFTP.FtpRemoteExists,FluentFTP.FtpVerify,System.Collections.Generic.IEnumerable{FluentFTP.Rules.FtpRule},Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Transfers a directory directly between two FTP or FTPS sessions.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SyncFtpDirectory(Transferetto.TransferettoFtpSession,System.String,System.String,Transferetto.TransferettoSyncOptions,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Synchronizes a local directory with an FTP or FTPS directory using a reusable Transferetto sync plan.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ConnectScp(Transferetto.TransferettoSshConnectionOptions)">
+            <summary>
+            Creates and connects an SCP session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DisconnectScp(Transferetto.TransferettoScpSession)">
+            <summary>
+            Closes an SCP session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadScpFile(Transferetto.TransferettoScpSession,System.String,System.String)">
+            <summary>
+            Uploads a file over SCP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadScpFile(Transferetto.TransferettoScpSession,System.String,System.String,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Uploads a file over SCP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadScpFile(Transferetto.TransferettoScpSession,System.String,System.String)">
+            <summary>
+            Downloads a file over SCP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadScpFile(Transferetto.TransferettoScpSession,System.String,System.String,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Downloads a file over SCP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadScpDirectory(Transferetto.TransferettoScpSession,System.String,System.String)">
+            <summary>
+            Uploads a directory over SCP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadScpDirectory(Transferetto.TransferettoScpSession,System.String,System.String,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Uploads a directory over SCP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadScpDirectory(Transferetto.TransferettoScpSession,System.String,System.String)">
+            <summary>
+            Downloads a directory over SCP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadScpDirectory(Transferetto.TransferettoScpSession,System.String,System.String,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Downloads a directory over SCP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ConnectSftp(Transferetto.TransferettoSftpConnectionOptions)">
+            <summary>
+            Creates and connects an SFTP session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DisconnectSftp(Transferetto.TransferettoSftpSession)">
+            <summary>
+            Closes an SFTP session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.GetSftpListing(Transferetto.TransferettoSftpSession,System.String)">
+            <summary>
+            Gets a remote SFTP directory listing.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.GetSftpWorkingDirectory(Transferetto.TransferettoSftpSession)">
+            <summary>
+            Gets the current SFTP working directory.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SetSftpWorkingDirectory(Transferetto.TransferettoSftpSession,System.String)">
+            <summary>
+            Changes the current SFTP working directory.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.GetSftpAttributes(Transferetto.TransferettoSftpSession,System.String)">
+            <summary>
+            Gets SFTP metadata for a remote item.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.GetSftpChmod(Transferetto.TransferettoSftpSession,System.String)">
+            <summary>
+            Gets SFTP permission bits for a remote item.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SetSftpChmod(Transferetto.TransferettoSftpSession,System.String,System.String)">
+            <summary>
+            Sets SFTP permission bits for a remote item.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SetSftpChmod(Transferetto.TransferettoSftpSession,System.String,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Sets SFTP permission bits for a remote item.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SetSftpTimestamp(Transferetto.TransferettoSftpSession,System.String,System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Boolean)">
+            <summary>
+            Updates timestamps on a remote SFTP item.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.TestSftpPath(Transferetto.TransferettoSftpSession,System.String)">
+            <summary>
+            Tests whether a remote SFTP path exists.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.TestSftpFile(Transferetto.TransferettoSftpSession,System.String)">
+            <summary>
+            Tests whether a remote SFTP file exists.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.TestSftpDirectory(Transferetto.TransferettoSftpSession,System.String)">
+            <summary>
+            Tests whether a remote SFTP directory exists.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.TestSftpSymbolicLink(Transferetto.TransferettoSftpSession,System.String)">
+            <summary>
+            Tests whether a remote SFTP path is a symbolic link.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.CreateSftpDirectory(Transferetto.TransferettoSftpSession,System.String)">
+            <summary>
+            Creates a remote SFTP directory.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.CreateSftpSymbolicLink(Transferetto.TransferettoSftpSession,System.String,System.String)">
+            <summary>
+            Creates a remote SFTP symbolic link.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.RemoveSftpDirectory(Transferetto.TransferettoSftpSession,System.String)">
+            <summary>
+            Removes a remote SFTP directory.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadSftpFile(Transferetto.TransferettoSftpSession,System.String,System.String,System.Boolean)">
+            <summary>
+            Uploads a file over SFTP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadSftpFile(Transferetto.TransferettoSftpSession,System.String,System.String,System.Boolean,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Uploads a file over SFTP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadSftpFile(Transferetto.TransferettoSftpSession,System.String,System.String)">
+            <summary>
+            Downloads a file over SFTP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadSftpFile(Transferetto.TransferettoSftpSession,System.String,System.String,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Downloads a file over SFTP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadSftpDirectory(Transferetto.TransferettoSftpSession,System.String,System.String,System.Boolean)">
+            <summary>
+            Uploads a directory over SFTP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadSftpDirectory(Transferetto.TransferettoSftpSession,System.String,System.String,System.Boolean,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Uploads a directory over SFTP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadSftpDirectory(Transferetto.TransferettoSftpSession,System.String,System.String,System.Boolean)">
+            <summary>
+            Downloads a directory over SFTP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadSftpDirectory(Transferetto.TransferettoSftpSession,System.String,System.String,System.Boolean,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Downloads a directory over SFTP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.RemoveSftpFile(Transferetto.TransferettoSftpSession,System.String)">
+            <summary>
+            Removes a remote SFTP file.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.RenameSftpFile(Transferetto.TransferettoSftpSession,System.String,System.String)">
+            <summary>
+            Renames a remote SFTP file.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.MoveSftpFile(Transferetto.TransferettoSftpSession,System.String,System.String,System.Boolean)">
+            <summary>
+            Moves a remote SFTP file.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.MoveSftpDirectory(Transferetto.TransferettoSftpSession,System.String,System.String,System.Boolean)">
+            <summary>
+            Moves a remote SFTP directory.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ReadSftpText(Transferetto.TransferettoSftpSession,System.String,System.Text.Encoding)">
+            <summary>
+            Read Sftp Text.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ReadSftpBytes(Transferetto.TransferettoSftpSession,System.String)">
+            <summary>
+            Read Sftp Bytes.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.WriteSftpText(Transferetto.TransferettoSftpSession,System.String,System.String,System.Boolean,System.Text.Encoding)">
+            <summary>
+            Write Sftp Text.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.WriteSftpBytes(Transferetto.TransferettoSftpSession,System.String,System.Byte[])">
+            <summary>
+            Write Sftp Bytes.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.OpenSftpStream(Transferetto.TransferettoSftpSession,System.String,Transferetto.TransferettoSftpStreamMode)">
+            <summary>
+            Opens a streamed SFTP file session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ReadSftpStream(Transferetto.TransferettoSftpStreamSession,System.Int32)">
+            <summary>
+            Reads a chunk from an SFTP stream.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.WriteSftpStream(Transferetto.TransferettoSftpStreamSession,System.Byte[],System.Boolean)">
+            <summary>
+            Writes a chunk to an SFTP stream.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SeekSftpStream(Transferetto.TransferettoSftpStreamSession,System.Int64,System.IO.SeekOrigin)">
+            <summary>
+            Moves the current position within an SFTP stream.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.FlushSftpStream(Transferetto.TransferettoSftpStreamSession)">
+            <summary>
+            Flushes buffered data for an SFTP stream.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.CloseSftpStream(Transferetto.TransferettoSftpStreamSession)">
+            <summary>
+            Closes an SFTP stream session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SyncSftpDirectory(Transferetto.TransferettoSftpSession,System.String,System.String,Transferetto.TransferettoSyncOptions,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Synchronizes a local directory with an SFTP directory using a reusable Transferetto sync plan.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ConnectSsh(Transferetto.TransferettoSshConnectionOptions)">
+            <summary>
+            Creates and connects an SSH session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SendSshCommand(Transferetto.TransferettoSshSession,System.Collections.Generic.IEnumerable{System.String})">
+            <summary>
+            Runs one or more non-interactive SSH commands.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SendSshCommand(Transferetto.TransferettoSshSession,System.Collections.Generic.IEnumerable{System.String},Transferetto.TransferettoSshCommandOptions)">
+            <summary>
+            Runs one or more non-interactive SSH commands with shared execution options.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SendSshCommandAsync(Transferetto.TransferettoSshSession,System.Collections.Generic.IEnumerable{System.String},Transferetto.TransferettoSshCommandOptions,System.Threading.CancellationToken)">
+            <summary>
+            Runs one or more non-interactive SSH commands asynchronously.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DisconnectSsh(Transferetto.TransferettoSshSession)">
+            <summary>
+            Closes an SSH session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.CreateSshShell(Transferetto.TransferettoSshSession,Transferetto.TransferettoSshShellOptions)">
+            <summary>
+            Creates an interactive SSH shell session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ResolveSshShellPromptPattern(System.String,Transferetto.TransferettoSshShellPromptPreset)">
+            <summary>
+            Resolves an SSH shell prompt pattern from an explicit pattern or a reusable preset.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.CloseSshShell(Transferetto.TransferettoSshShellSession)">
+            <summary>
+            Closes an interactive SSH shell session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ReadSshShell(Transferetto.TransferettoSshShellSession,System.Nullable{System.TimeSpan},System.Boolean,System.String,System.Int32,System.String,System.Boolean,System.Nullable{System.TimeSpan},System.Boolean,System.String)">
+            <summary>
+            Reads text from an interactive SSH shell session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ReadSshShell(Transferetto.TransferettoSshShellSession,System.Nullable{System.TimeSpan},System.Boolean,System.String,System.Int32,System.String,System.Boolean,System.Nullable{System.TimeSpan},System.Boolean,System.String,Transferetto.TransferettoSshShellReadOptions)">
+            <summary>
+            Reads text from an interactive SSH shell session with shared read options.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ReadSshShellAsync(Transferetto.TransferettoSshShellSession,System.Nullable{System.TimeSpan},System.Boolean,System.String,System.Int32,System.String,System.Boolean,System.Nullable{System.TimeSpan},System.Boolean,System.String,Transferetto.TransferettoSshShellReadOptions,System.Threading.CancellationToken)">
+            <summary>
+            Reads text from an interactive SSH shell session asynchronously.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ReadSshShellRegex(Transferetto.TransferettoSshShellSession,System.String,System.Nullable{System.TimeSpan},System.Int32)">
+            <summary>
+            Reads SSH shell output until a regular expression matches.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ReadSshShellRegex(Transferetto.TransferettoSshShellSession,System.String,System.Nullable{System.TimeSpan},System.Int32,Transferetto.TransferettoSshShellReadOptions)">
+            <summary>
+            Reads SSH shell output until a regular expression matches.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ReadSshShellRegexAsync(Transferetto.TransferettoSshShellSession,System.String,System.Nullable{System.TimeSpan},System.Int32,Transferetto.TransferettoSshShellReadOptions,System.Threading.CancellationToken)">
+            <summary>
+            Reads SSH shell output until a regular expression matches asynchronously.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ReadSshShellUntilIdle(Transferetto.TransferettoSshShellSession,System.TimeSpan,System.Nullable{System.TimeSpan})">
+            <summary>
+            Reads SSH shell output until it becomes idle.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ReadSshShellUntilIdle(Transferetto.TransferettoSshShellSession,System.TimeSpan,System.Nullable{System.TimeSpan},Transferetto.TransferettoSshShellReadOptions)">
+            <summary>
+            Reads SSH shell output until it becomes idle.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ReadSshShellUntilIdleAsync(Transferetto.TransferettoSshShellSession,System.TimeSpan,System.Nullable{System.TimeSpan},Transferetto.TransferettoSshShellReadOptions,System.Threading.CancellationToken)">
+            <summary>
+            Reads SSH shell output until it becomes idle asynchronously.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.WriteSshShell(Transferetto.TransferettoSshShellSession,System.String,System.Boolean)">
+            <summary>
+            Writes text to an interactive SSH shell session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SendSshShellControl(Transferetto.TransferettoSshShellSession,Transferetto.TransferettoSshShellControlKey,System.Int32)">
+            <summary>
+            Sends a control key to an interactive SSH shell session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ClearSshShellBuffer(Transferetto.TransferettoSshShellSession)">
+            <summary>
+            Reads and clears buffered SSH shell output.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.GetSshShellTranscript(Transferetto.TransferettoSshShellSession,System.Nullable{System.Int32})">
+            <summary>
+            Gets the current SSH shell transcript snapshot.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ClearSshShellTranscript(Transferetto.TransferettoSshShellSession)">
+            <summary>
+            Clears the SSH shell transcript buffer.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ExportSshShellTranscript(Transferetto.TransferettoSshShellSession,System.String,System.Boolean,System.Nullable{System.Int32})">
+            <summary>
+            Exports the SSH shell transcript to disk.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.StopSshShellCommand(Transferetto.TransferettoSshShellSession,System.Nullable{System.TimeSpan},System.String,System.Int32)">
+            <summary>
+            Stops a running SSH shell command and collects trailing output.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.StopSshShellCommand(Transferetto.TransferettoSshShellSession,System.Nullable{System.TimeSpan},System.String,System.Int32,Transferetto.TransferettoSshShellReadOptions)">
+            <summary>
+            Stops a running SSH shell command and collects trailing output.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.StopSshShellCommandAsync(Transferetto.TransferettoSshShellSession,System.Nullable{System.TimeSpan},System.String,System.Int32,Transferetto.TransferettoSshShellReadOptions,System.Threading.CancellationToken)">
+            <summary>
+            Stops a running SSH shell command and collects trailing output asynchronously.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SetSshShellPromptPattern(Transferetto.TransferettoSshShellSession,System.String)">
+            <summary>
+            Updates the expected prompt pattern for an SSH shell session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SetSshShellPromptPattern(Transferetto.TransferettoSshShellSession,System.String,Transferetto.TransferettoSshShellPromptPreset)">
+            <summary>
+            Updates the expected prompt pattern for an SSH shell session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.WaitForSshShellPrompt(Transferetto.TransferettoSshShellSession,System.Nullable{System.TimeSpan},System.String,System.Int32)">
+            <summary>
+            Waits for an SSH shell prompt to appear.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.WaitForSshShellPrompt(Transferetto.TransferettoSshShellSession,System.Nullable{System.TimeSpan},System.String,System.Int32,Transferetto.TransferettoSshShellReadOptions)">
+            <summary>
+            Waits for an SSH shell prompt to appear.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.WaitForSshShellPromptAsync(Transferetto.TransferettoSshShellSession,System.Nullable{System.TimeSpan},System.String,System.Int32,Transferetto.TransferettoSshShellReadOptions,System.Threading.CancellationToken)">
+            <summary>
+            Waits for an SSH shell prompt to appear asynchronously.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.FollowSshShellOutput(Transferetto.TransferettoSshShellSession,System.Nullable{System.TimeSpan},System.String,System.Int32,Transferetto.TransferettoSshShellReadOptions)">
+            <summary>
+            Follows SSH shell output until cancellation, timeout, or an optional stop pattern is observed.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.FollowSshShellOutputAsync(Transferetto.TransferettoSshShellSession,System.Nullable{System.TimeSpan},System.String,System.Int32,Transferetto.TransferettoSshShellReadOptions,System.Threading.CancellationToken)">
+            <summary>
+            Follows SSH shell output until cancellation, timeout, or an optional stop pattern is observed.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.InvokeSshShellRecipe(Transferetto.TransferettoSshShellSession,Transferetto.TransferettoSshShellRecipeOptions,Transferetto.TransferettoSshShellReadOptions)">
+            <summary>
+            Executes a reusable SSH shell recipe against an interactive shell session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.InvokeSshShellRecipeAsync(Transferetto.TransferettoSshShellSession,Transferetto.TransferettoSshShellRecipeOptions,Transferetto.TransferettoSshShellReadOptions,System.Threading.CancellationToken)">
+            <summary>
+            Executes a reusable SSH shell recipe against an interactive shell session asynchronously.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.InvokeSshShellExpect(Transferetto.TransferettoSshShellSession,System.Collections.Generic.IEnumerable{Transferetto.TransferettoSshShellExpectStep},Transferetto.TransferettoSshShellReadOptions)">
+            <summary>
+            Executes an ordered expect workflow against an interactive SSH shell session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.InvokeSshShellExpectAsync(Transferetto.TransferettoSshShellSession,System.Collections.Generic.IEnumerable{Transferetto.TransferettoSshShellExpectStep},Transferetto.TransferettoSshShellReadOptions,System.Threading.CancellationToken)">
+            <summary>
+            Executes an ordered expect workflow against an interactive SSH shell session asynchronously.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.InvokeSshShellCommand(Transferetto.TransferettoSshShellSession,System.String,System.Nullable{System.TimeSpan},System.String,System.Boolean,System.Int32)">
+            <summary>
+            Runs a command through an interactive SSH shell and captures the result.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.InvokeSshShellCommand(Transferetto.TransferettoSshShellSession,System.String,System.Nullable{System.TimeSpan},System.String,System.Boolean,System.Int32,Transferetto.TransferettoSshShellReadOptions)">
+            <summary>
+            Runs a command through an interactive SSH shell and captures the result.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.InvokeSshShellCommandAsync(Transferetto.TransferettoSshShellSession,System.String,System.Nullable{System.TimeSpan},System.String,System.Boolean,System.Int32,Transferetto.TransferettoSshShellReadOptions,System.Threading.CancellationToken)">
+            <summary>
+            Runs a command through an interactive SSH shell and captures the result asynchronously.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.InvokeSshShellSudoRecipeAsync(Transferetto.TransferettoSshShellSession,Transferetto.TransferettoSshShellRecipeOptions,Transferetto.TransferettoSshShellReadOptions,System.Threading.CancellationToken)">
+            <summary>
+            Executes a reusable SSH shell recipe that runs a sudo command through the interactive shell.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ResizeSshShell(Transferetto.TransferettoSshShellSession,System.UInt32,System.UInt32,System.UInt32,System.UInt32)">
+            <summary>
+            Resizes the pseudo-terminal for an SSH shell session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.StartSshLocalTunnel(Transferetto.TransferettoSshSession,System.UInt32,System.String,System.UInt32,System.String)">
+            <summary>
+            Starts a local SSH tunnel.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.StartSshRemoteTunnel(Transferetto.TransferettoSshSession,System.UInt32,System.String,System.UInt32,System.String)">
+            <summary>
+            Starts a remote SSH tunnel.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.StopSshTunnel(Transferetto.TransferettoSshTunnelSession)">
+            <summary>
+            Stops an SSH tunnel session.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SyncFtpDirectoryAsync(Transferetto.TransferettoFtpSession,System.String,System.String,Transferetto.TransferettoSyncOptions,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously synchronizes a local directory with an FTP or FTPS directory.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.SyncSftpDirectoryAsync(Transferetto.TransferettoSftpSession,System.String,System.String,Transferetto.TransferettoSyncOptions,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously synchronizes a local directory with an SFTP directory.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadFtpFilesAsync(Transferetto.TransferettoFtpSession,System.String,System.Collections.Generic.IEnumerable{System.String},System.Collections.Generic.IEnumerable{System.IO.FileInfo},FluentFTP.FtpRemoteExists,FluentFTP.FtpVerify,FluentFTP.FtpError,System.Boolean,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously uploads one or more files to an FTP or FTPS server.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadFtpFileAsync(Transferetto.TransferettoFtpSession,System.String,System.String,FluentFTP.FtpLocalExists,FluentFTP.FtpVerify,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously downloads a file from an FTP or FTPS server.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadFtpFilesAsync(Transferetto.TransferettoFtpSession,System.String,System.Collections.Generic.IEnumerable{System.String},FluentFTP.FtpLocalExists,FluentFTP.FtpVerify,FluentFTP.FtpError,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously downloads multiple files from an FTP or FTPS server.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadFtpDirectoryAsync(Transferetto.TransferettoFtpSession,System.String,System.String,FluentFTP.FtpFolderSyncMode,FluentFTP.FtpRemoteExists,FluentFTP.FtpVerify,System.Collections.Generic.IEnumerable{FluentFTP.Rules.FtpRule},Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously uploads a local directory to an FTP or FTPS server.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadFtpDirectoryAsync(Transferetto.TransferettoFtpSession,System.String,System.String,FluentFTP.FtpFolderSyncMode,FluentFTP.FtpLocalExists,FluentFTP.FtpVerify,System.Collections.Generic.IEnumerable{FluentFTP.Rules.FtpRule},Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously downloads a remote directory from an FTP or FTPS server.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.StartFxpFileTransferAsync(Transferetto.TransferettoFtpSession,System.String,Transferetto.TransferettoFtpSession,System.String,System.Boolean,FluentFTP.FtpRemoteExists,FluentFTP.FtpVerify,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously transfers a file directly between two FTP or FTPS sessions.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.StartFxpDirectoryTransferAsync(Transferetto.TransferettoFtpSession,System.String,Transferetto.TransferettoFtpSession,System.String,FluentFTP.FtpFolderSyncMode,FluentFTP.FtpRemoteExists,FluentFTP.FtpVerify,System.Collections.Generic.IEnumerable{FluentFTP.Rules.FtpRule},Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously transfers a directory directly between two FTP or FTPS sessions.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadSftpFileAsync(Transferetto.TransferettoSftpSession,System.String,System.String,System.Boolean,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously uploads a file over SFTP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadSftpFileAsync(Transferetto.TransferettoSftpSession,System.String,System.String,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously downloads a file over SFTP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadSftpDirectoryAsync(Transferetto.TransferettoSftpSession,System.String,System.String,System.Boolean,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously uploads a directory over SFTP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadSftpDirectoryAsync(Transferetto.TransferettoSftpSession,System.String,System.String,System.Boolean,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously downloads a directory over SFTP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadScpFileAsync(Transferetto.TransferettoScpSession,System.String,System.String,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously uploads a file over SCP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadScpFileAsync(Transferetto.TransferettoScpSession,System.String,System.String,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously downloads a file over SCP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.UploadScpDirectoryAsync(Transferetto.TransferettoScpSession,System.String,System.String,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously uploads a directory over SCP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.DownloadScpDirectoryAsync(Transferetto.TransferettoScpSession,System.String,System.String,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously downloads a directory over SCP.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ReadFtpStream(Transferetto.TransferettoFtpStreamSession,System.Int32,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Reads a chunk from an FTP or FTPS stream with shared cancellation and progress support.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.WriteFtpStream(Transferetto.TransferettoFtpStreamSession,System.Byte[],System.Boolean,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Writes a chunk to an FTP or FTPS stream with shared cancellation and progress support.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ReadFtpStreamAsync(Transferetto.TransferettoFtpStreamSession,System.Int32,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously reads a chunk from an FTP or FTPS stream.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.WriteFtpStreamAsync(Transferetto.TransferettoFtpStreamSession,System.Byte[],System.Boolean,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously writes a chunk to an FTP or FTPS stream.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ReadSftpStream(Transferetto.TransferettoSftpStreamSession,System.Int32,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Reads a chunk from an SFTP stream with shared cancellation and progress support.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.WriteSftpStream(Transferetto.TransferettoSftpStreamSession,System.Byte[],System.Boolean,Transferetto.TransferettoTransferOptions)">
+            <summary>
+            Writes a chunk to an SFTP stream with shared cancellation and progress support.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.ReadSftpStreamAsync(Transferetto.TransferettoSftpStreamSession,System.Int32,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously reads a chunk from an SFTP stream.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoClient.WriteSftpStreamAsync(Transferetto.TransferettoSftpStreamSession,System.Byte[],System.Boolean,Transferetto.TransferettoTransferOptions,System.Threading.CancellationToken)">
+            <summary>
+            Asynchronously writes a chunk to an SFTP stream.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoFtpCertificateInfo">
+            <summary>
+            Describes the certificate presented during FTP or FTPS connection setup.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpCertificateInfo.Subject">
+            <summary>
+            Gets or sets the certificate subject.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpCertificateInfo.Issuer">
+            <summary>
+            Gets or sets the certificate issuer.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpCertificateInfo.ThumbprintSHA1">
+            <summary>
+            Gets or sets the SHA1 certificate thumbprint.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpCertificateInfo.ThumbprintSHA256">
+            <summary>
+            Gets or sets the SHA256 certificate thumbprint.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpCertificateInfo.NotBefore">
+            <summary>
+            Gets or sets the certificate validity start time.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpCertificateInfo.NotAfter">
+            <summary>
+            Gets or sets the certificate validity end time.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpCertificateInfo.PolicyErrors">
+            <summary>
+            Gets or sets the policy validation errors reported by the TLS stack.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpCertificateInfo.CanTrust">
+            <summary>
+            Gets or sets a value indicating whether the certificate was trusted.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpCertificateInfo.TrustSource">
+            <summary>
+            Gets or sets the trust source.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpCertificateInfo.KnownCertificatesPath">
+            <summary>
+            Gets or sets the known-certificate store path used during validation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpCertificateInfo.WasPersisted">
+            <summary>
+            Gets or sets a value indicating whether the certificate was persisted to the known-certificate store.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoFtpCertificatePolicy">
+            <summary>
+            Specifies how FTP or FTPS server certificates should be validated.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpCertificatePolicy.PolicyChain">
+            <summary>
+            Trust certificates accepted by the platform certificate chain policy.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpCertificatePolicy.KnownCertificates">
+            <summary>
+            Trust only certificates already present in the known-certificate store.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpCertificatePolicy.TrustOnFirstUse">
+            <summary>
+            Persist the first certificate seen for a host and trust matching certificates on future connections.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoFtpCertificateTrustSource">
+            <summary>
+            Specifies how an FTP or FTPS server certificate was trusted for the active session.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpCertificateTrustSource.None">
+            <summary>
+            The certificate was not trusted.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpCertificateTrustSource.PolicyChain">
+            <summary>
+            The certificate was trusted by the platform certificate chain policy.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpCertificateTrustSource.ExpectedThumbprint">
+            <summary>
+            The certificate matched an expected certificate thumbprint.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpCertificateTrustSource.KnownCertificates">
+            <summary>
+            The certificate matched a known-certificate store entry.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpCertificateTrustSource.TrustOnFirstUse">
+            <summary>
+            The certificate was persisted by trust-on-first-use.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpCertificateTrustSource.AcceptAny">
+            <summary>
+            Certificate validation was bypassed by explicit accept-any configuration.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoFtpConnectionOptions">
+            <summary>
+            Represents connection settings for an FTP or FTPS session.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.Server">
+            <summary>
+            Gets or sets the server.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.Port">
+            <summary>
+            Gets or sets the remote port number.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.Credential">
+            <summary>
+            Gets or sets the credential.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.FtpProfile">
+            <summary>
+            Gets or sets the ftp Profile.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.EncryptionMode">
+            <summary>
+            Gets or sets the encryption Mode.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.DataConnectionType">
+            <summary>
+            Gets or sets the data Connection Type.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.SslBuffering">
+            <summary>
+            Gets or sets the ssl Buffering.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.DisableDataConnectionEncryption">
+            <summary>
+            Gets or sets a value indicating whether disable Data Connection Encryption.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.DisableValidateCertificateRevocation">
+            <summary>
+            Gets or sets a value indicating whether disable Validate Certificate Revocation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.ValidateAnyCertificate">
+            <summary>
+            Gets or sets a value indicating whether validate Any Certificate.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.UseGnuTls">
+            <summary>
+            Gets or sets a value indicating whether the FluentFTP GnuTLS stream should be used for FTPS connections.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.ExpectedCertificateThumbprints">
+            <summary>
+            Gets or sets expected FTPS certificate thumbprints.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.CertificatePolicy">
+            <summary>
+            Gets or sets the FTPS certificate validation policy.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.KnownCertificatesPath">
+            <summary>
+            Gets or sets the known-certificate store path.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.ConnectTimeout">
+            <summary>
+            Gets or sets the FTP control connection timeout, in milliseconds.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.ReadTimeout">
+            <summary>
+            Gets or sets the FTP control socket read timeout, in milliseconds.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.DataConnectionConnectTimeout">
+            <summary>
+            Gets or sets the FTP data connection timeout, in milliseconds.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.DataConnectionReadTimeout">
+            <summary>
+            Gets or sets the FTP data socket read timeout, in milliseconds.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.NoopInterval">
+            <summary>
+            Gets or sets the FTP control connection NOOP interval, in milliseconds. Set to 0 to disable NOOPs.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.SslSessionLength">
+            <summary>
+            Gets or sets the maximum number of FTPS control-channel transactions before the client reconnects.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.EncryptAuthenticationOnly">
+            <summary>
+            Gets or sets a value indicating whether the CCC command should be used after authentication.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.SelfConnectMode">
+            <summary>
+            Gets or sets how FluentFTP should reconnect when it needs a control connection.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.RetryAttempts">
+            <summary>
+            Gets or sets the number of retry attempts for verified transfers.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.TransferChunkSize">
+            <summary>
+            Gets or sets the number of bytes transferred in a single FTP transfer chunk.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.LocalFileBufferSize">
+            <summary>
+            Gets or sets the local file buffer size used by FTP transfers.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.InternetProtocolVersions">
+            <summary>
+            Gets or sets the internet protocol versions allowed for FTP connections.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.UploadRateLimit">
+            <summary>
+            Gets or sets the upload rate limit in kilobytes per second.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.DownloadRateLimit">
+            <summary>
+            Gets or sets the download rate limit in kilobytes per second.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.UploadDataType">
+            <summary>
+            Gets or sets the data type used by high-level FTP uploads.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.DownloadDataType">
+            <summary>
+            Gets or sets the data type used by high-level FTP downloads.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.ListingDataType">
+            <summary>
+            Gets or sets the data type used by FTP directory listings.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.FXPDataType">
+            <summary>
+            Gets or sets the data type used by FXP server-to-server transfers.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.FXPProgressInterval">
+            <summary>
+            Gets or sets how often FXP progress is reported.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.ActivePorts">
+            <summary>
+            Gets or sets active-mode data ports.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.PassiveBlockedPorts">
+            <summary>
+            Gets or sets passive-mode ports to avoid.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.PassiveMaxAttempts">
+            <summary>
+            Gets or sets the maximum number of passive-mode connection attempts.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.EncodingName">
+            <summary>
+            Gets or sets the text encoding name used by the FTP control channel.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.SendHost">
+            <summary>
+            Gets or sets a value indicating whether send Host.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.SocketKeepAlive">
+            <summary>
+            Gets or sets the socket Keep Alive.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.AutoConnect">
+            <summary>
+            Gets or sets the auto Connect.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.ProxyOptions">
+            <summary>
+            Gets or sets the proxy Options.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpConnectionOptions.TraceOptions">
+            <summary>
+            Gets or sets the trace Options.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpKnownCertificateEntry.Host">
+            <summary>
+            Gets or sets the remote host name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpKnownCertificateEntry.Port">
+            <summary>
+            Gets or sets the remote port number.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpKnownCertificateEntry.Subject">
+            <summary>
+            Gets or sets the certificate subject.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpKnownCertificateEntry.Issuer">
+            <summary>
+            Gets or sets the certificate issuer.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpKnownCertificateEntry.ThumbprintSHA1">
+            <summary>
+            Gets or sets the SHA1 certificate thumbprint.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpKnownCertificateEntry.ThumbprintSHA256">
+            <summary>
+            Gets or sets the SHA256 certificate thumbprint.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpKnownCertificateEntry.FirstSeenUtc">
+            <summary>
+            Gets or sets the first seen UTC timestamp.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpKnownCertificateEntry.LastSeenUtc">
+            <summary>
+            Gets or sets the last seen UTC timestamp.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoFtpProxyOptions">
+            <summary>
+            Represents proxy settings for an FTP or FTPS session.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpProxyOptions.ProxyHost">
+            <summary>
+            Gets or sets the proxy Host.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpProxyOptions.ProxyPort">
+            <summary>
+            Gets or sets the proxy Port.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpProxyOptions.ProxyCredential">
+            <summary>
+            Gets or sets the proxy Credential.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpProxyOptions.ProxyType">
+            <summary>
+            Gets or sets the proxy Type.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoFtpProxyType">
+            <summary>
+            Specifies the proxy protocol used for FTP or FTPS traffic.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpProxyType.FtpClientSocks5Proxy">
+            <summary>
+            The ftp Client Socks5 Proxy value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpProxyType.FtpClientHttp11Proxy">
+            <summary>
+            The ftp Client Http11 Proxy value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpProxyType.FtpClientSocks4aProxy">
+            <summary>
+            The ftp Client Socks4a Proxy value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpProxyType.FtpClientSocks4Proxy">
+            <summary>
+            The ftp Client Socks4 Proxy value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpProxyType.FtpClientUserAtHostProxy">
+            <summary>
+            The ftp Client User At Host Proxy value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpProxyType.FtpClientBlueCoatProxy">
+            <summary>
+            The ftp Client Blue Coat Proxy value.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoFtpSession">
+            <summary>
+            Represents a reusable FTP or FTPS session.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpSession.Host">
+            <summary>
+            Gets the remote host name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpSession.Port">
+            <summary>
+            Gets the remote port number.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpSession.IsConnected">
+            <summary>
+            Gets a value indicating whether connected.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpSession.Error">
+            <summary>
+            Gets or sets the error message associated with the current session or operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpSession.AutoDetectedProfile">
+            <summary>
+            Gets the auto Detected Profile.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpSession.CertificateInfo">
+            <summary>
+            Gets certificate information captured during FTPS validation.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoFtpSession.Dispose">
+            <summary>
+            Releases resources held by the FTP or FTPS session.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoFtpStreamMode">
+            <summary>
+            Specifies how an FTP stream should be opened.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpStreamMode.Read">
+            <summary>
+            The read value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpStreamMode.Write">
+            <summary>
+            The write value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFtpStreamMode.Append">
+            <summary>
+            The append value.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoFtpStreamReadResult">
+            <summary>
+            Represents the result of reading from an FTP stream.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamReadResult.Action">
+            <summary>
+            Gets or sets the action name reported for the operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamReadResult.Status">
+            <summary>
+            Gets or sets a value indicating whether the operation succeeded.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamReadResult.Path">
+            <summary>
+            Gets or sets the path associated with the operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamReadResult.Data">
+            <summary>
+            Gets or sets the data buffer returned by the stream read operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamReadResult.BytesRead">
+            <summary>
+            Gets or sets the bytes Read.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamReadResult.Position">
+            <summary>
+            Gets or sets the position.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamReadResult.EndOfStream">
+            <summary>
+            Gets or sets the end Of Stream.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoFtpStreamSession">
+            <summary>
+            Represents an open FTP stream session.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamSession.Host">
+            <summary>
+            Gets the remote host name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamSession.Port">
+            <summary>
+            Gets the remote port number.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamSession.RemotePath">
+            <summary>
+            Gets the remote path.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamSession.Mode">
+            <summary>
+            Gets the mode.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamSession.Position">
+            <summary>
+            Gets the position.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamSession.Length">
+            <summary>
+            Gets the length.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamSession.CanRead">
+            <summary>
+            Gets a value indicating whether read.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamSession.CanWrite">
+            <summary>
+            Gets a value indicating whether write.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamSession.CanSeek">
+            <summary>
+            Gets a value indicating whether seek.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamSession.IsDisposed">
+            <summary>
+            Gets a value indicating whether disposed.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoFtpStreamSession.Dispose">
+            <summary>
+            Releases resources held by the FTP or FTPS session.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoFtpStreamWriteResult">
+            <summary>
+            Represents the result of writing to an FTP stream.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamWriteResult.Action">
+            <summary>
+            Gets or sets the action name reported for the operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamWriteResult.Status">
+            <summary>
+            Gets or sets a value indicating whether the operation succeeded.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamWriteResult.Path">
+            <summary>
+            Gets or sets the path associated with the operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamWriteResult.BytesWritten">
+            <summary>
+            Gets or sets the bytes Written.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamWriteResult.Position">
+            <summary>
+            Gets or sets the position.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpStreamWriteResult.Message">
+            <summary>
+            Gets or sets the message reported for the operation.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoFtpTraceOptions">
+            <summary>
+            Controls FTP tracing behavior for Transferetto sessions.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpTraceOptions.LogToConsole">
+            <summary>
+            Gets or sets a value indicating whether log To Console.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpTraceOptions.LogUserName">
+            <summary>
+            Gets or sets a value indicating whether log User Name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpTraceOptions.LogPassword">
+            <summary>
+            Gets or sets a value indicating whether log Password.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFtpTraceOptions.LogHost">
+            <summary>
+            Gets or sets a value indicating whether log Host.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoFxpPreflightResult">
+            <summary>
+            Represents the outcome of an FXP preflight check.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.Action">
+            <summary>
+            Gets or sets the action name reported for the operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.Status">
+            <summary>
+            Gets or sets a value indicating whether the preflight checks passed.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.IsSuccess">
+            <summary>
+            Gets or sets a value indicating whether the preflight checks passed.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.TransferKind">
+            <summary>
+            Gets or sets the transfer kind.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.SourceHost">
+            <summary>
+            Gets or sets the source host.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.SourcePort">
+            <summary>
+            Gets or sets the source port.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.DestinationHost">
+            <summary>
+            Gets or sets the destination host.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.DestinationPort">
+            <summary>
+            Gets or sets the destination port.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.SourcePath">
+            <summary>
+            Gets or sets the source path.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.DestinationPath">
+            <summary>
+            Gets or sets the destination path.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.SourceConnected">
+            <summary>
+            Gets or sets a value indicating whether the source session is connected.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.DestinationConnected">
+            <summary>
+            Gets or sets a value indicating whether the destination session is connected.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.SourcePathExists">
+            <summary>
+            Gets or sets a value indicating whether the source path exists.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.DestinationParentExists">
+            <summary>
+            Gets or sets a value indicating whether the destination parent directory exists.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.SourceSupportsCpsv">
+            <summary>
+            Gets or sets a value indicating whether the source advertises CPSV support.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.DestinationSupportsCpsv">
+            <summary>
+            Gets or sets a value indicating whether the destination advertises CPSV support.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.SourceSupportsSscn">
+            <summary>
+            Gets or sets a value indicating whether the source advertises SSCN support.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.DestinationSupportsSscn">
+            <summary>
+            Gets or sets a value indicating whether the destination advertises SSCN support.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.SourceSupportsEpsv">
+            <summary>
+            Gets or sets a value indicating whether the source advertises EPSV support.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.DestinationSupportsEpsv">
+            <summary>
+            Gets or sets a value indicating whether the destination advertises EPSV support.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoFxpPreflightResult.Messages">
+            <summary>
+            Gets or sets informational and failure messages collected during preflight.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoFxpTransferKind">
+            <summary>
+            Identifies the type of FXP transfer to preflight.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFxpTransferKind.File">
+            <summary>
+            Preflight a file transfer.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoFxpTransferKind.Directory">
+            <summary>
+            Preflight a directory transfer.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoRemoteItem">
+            <summary>
+            Represents a remote FTP or FTPS item returned by Transferetto.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoRemoteItem.Name">
+            <summary>
+            Gets or sets the item name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoRemoteItem.FullName">
+            <summary>
+            Gets or sets the full path of the remote item.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoRemoteItem.Type">
+            <summary>
+            Gets or sets the type.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoRemoteItem.Modified">
+            <summary>
+            Gets or sets the modified.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoRemoteItem.Created">
+            <summary>
+            Gets or sets the created.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoRemoteItem.Size">
+            <summary>
+            Gets or sets the size.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoRemoteItem.LinkTarget">
+            <summary>
+            Gets or sets the link Target.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoRemoteItem.RawPermissions">
+            <summary>
+            Gets or sets the raw Permissions.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoTransferResult">
+            <summary>
+            Represents the outcome of a file or directory transfer.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferResult.Action">
+            <summary>
+            Gets or sets the action name reported for the operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferResult.Status">
+            <summary>
+            Gets or sets a value indicating whether the operation succeeded.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferResult.IsSuccess">
+            <summary>
+            Gets or sets a value indicating whether the operation completed successfully.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferResult.IsSkipped">
+            <summary>
+            Gets or sets a value indicating whether the operation was skipped.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferResult.IsSkippedByRule">
+            <summary>
+            Gets or sets a value indicating whether the operation was skipped by a transfer rule.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferResult.IsFailed">
+            <summary>
+            Gets or sets a value indicating whether the operation failed.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferResult.LocalPath">
+            <summary>
+            Gets or sets the local path.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferResult.RemotePath">
+            <summary>
+            Gets or sets the remote path.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferResult.BytesTransferred">
+            <summary>
+            Gets or sets the number of bytes transferred when known.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferResult.TotalBytes">
+            <summary>
+            Gets or sets the expected total number of bytes when known.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferResult.StartedUtc">
+            <summary>
+            Gets or sets the UTC timestamp when the transfer started.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferResult.CompletedUtc">
+            <summary>
+            Gets or sets the UTC timestamp when the transfer completed.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferResult.Elapsed">
+            <summary>
+            Gets the transfer duration when start and completion timestamps are known.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferResult.Message">
+            <summary>
+            Gets or sets the message reported for the operation.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoScpSession">
+            <summary>
+            Represents a reusable SCP session.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoScpSession.Host">
+            <summary>
+            Gets the remote host name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoScpSession.Port">
+            <summary>
+            Gets the remote port number.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoScpSession.IsConnected">
+            <summary>
+            Gets a value indicating whether connected.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoScpSession.Error">
+            <summary>
+            Gets or sets the error message associated with the current session or operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoScpSession.HostKeyInfo">
+            <summary>
+            Gets or sets the host Key Info.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoScpSession.Dispose">
+            <summary>
+            Releases resources held by the SCP session.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSftpAttributes">
+            <summary>
+            Represents SFTP file system metadata and permission details.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.Path">
+            <summary>
+            Gets or sets the path associated with the operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.IsDirectory">
+            <summary>
+            Gets or sets a value indicating whether directory.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.IsRegularFile">
+            <summary>
+            Gets or sets a value indicating whether regular File.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.IsSymbolicLink">
+            <summary>
+            Gets or sets a value indicating whether symbolic Link.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.Size">
+            <summary>
+            Gets or sets the size.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.LastAccessTime">
+            <summary>
+            Gets or sets the last Access Time.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.LastAccessTimeUtc">
+            <summary>
+            Gets or sets the last Access Time Utc.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.LastWriteTime">
+            <summary>
+            Gets or sets the last Write Time.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.LastWriteTimeUtc">
+            <summary>
+            Gets or sets the last Write Time Utc.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.UserId">
+            <summary>
+            Gets or sets the user Id.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.GroupId">
+            <summary>
+            Gets or sets the group Id.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.PermissionsValue">
+            <summary>
+            Gets or sets the permissions Value.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.PermissionsOctal">
+            <summary>
+            Gets or sets the permissions Octal.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.OwnerCanRead">
+            <summary>
+            Gets or sets the owner Can Read.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.OwnerCanWrite">
+            <summary>
+            Gets or sets the owner Can Write.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.OwnerCanExecute">
+            <summary>
+            Gets or sets the owner Can Execute.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.GroupCanRead">
+            <summary>
+            Gets or sets the group Can Read.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.GroupCanWrite">
+            <summary>
+            Gets or sets the group Can Write.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.GroupCanExecute">
+            <summary>
+            Gets or sets the group Can Execute.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.OthersCanRead">
+            <summary>
+            Gets or sets the others Can Read.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.OthersCanWrite">
+            <summary>
+            Gets or sets the others Can Write.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpAttributes.OthersCanExecute">
+            <summary>
+            Gets or sets the others Can Execute.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSftpConnectionOptions">
+            <summary>
+            Represents connection settings for an SFTP session.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSftpItem">
+            <summary>
+            Represents a remote SFTP item returned by Transferetto.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpItem.Name">
+            <summary>
+            Gets or sets the item name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpItem.FullName">
+            <summary>
+            Gets or sets the full path of the remote item.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpItem.IsDirectory">
+            <summary>
+            Gets or sets a value indicating whether directory.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpItem.IsRegularFile">
+            <summary>
+            Gets or sets a value indicating whether regular File.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpItem.IsSymbolicLink">
+            <summary>
+            Gets or sets a value indicating whether symbolic Link.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpItem.Length">
+            <summary>
+            Gets or sets the length.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpItem.LastWriteTime">
+            <summary>
+            Gets or sets the last Write Time.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSftpSession">
+            <summary>
+            Represents a reusable SFTP session.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpSession.Host">
+            <summary>
+            Gets the remote host name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpSession.Port">
+            <summary>
+            Gets the remote port number.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpSession.IsConnected">
+            <summary>
+            Gets a value indicating whether connected.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpSession.Error">
+            <summary>
+            Gets or sets the error message associated with the current session or operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpSession.HostKeyInfo">
+            <summary>
+            Gets or sets the host Key Info.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoSftpSession.CreateDirectory(System.String)">
+            <summary>
+            Create Directory.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoSftpSession.Dispose">
+            <summary>
+            Releases resources held by the SFTP session.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSftpStreamMode">
+            <summary>
+            Specifies how an SFTP stream should be opened.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSftpStreamMode.Read">
+            <summary>
+            The read value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSftpStreamMode.Write">
+            <summary>
+            The write value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSftpStreamMode.Append">
+            <summary>
+            The append value.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSftpStreamReadResult">
+            <summary>
+            Represents the result of reading from an SFTP stream.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamReadResult.Action">
+            <summary>
+            Gets or sets the action name reported for the operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamReadResult.Status">
+            <summary>
+            Gets or sets a value indicating whether the operation succeeded.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamReadResult.Path">
+            <summary>
+            Gets or sets the path associated with the operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamReadResult.Data">
+            <summary>
+            Gets or sets the data buffer returned by the stream read operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamReadResult.BytesRead">
+            <summary>
+            Gets or sets the bytes Read.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamReadResult.Position">
+            <summary>
+            Gets or sets the position.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamReadResult.EndOfStream">
+            <summary>
+            Gets or sets the end Of Stream.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSftpStreamSession">
+            <summary>
+            Represents an open SFTP stream session.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamSession.Host">
+            <summary>
+            Gets the remote host name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamSession.Port">
+            <summary>
+            Gets the remote port number.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamSession.RemotePath">
+            <summary>
+            Gets the remote path.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamSession.Mode">
+            <summary>
+            Gets the mode.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamSession.Position">
+            <summary>
+            Gets the position.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamSession.Length">
+            <summary>
+            Gets the length.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamSession.CanRead">
+            <summary>
+            Gets a value indicating whether read.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamSession.CanWrite">
+            <summary>
+            Gets a value indicating whether write.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamSession.CanSeek">
+            <summary>
+            Gets a value indicating whether seek.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamSession.IsDisposed">
+            <summary>
+            Gets a value indicating whether disposed.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoSftpStreamSession.Dispose">
+            <summary>
+            Releases resources held by the SFTP session.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSftpStreamWriteResult">
+            <summary>
+            Represents the result of writing to an SFTP stream.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamWriteResult.Action">
+            <summary>
+            Gets or sets the action name reported for the operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamWriteResult.Status">
+            <summary>
+            Gets or sets a value indicating whether the operation succeeded.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamWriteResult.Path">
+            <summary>
+            Gets or sets the path associated with the operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamWriteResult.BytesWritten">
+            <summary>
+            Gets or sets the bytes Written.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamWriteResult.Position">
+            <summary>
+            Gets or sets the position.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSftpStreamWriteResult.Message">
+            <summary>
+            Gets or sets the message reported for the operation.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshCommandOptions">
+            <summary>
+            Provides shared options for non-interactive SSH command execution.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshCommandOptions.CancellationToken">
+            <summary>
+            Gets or sets a token used to cancel a running SSH command.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshCommandOptions.CommandTimeout">
+            <summary>
+            Gets or sets the timeout applied to the remote command.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshCommandOptions.OutputEncoding">
+            <summary>
+            Gets or sets the text encoding used for command output streams.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshCommandOptions.OutputProgress">
+            <summary>
+            Gets or sets the progressive output sink used by command execution.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshCommandOutputChunk">
+            <summary>
+            Represents a chunk of progressive output from a non-interactive SSH command.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshCommandOutputChunk.Stream">
+            <summary>
+            Gets or sets the output stream that produced the chunk.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshCommandOutputChunk.Text">
+            <summary>
+            Gets or sets the text that was emitted.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshCommandOutputChunk.TimestampUtc">
+            <summary>
+            Gets or sets the UTC timestamp when the chunk was observed.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshCommandOutputStream">
+            <summary>
+            Identifies the SSH command output stream that produced a chunk.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshCommandOutputStream.Stdout">
+            <summary>
+            Standard output.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshCommandOutputStream.Stderr">
+            <summary>
+            Standard error.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshCommandResult">
+            <summary>
+            Represents the result of a non-interactive SSH command execution.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshCommandResult.CommandText">
+            <summary>
+            Gets or sets the command text that was executed remotely.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshCommandResult.Status">
+            <summary>
+            Gets or sets a value indicating whether the operation succeeded.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshCommandResult.ExitStatus">
+            <summary>
+            Gets or sets the remote exit status.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshCommandResult.ExitSignal">
+            <summary>
+            Gets or sets the remote exit signal, when available.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshCommandResult.IsCanceled">
+            <summary>
+            Gets or sets a value indicating whether the command was canceled.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshCommandResult.Output">
+            <summary>
+            Gets or sets the command output.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshCommandResult.Error">
+            <summary>
+            Gets or sets the error message associated with the current session or operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshCommandResult.StartedUtc">
+            <summary>
+            Gets or sets the UTC timestamp when command execution started.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshCommandResult.CompletedUtc">
+            <summary>
+            Gets or sets the UTC timestamp when command execution completed.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshConnectionOptions">
+            <summary>
+            Represents connection settings for SSH-based sessions.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.Server">
+            <summary>
+            Gets or sets the server.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.UserName">
+            <summary>
+            Gets or sets the user Name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.Password">
+            <summary>
+            Gets or sets the password.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.Credential">
+            <summary>
+            Gets or sets the credential.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.PrivateKeyPath">
+            <summary>
+            Gets or sets the private Key Path.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.PrivateKeyPassphrase">
+            <summary>
+            Gets or sets the private Key Passphrase.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.Port">
+            <summary>
+            Gets or sets the remote port number.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.EnableKeyboardInteractive">
+            <summary>
+            Gets or sets a value indicating whether enable Keyboard Interactive.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.AcceptAnyHostKey">
+            <summary>
+            Gets or sets the accept Any Host Key.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.ExpectedHostKeyFingerprints">
+            <summary>
+            Gets or sets the expected Host Key Fingerprints.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.HostKeyPolicy">
+            <summary>
+            Gets or sets the host Key Policy.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.KnownHostsPath">
+            <summary>
+            Gets or sets the known Hosts Path.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.KeepAliveIntervalSeconds">
+            <summary>
+            Gets or sets the keep Alive Interval Seconds.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.ConnectionTimeoutSeconds">
+            <summary>
+            Gets or sets the connection Timeout Seconds.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.RetryAttempts">
+            <summary>
+            Gets or sets the retry Attempts.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.ProxyType">
+            <summary>
+            Gets or sets the proxy Type.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.ProxyHost">
+            <summary>
+            Gets or sets the proxy Host.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.ProxyPort">
+            <summary>
+            Gets or sets the proxy Port.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshConnectionOptions.ProxyCredential">
+            <summary>
+            Gets or sets the proxy Credential.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshHostKeyInfo">
+            <summary>
+            Describes the host key that was presented during SSH connection setup.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshHostKeyInfo.HostKeyName">
+            <summary>
+            Gets or sets the host Key Name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshHostKeyInfo.KeyLength">
+            <summary>
+            Gets or sets the key Length.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshHostKeyInfo.FingerPrintMD5">
+            <summary>
+            Gets or sets the finger Print MD5.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshHostKeyInfo.FingerPrintSHA256">
+            <summary>
+            Gets or sets the finger Print SHA256.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshHostKeyInfo.CanTrust">
+            <summary>
+            Gets or sets a value indicating whether trust.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshHostKeyInfo.TrustSource">
+            <summary>
+            Gets or sets the trust Source.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshHostKeyInfo.KnownHostsPath">
+            <summary>
+            Gets or sets the known Hosts Path.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshHostKeyInfo.WasPersisted">
+            <summary>
+            Gets or sets the was Persisted.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshHostKeyPolicy">
+            <summary>
+            Specifies how SSH host keys should be validated.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshHostKeyPolicy.Loose">
+            <summary>
+            The loose value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshHostKeyPolicy.KnownHosts">
+            <summary>
+            The known Hosts value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshHostKeyPolicy.TrustOnFirstUse">
+            <summary>
+            The trust On First Use value.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshHostKeyTrustSource">
+            <summary>
+            Specifies how an SSH host key was trusted for the active session.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshHostKeyTrustSource.None">
+            <summary>
+            The none value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshHostKeyTrustSource.Loose">
+            <summary>
+            The loose value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshHostKeyTrustSource.AcceptAny">
+            <summary>
+            The accept Any value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshHostKeyTrustSource.ExpectedFingerprint">
+            <summary>
+            The expected Fingerprint value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshHostKeyTrustSource.KnownHosts">
+            <summary>
+            The known Hosts value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshHostKeyTrustSource.TrustOnFirstUse">
+            <summary>
+            The trust On First Use value.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshKnownHostEntry.Host">
+            <summary>
+            Gets or sets the remote host name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshKnownHostEntry.Port">
+            <summary>
+            Gets or sets the remote port number.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshKnownHostEntry.HostKeyName">
+            <summary>
+            Gets or sets the host Key Name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshKnownHostEntry.FingerPrintMD5">
+            <summary>
+            Gets or sets the finger Print MD5.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshKnownHostEntry.FingerPrintSHA256">
+            <summary>
+            Gets or sets the finger Print SHA256.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshKnownHostEntry.KeyLength">
+            <summary>
+            Gets or sets the key Length.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshKnownHostEntry.FirstSeenUtc">
+            <summary>
+            Gets or sets the first Seen Utc.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshKnownHostEntry.LastSeenUtc">
+            <summary>
+            Gets or sets the last Seen Utc.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshProxyType">
+            <summary>
+            Specifies the proxy protocol used for SSH-based sessions.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshProxyType.None">
+            <summary>
+            The none value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshProxyType.Http">
+            <summary>
+            The http value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshProxyType.Socks4">
+            <summary>
+            The socks4 value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshProxyType.Socks5">
+            <summary>
+            The socks5 value.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshSession">
+            <summary>
+            Represents a reusable SSH session.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshSession.Host">
+            <summary>
+            Gets the remote host name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshSession.Port">
+            <summary>
+            Gets the remote port number.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshSession.IsConnected">
+            <summary>
+            Gets a value indicating whether connected.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshSession.Error">
+            <summary>
+            Gets or sets the error message associated with the current session or operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshSession.HostKeyInfo">
+            <summary>
+            Gets or sets the host Key Info.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoSshSession.Dispose">
+            <summary>
+            Releases resources held by the SSH session.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshShellCommandResult">
+            <summary>
+            Represents the result of running a command through an interactive SSH shell.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellCommandResult.Command">
+            <summary>
+            Gets or sets the command.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellCommandResult.Output">
+            <summary>
+            Gets or sets the command output.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellCommandResult.ExitCode">
+            <summary>
+            Gets or sets the exit Code.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellCommandResult.Status">
+            <summary>
+            Gets or sets a value indicating whether the operation succeeded.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellCommandResult.Marker">
+            <summary>
+            Gets or sets the marker.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellCommandResult.PromptPattern">
+            <summary>
+            Gets or sets the prompt Pattern.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshShellControlKey">
+            <summary>
+            Specifies named control keys that can be sent to an SSH shell session.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellControlKey.Interrupt">
+            <summary>
+            The interrupt value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellControlKey.EndOfTransmission">
+            <summary>
+            The end Of Transmission value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellControlKey.Suspend">
+            <summary>
+            The suspend value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellControlKey.EndOfText">
+            <summary>
+            The end Of Text value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellControlKey.Escape">
+            <summary>
+            The escape value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellControlKey.Tab">
+            <summary>
+            The tab value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellControlKey.Enter">
+            <summary>
+            The enter value.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshShellExpectResult">
+            <summary>
+            Represents the result of an ordered interactive SSH shell expect workflow.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectResult.Status">
+            <summary>
+            Gets or sets a value indicating whether every executed step succeeded.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectResult.FailedStepIndex">
+            <summary>
+            Gets or sets the index of the first failed step when the workflow does not succeed.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectResult.CompletedStepCount">
+            <summary>
+            Gets or sets the number of steps that were executed.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectResult.Steps">
+            <summary>
+            Gets or sets the ordered step results.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshShellExpectStep">
+            <summary>
+            Represents one ordered step in an interactive SSH shell expect workflow.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStep.Name">
+            <summary>
+            Gets or sets the optional step name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStep.SendText">
+            <summary>
+            Gets or sets the text to send before reading output.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStep.AppendLine">
+            <summary>
+            Gets or sets a value indicating whether a newline is appended when sending text.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStep.ControlKey">
+            <summary>
+            Gets or sets the optional control key to send before reading output.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStep.ControlRepeat">
+            <summary>
+            Gets or sets the number of times the control key should be sent.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStep.ExpectText">
+            <summary>
+            Gets or sets the text to wait for in the shell output.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStep.RegexPattern">
+            <summary>
+            Gets or sets the regular expression to wait for in the shell output.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStep.ExpectPrompt">
+            <summary>
+            Gets or sets a value indicating whether the prompt should be waited for.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStep.PromptPattern">
+            <summary>
+            Gets or sets the prompt pattern to use when waiting for a prompt.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStep.PromptPreset">
+            <summary>
+            Gets or sets the reusable prompt preset to use when waiting for a prompt.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStep.ReadLine">
+            <summary>
+            Gets or sets a value indicating whether one line should be read.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStep.ReadUntilIdle">
+            <summary>
+            Gets or sets a value indicating whether output should be read until idle.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStep.Follow">
+            <summary>
+            Gets or sets a value indicating whether shell output should be followed until timeout, cancellation, or stop condition.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStep.StopPattern">
+            <summary>
+            Gets or sets the optional stop pattern used during follow mode.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStep.Lookback">
+            <summary>
+            Gets or sets the lookback window used for text and regex matching.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStep.Timeout">
+            <summary>
+            Gets or sets the timeout applied to the read or wait portion of the step.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStep.IdleTimeout">
+            <summary>
+            Gets or sets the idle timeout used when reading until idle.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshShellExpectStepResult">
+            <summary>
+            Represents the result of a single step in an interactive SSH shell expect workflow.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStepResult.StepIndex">
+            <summary>
+            Gets or sets the zero-based step index.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStepResult.StepName">
+            <summary>
+            Gets or sets the optional step name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStepResult.Status">
+            <summary>
+            Gets or sets a value indicating whether the step succeeded.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStepResult.Matched">
+            <summary>
+            Gets or sets a value indicating whether the step matched its expected condition.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStepResult.TimedOut">
+            <summary>
+            Gets or sets a value indicating whether the step timed out before matching.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStepResult.Output">
+            <summary>
+            Gets or sets the output captured for the step.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStepResult.StartedUtc">
+            <summary>
+            Gets or sets the UTC timestamp when the step started.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellExpectStepResult.CompletedUtc">
+            <summary>
+            Gets or sets the UTC timestamp when the step completed.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshShellOptions">
+            <summary>
+            Represents terminal and transcript settings for an SSH shell session.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellOptions.TerminalName">
+            <summary>
+            Gets or sets the terminal Name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellOptions.Columns">
+            <summary>
+            Gets or sets the columns.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellOptions.Rows">
+            <summary>
+            Gets or sets the rows.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellOptions.Width">
+            <summary>
+            Gets or sets the width.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellOptions.Height">
+            <summary>
+            Gets or sets the height.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellOptions.BufferSize">
+            <summary>
+            Gets or sets the buffer Size.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellOptions.NoTerminal">
+            <summary>
+            Gets or sets the no Terminal.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellOptions.PromptPattern">
+            <summary>
+            Gets or sets the explicit prompt Pattern.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellOptions.PromptPreset">
+            <summary>
+            Gets or sets the reusable prompt preset applied when <see cref="P:Transferetto.TransferettoSshShellOptions.PromptPattern"/> is not provided.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellOptions.EnableTranscript">
+            <summary>
+            Gets or sets a value indicating whether enable Transcript.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellOptions.MaxTranscriptEntries">
+            <summary>
+            Gets or sets the max Transcript Entries.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellOptions.MaxTranscriptCharacters">
+            <summary>
+            Gets or sets the max Transcript Characters.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshShellOutputChunk">
+            <summary>
+            Represents a chunk of progressive output from an interactive SSH shell session.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellOutputChunk.Text">
+            <summary>
+            Gets or sets the text that was emitted by the shell.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellOutputChunk.TimestampUtc">
+            <summary>
+            Gets or sets the UTC timestamp when the chunk was observed.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshShellPromptPreset">
+            <summary>
+            Defines reusable SSH shell prompt presets for common interactive environments.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellPromptPreset.None">
+            <summary>
+            No preset prompt pattern is applied.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellPromptPreset.Linux">
+            <summary>
+            Matches a typical Linux or POSIX shell prompt ending with <c>$</c> or <c>#</c>.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellPromptPreset.LinuxUser">
+            <summary>
+            Matches a typical non-root Linux or POSIX shell prompt ending with <c>$</c>.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellPromptPreset.LinuxRoot">
+            <summary>
+            Matches a typical root Linux or POSIX shell prompt ending with <c>#</c>.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellPromptPreset.PowerShell">
+            <summary>
+            Matches a typical PowerShell prompt beginning with <c>PS</c> and ending with <c>&gt;</c>.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellPromptPreset.Cmd">
+            <summary>
+            Matches a typical Windows Command Prompt ending with <c>&gt;</c>.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshShellReadOptions">
+            <summary>
+            Provides shared options for reading from an interactive SSH shell session.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellReadOptions.CancellationToken">
+            <summary>
+            Gets or sets a token used to cancel a shell read or wait operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellReadOptions.OutputProgress">
+            <summary>
+            Gets or sets the progressive output sink used by shell read operations.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellReadOptions.PollInterval">
+            <summary>
+            Gets or sets the poll interval used when waiting for additional shell output.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshShellRecipeKind">
+            <summary>
+            Defines reusable SSH shell recipes for common remote administration flows.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellRecipeKind.SudoCommand">
+            <summary>
+            Runs a command through <c>sudo</c> and supplies the password through the interactive shell when prompted.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellRecipeKind.FollowFile">
+            <summary>
+            Follows a remote file with <c>tail -f</c> until timeout, stop-pattern match, or cancellation.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellRecipeKind.FollowJournal">
+            <summary>
+            Follows systemd journal output for one service with <c>journalctl -f</c>.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshShellRecipeOptions">
+            <summary>
+            Represents reusable SSH shell recipe options for common Linux administration flows.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeOptions.Recipe">
+            <summary>
+            Gets or sets the recipe kind to execute.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeOptions.Command">
+            <summary>
+            Gets or sets the command used by recipes that execute a shell command.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeOptions.Password">
+            <summary>
+            Gets or sets the sudo password used by <see cref="F:Transferetto.TransferettoSshShellRecipeKind.SudoCommand"/>.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeOptions.PasswordPromptPattern">
+            <summary>
+            Gets or sets the regular expression used to detect a sudo password prompt when it must be overridden.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeOptions.RemotePath">
+            <summary>
+            Gets or sets the remote file path used by <see cref="F:Transferetto.TransferettoSshShellRecipeKind.FollowFile"/>.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeOptions.ServiceName">
+            <summary>
+            Gets or sets the service name used by <see cref="F:Transferetto.TransferettoSshShellRecipeKind.FollowJournal"/>.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeOptions.TailLines">
+            <summary>
+            Gets or sets the number of historical lines to include before entering follow mode.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeOptions.StopPattern">
+            <summary>
+            Gets or sets the optional stop pattern used while following output.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeOptions.Lookback">
+            <summary>
+            Gets or sets the lookback window used for text and regular expression matching.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeOptions.Timeout">
+            <summary>
+            Gets or sets the recipe timeout.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeOptions.InterruptTimeout">
+            <summary>
+            Gets or sets the timeout used when interrupting a long-running follow command.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeOptions.PromptPattern">
+            <summary>
+            Gets or sets the explicit prompt pattern used when a recipe needs to return to the shell prompt.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeOptions.PromptPreset">
+            <summary>
+            Gets or sets the reusable prompt preset used when <see cref="P:Transferetto.TransferettoSshShellRecipeOptions.PromptPattern"/> is not provided.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshShellRecipeResult">
+            <summary>
+            Represents the result of a reusable SSH shell recipe execution.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeResult.Recipe">
+            <summary>
+            Gets or sets the executed recipe kind.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeResult.CommandText">
+            <summary>
+            Gets or sets the shell command text sent for the recipe.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeResult.Output">
+            <summary>
+            Gets or sets the captured shell output.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeResult.ExitCode">
+            <summary>
+            Gets or sets the exit code when the recipe captures one.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeResult.Status">
+            <summary>
+            Gets or sets a value indicating whether the recipe completed successfully.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeResult.WasInterrupted">
+            <summary>
+            Gets or sets a value indicating whether the recipe stopped a long-running remote command with an interrupt.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeResult.PromptPattern">
+            <summary>
+            Gets or sets the prompt pattern used while returning to the interactive shell.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeResult.StartedUtc">
+            <summary>
+            Gets or sets the UTC timestamp when the recipe started.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellRecipeResult.CompletedUtc">
+            <summary>
+            Gets or sets the UTC timestamp when the recipe completed.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshShellSession">
+            <summary>
+            Represents a reusable interactive SSH shell session.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellSession.Host">
+            <summary>
+            Gets the remote host name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellSession.Port">
+            <summary>
+            Gets the remote port number.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellSession.IsConnected">
+            <summary>
+            Gets a value indicating whether connected.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellSession.DataAvailable">
+            <summary>
+            Gets the data Available.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellSession.TerminalName">
+            <summary>
+            Gets the terminal Name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellSession.Columns">
+            <summary>
+            Gets or sets the columns.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellSession.Rows">
+            <summary>
+            Gets or sets the rows.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellSession.Width">
+            <summary>
+            Gets or sets the width.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellSession.Height">
+            <summary>
+            Gets or sets the height.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellSession.BufferSize">
+            <summary>
+            Gets the buffer Size.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellSession.NoTerminal">
+            <summary>
+            Gets the no Terminal.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellSession.PromptPattern">
+            <summary>
+            Gets or sets the prompt Pattern.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellSession.PromptPreset">
+            <summary>
+            Gets the configured prompt preset.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellSession.EnableTranscript">
+            <summary>
+            Gets a value indicating whether enable Transcript.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellSession.MaxTranscriptEntries">
+            <summary>
+            Gets the max Transcript Entries.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellSession.MaxTranscriptCharacters">
+            <summary>
+            Gets the max Transcript Characters.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoSshShellSession.Dispose">
+            <summary>
+            Releases resources held by the SSH session.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshShellTranscriptDirection">
+            <summary>
+            Specifies the direction of a captured SSH shell transcript entry.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellTranscriptDirection.Read">
+            <summary>
+            The read value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellTranscriptDirection.Write">
+            <summary>
+            The write value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshShellTranscriptDirection.Control">
+            <summary>
+            The control value.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshShellTranscriptEntry">
+            <summary>
+            Represents one captured SSH shell transcript entry.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellTranscriptEntry.TimestampUtc">
+            <summary>
+            Gets or sets the timestamp Utc.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellTranscriptEntry.Direction">
+            <summary>
+            Gets or sets the direction.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellTranscriptEntry.Text">
+            <summary>
+            Gets or sets the text.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshShellTranscriptSnapshot">
+            <summary>
+            Represents a bounded snapshot of the SSH shell transcript buffer.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellTranscriptSnapshot.Entries">
+            <summary>
+            Gets or sets the transcript entries captured in the snapshot.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellTranscriptSnapshot.CapturedEntryCount">
+            <summary>
+            Gets or sets the captured Entry Count.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellTranscriptSnapshot.DroppedEntryCount">
+            <summary>
+            Gets or sets the dropped Entry Count.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellTranscriptSnapshot.TotalCharacterCount">
+            <summary>
+            Gets or sets the total Character Count.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshShellTranscriptSnapshot.IsTruncated">
+            <summary>
+            Gets a value indicating whether truncated.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshTunnelSession">
+            <summary>
+            Represents a reusable SSH tunnel session.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshTunnelSession.TunnelType">
+            <summary>
+            Gets the tunnel Type.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshTunnelSession.Host">
+            <summary>
+            Gets the remote host name.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshTunnelSession.Port">
+            <summary>
+            Gets the remote port number.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshTunnelSession.BoundHost">
+            <summary>
+            Gets the bound Host.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshTunnelSession.BoundPort">
+            <summary>
+            Gets the bound Port.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshTunnelSession.IsStarted">
+            <summary>
+            Gets a value indicating whether started.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSshTunnelSession.IsConnected">
+            <summary>
+            Gets a value indicating whether connected.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoSshTunnelSession.Dispose">
+            <summary>
+            Releases resources held by the SSH session.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSshTunnelType">
+            <summary>
+            Specifies whether an SSH tunnel is local or remote.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshTunnelType.Local">
+            <summary>
+            The local value.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSshTunnelType.Remote">
+            <summary>
+            The remote value.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSyncAction">
+            <summary>
+            Represents a single synchronization operation.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSyncAction.CreateDirectory">
+            <summary>
+            Creates a missing local or remote directory.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSyncAction.UploadFile">
+            <summary>
+            Uploads a local file to the remote path.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSyncAction.DownloadFile">
+            <summary>
+            Downloads a remote file to the local path.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSyncAction.DeleteRemoteFile">
+            <summary>
+            Removes a destination file from the remote path during mirror synchronization.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSyncAction.DeleteRemoteDirectory">
+            <summary>
+            Removes a destination directory from the remote path during mirror synchronization.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSyncAction.DeleteLocalFile">
+            <summary>
+            Removes a destination local file during mirror synchronization.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSyncAction.DeleteLocalDirectory">
+            <summary>
+            Removes a destination local directory during mirror synchronization.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSyncAction.Skip">
+            <summary>
+            Records that no transfer is needed for an included file or directory.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSyncComparison">
+            <summary>
+            Defines how existing source and destination files are compared.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSyncComparison.Always">
+            <summary>
+            Transfer every included source file.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSyncComparison.Size">
+            <summary>
+            Transfer only when file sizes differ.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSyncComparison.LastWriteTime">
+            <summary>
+            Transfer only when last-write timestamps differ outside the configured tolerance.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSyncComparison.SizeOrLastWriteTime">
+            <summary>
+            Transfer when either file size or last-write timestamp differs.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSyncDirection">
+            <summary>
+            Defines which side is the source for a directory synchronization.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSyncDirection.Upload">
+            <summary>
+            Copies local files and folders to the remote FTP or SFTP path.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSyncDirection.Download">
+            <summary>
+            Copies remote FTP or SFTP files and folders to the local path.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSyncEntry">
+            <summary>
+            Describes one local or remote item in a synchronization manifest.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncEntry.RelativePath">
+            <summary>
+            Gets or sets the path relative to the synchronized root.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncEntry.LocalPath">
+            <summary>
+            Gets or sets the local filesystem path for this item when known.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncEntry.RemotePath">
+            <summary>
+            Gets or sets the remote FTP or SFTP path for this item when known.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncEntry.IsDirectory">
+            <summary>
+            Gets or sets a value indicating whether this item is a directory.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncEntry.Length">
+            <summary>
+            Gets or sets the file length when this item is a file and the length is known.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncEntry.LastWriteTimeUtc">
+            <summary>
+            Gets or sets the UTC last-write timestamp when known.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSyncMode">
+            <summary>
+            Defines how aggressively the destination should be brought in line with the source.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSyncMode.Update">
+            <summary>
+            Creates missing destination items and updates changed files, leaving extra destination items in place.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoSyncMode.Mirror">
+            <summary>
+            Creates and updates destination items, then removes destination items that no longer exist in the source.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSyncOptions">
+            <summary>
+            Configures how Transferetto plans and executes a directory synchronization.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncOptions.Direction">
+            <summary>
+            Gets or sets which side is treated as the source.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncOptions.Mode">
+            <summary>
+            Gets or sets whether synchronization updates only missing/changed items or mirrors deletes too.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncOptions.Comparison">
+            <summary>
+            Gets or sets how existing files are compared before transfer.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncOptions.DryRun">
+            <summary>
+            Gets or sets a value indicating whether operations are planned but not executed.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncOptions.OverwriteExisting">
+            <summary>
+            Gets or sets a value indicating whether changed existing files may be overwritten.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncOptions.CreateDestinationDirectories">
+            <summary>
+            Gets or sets a value indicating whether missing destination directories should be created.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncOptions.PreserveTimestamps">
+            <summary>
+            Gets or sets a value indicating whether transferred file timestamps should be preserved where the protocol supports it.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncOptions.TimestampTolerance">
+            <summary>
+            Gets or sets the timestamp tolerance used when comparing last-write times.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncOptions.IncludePatterns">
+            <summary>
+            Gets or sets wildcard patterns for relative paths that should be included. Empty means include all paths.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncOptions.ExcludePatterns">
+            <summary>
+            Gets or sets wildcard patterns for relative paths that should be excluded.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSyncPlanItem">
+            <summary>
+            Represents one planned synchronization decision.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncPlanItem.Action">
+            <summary>
+            Gets or sets the action that should be performed.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncPlanItem.Direction">
+            <summary>
+            Gets or sets the synchronization direction that produced the plan item.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncPlanItem.RelativePath">
+            <summary>
+            Gets or sets the relative path affected by this action.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncPlanItem.LocalPath">
+            <summary>
+            Gets or sets the local filesystem path affected by this action.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncPlanItem.RemotePath">
+            <summary>
+            Gets or sets the remote FTP or SFTP path affected by this action.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncPlanItem.Source">
+            <summary>
+            Gets or sets the source manifest entry when the item exists in the source.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncPlanItem.Destination">
+            <summary>
+            Gets or sets the destination manifest entry when the item exists in the destination.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncPlanItem.Message">
+            <summary>
+            Gets or sets a short reason for the planned action.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncPlanItem.ChangesDestination">
+            <summary>
+            Gets a value indicating whether the planned action changes local or remote state.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSyncPlanner">
+            <summary>
+            Builds protocol-neutral synchronization plans from source and destination manifests.
+            </summary>
+        </member>
+        <member name="M:Transferetto.TransferettoSyncPlanner.Plan(System.Collections.Generic.IEnumerable{Transferetto.TransferettoSyncEntry},System.Collections.Generic.IEnumerable{Transferetto.TransferettoSyncEntry},Transferetto.TransferettoSyncOptions)">
+            <summary>
+            Compares source and destination manifests and returns the ordered actions needed to synchronize the destination.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoSyncResult">
+            <summary>
+            Represents the result of one synchronization plan item.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncResult.Action">
+            <summary>
+            Gets or sets the executed or planned action.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncResult.Direction">
+            <summary>
+            Gets or sets the synchronization direction.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncResult.Status">
+            <summary>
+            Gets or sets a value indicating whether the action completed successfully or was valid in dry-run mode.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncResult.IsDryRun">
+            <summary>
+            Gets or sets a value indicating whether this result came from dry-run planning.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncResult.IsSkipped">
+            <summary>
+            Gets or sets a value indicating whether the item was skipped because no change was needed or overwrite was disabled.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncResult.RelativePath">
+            <summary>
+            Gets or sets the relative path affected by this result.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncResult.LocalPath">
+            <summary>
+            Gets or sets the local filesystem path affected by this result.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncResult.RemotePath">
+            <summary>
+            Gets or sets the remote FTP or SFTP path affected by this result.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncResult.BytesTransferred">
+            <summary>
+            Gets or sets the number of bytes transferred when known.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoSyncResult.Message">
+            <summary>
+            Gets or sets a short message describing the result.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoOperationResult">
+            <summary>
+            Represents the outcome of a non-stream Transferetto operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoOperationResult.Action">
+            <summary>
+            Gets or sets the action name reported for the operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoOperationResult.Status">
+            <summary>
+            Gets or sets a value indicating whether the operation succeeded.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoOperationResult.Message">
+            <summary>
+            Gets or sets the message reported for the operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoOperationResult.Path">
+            <summary>
+            Gets or sets the path associated with the operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoOperationResult.OldPath">
+            <summary>
+            Gets or sets the original path associated with the operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoOperationResult.NewPath">
+            <summary>
+            Gets or sets the new path associated with the operation.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoRuntimeSettings">
+            <summary>
+            Stores process-wide runtime settings used by Transferetto.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoRuntimeSettings.FtpTraceOptions">
+            <summary>
+            Gets or sets the FTP tracing options applied to new FTP sessions.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoTransferDirection">
+            <summary>
+            Identifies the direction of a transfer operation.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoTransferDirection.Upload">
+            <summary>
+            Uploads data from the local machine to a remote endpoint.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoTransferDirection.Download">
+            <summary>
+            Downloads data from a remote endpoint to the local machine.
+            </summary>
+        </member>
+        <member name="F:Transferetto.TransferettoTransferDirection.Transfer">
+            <summary>
+            Transfers data between remote endpoints.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoTransferOptions">
+            <summary>
+            Provides shared options for transfer operations.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferOptions.CancellationToken">
+            <summary>
+            Gets or sets a token used to cancel a running transfer.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferOptions.Progress">
+            <summary>
+            Gets or sets the progress sink used by transfer operations.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferOptions.ProgressIntervalBytes">
+            <summary>
+            Gets or sets the minimum number of bytes between progress reports.
+            </summary>
+        </member>
+        <member name="T:Transferetto.TransferettoTransferProgress">
+            <summary>
+            Represents progress information reported during a transfer.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferProgress.Action">
+            <summary>
+            Gets or sets the action name reported for the operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferProgress.Protocol">
+            <summary>
+            Gets or sets the protocol name associated with the operation.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferProgress.Direction">
+            <summary>
+            Gets or sets the transfer direction.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferProgress.LocalPath">
+            <summary>
+            Gets or sets the local path.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferProgress.RemotePath">
+            <summary>
+            Gets or sets the remote path.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferProgress.BytesTransferred">
+            <summary>
+            Gets or sets the number of bytes transferred so far.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferProgress.TotalBytes">
+            <summary>
+            Gets or sets the expected total number of bytes when known.
+            </summary>
+        </member>
+        <member name="P:Transferetto.TransferettoTransferProgress.PercentComplete">
+            <summary>
+            Gets the transfer completion percentage when the total size is known.
+            </summary>
+        </member>
+    </members>
+</doc>
