@@ -1,14 +1,14 @@
-$s3 = Connect-TransferettoS3 `
+$s3 = New-TransferS3Endpoint `
     -BucketName 'evidence' `
     -Region 'eu-central-1' `
     -Prefix 'incoming'
 
-$blob = Connect-TransferettoAzureBlob `
+$blob = New-TransferAzureBlobEndpoint `
     -ContainerUri 'https://account.blob.core.windows.net/evidence' `
     -UseDefaultCredential `
     -Prefix 'archive'
 
-Copy-TransferettoItem `
+Copy-TransferItem `
     -SourceEndpoint $s3 `
     -SourcePath 'server01/latest.txevidence.json' `
     -DestinationEndpoint $blob `

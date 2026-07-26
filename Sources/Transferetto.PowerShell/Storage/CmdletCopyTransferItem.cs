@@ -9,12 +9,12 @@ namespace Transferetto.PowerShell;
 /// <para type="synopsis">Streams an item between any two Transferetto endpoints.</para>
 /// <para type="description">The content is relayed without loading the full item into memory. The returned receipt contains a provider-independent SHA-256 digest.</para>
 /// <example>
-///   <code>Copy-TransferettoItem -SourceEndpoint $s3 -SourcePath incoming/a.json -DestinationEndpoint $blob -DestinationPath archive/a.json</code>
+///   <code>Copy-TransferItem -SourceEndpoint $s3 -SourcePath incoming/a.json -DestinationEndpoint $blob -DestinationPath archive/a.json</code>
 /// </example>
 /// </summary>
-[Cmdlet(VerbsCommon.Copy, "TransferettoItem")]
+[Cmdlet(VerbsCommon.Copy, "TransferItem")]
 [OutputType(typeof(TransferReceipt))]
-public sealed class CmdletCopyTransferettoItem : AsyncPSCmdlet {
+public sealed class CmdletCopyTransferItem : AsyncPSCmdlet {
     /// <summary>Gets or sets the source endpoint.</summary>
     [Parameter(Mandatory = true)]
     public ITransferEndpoint? SourceEndpoint { get; set; }
@@ -57,7 +57,7 @@ public sealed class CmdletCopyTransferettoItem : AsyncPSCmdlet {
                 CancelToken).ConfigureAwait(false);
             WriteObject(receipt);
         } catch (Exception exception) {
-            WriteError(new ErrorRecord(exception, "CopyTransferettoItemFailed", ErrorCategory.WriteError, DestinationPath));
+            WriteError(new ErrorRecord(exception, "CopyTransferItemFailed", ErrorCategory.WriteError, DestinationPath));
         }
     }
 }

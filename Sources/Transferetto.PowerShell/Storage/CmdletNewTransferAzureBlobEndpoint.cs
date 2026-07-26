@@ -13,20 +13,20 @@ namespace Transferetto.PowerShell;
 /// <para type="description">Connects through a protected connection string or a container URI, including a container SAS URI. The endpoint performs blob data-plane operations and does not create or administer storage resources.</para>
 /// <example>
 ///   <para>Connect with a protected connection string.</para>
-///   <code>$blob = Connect-TransferettoAzureBlob -ConnectionString $connectionString -ContainerName evidence -Prefix company-a</code>
+///   <code>$blob = New-TransferAzureBlobEndpoint -ConnectionString $connectionString -ContainerName evidence -Prefix company-a</code>
 /// </example>
 /// <example>
 ///   <para>Connect with the default Azure credential chain.</para>
-///   <code>$blob = Connect-TransferettoAzureBlob -ContainerUri https://account.blob.core.windows.net/evidence -UseDefaultCredential</code>
+///   <code>$blob = New-TransferAzureBlobEndpoint -ContainerUri https://account.blob.core.windows.net/evidence -UseDefaultCredential</code>
 /// </example>
 /// <example>
 ///   <para>Keep a SAS token separate from the safe container URI.</para>
-///   <code>$blob = Connect-TransferettoAzureBlob -ContainerUri https://account.blob.core.windows.net/evidence -SasToken $sasToken</code>
+///   <code>$blob = New-TransferAzureBlobEndpoint -ContainerUri https://account.blob.core.windows.net/evidence -SasToken $sasToken</code>
 /// </example>
 /// </summary>
-[Cmdlet(VerbsCommunications.Connect, "TransferettoAzureBlob", DefaultParameterSetName = "ConnectionString")]
+[Cmdlet(VerbsCommon.New, "TransferAzureBlobEndpoint", DefaultParameterSetName = "ConnectionString")]
 [OutputType(typeof(AzureBlobTransferEndpoint))]
-public sealed class CmdletConnectTransferettoAzureBlob : PSCmdlet {
+public sealed class CmdletNewTransferAzureBlobEndpoint : PSCmdlet {
     /// <summary>Gets or sets a protected Azure Storage connection string.</summary>
     [Parameter(Mandatory = true, ParameterSetName = "ConnectionString")]
     public SecureString? ConnectionString { get; set; }

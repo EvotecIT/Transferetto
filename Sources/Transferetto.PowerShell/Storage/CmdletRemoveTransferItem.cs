@@ -8,12 +8,12 @@ namespace Transferetto.PowerShell;
 /// <summary>
 /// <para type="synopsis">Deletes an item from any writable Transferetto endpoint.</para>
 /// <example>
-///   <code>Remove-TransferettoItem -Endpoint $s3 -Path obsolete.json</code>
+///   <code>Remove-TransferItem -Endpoint $s3 -Path obsolete.json</code>
 /// </example>
 /// </summary>
-[Cmdlet(VerbsCommon.Remove, "TransferettoItem", SupportsShouldProcess = true, ConfirmImpact = ConfirmImpact.High)]
+[Cmdlet(VerbsCommon.Remove, "TransferItem", SupportsShouldProcess = true, ConfirmImpact = ConfirmImpact.High)]
 [OutputType(typeof(bool))]
-public sealed class CmdletRemoveTransferettoItem : AsyncPSCmdlet {
+public sealed class CmdletRemoveTransferItem : AsyncPSCmdlet {
     /// <summary>Gets or sets the endpoint.</summary>
     [Parameter(Mandatory = true, Position = 0)]
     public ITransferEndpoint? Endpoint { get; set; }
@@ -30,7 +30,7 @@ public sealed class CmdletRemoveTransferettoItem : AsyncPSCmdlet {
         try {
             WriteObject(await Endpoint.DeleteAsync(Path, CancelToken).ConfigureAwait(false));
         } catch (Exception exception) {
-            WriteError(new ErrorRecord(exception, "RemoveTransferettoItemFailed", ErrorCategory.WriteError, Path));
+            WriteError(new ErrorRecord(exception, "RemoveTransferItemFailed", ErrorCategory.WriteError, Path));
         }
     }
 }

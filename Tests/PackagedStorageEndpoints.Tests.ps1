@@ -16,11 +16,16 @@ Import-Module Transferetto -Force
 `$credential = [pscredential]::new(
     'access-key',
     (ConvertTo-SecureString 'secret-key' -AsPlainText -Force))
-`$s3 = Connect-TransferettoS3 -BucketName 'evidence' -ServiceUrl 'http://127.0.0.1:9000' -Credential `$credential -ForcePathStyle
+`$s3 = New-TransferS3Endpoint -BucketName 'evidence' -ServiceUrl 'http://127.0.0.1:9000' -Credential `$credential -ForcePathStyle
 `$sas = ConvertTo-SecureString 'sv=test&sig=secret' -AsPlainText -Force
-`$blob = Connect-TransferettoAzureBlob -ContainerUri 'https://account.blob.core.windows.net/evidence' -SasToken `$sas
+`$blob = New-TransferAzureBlobEndpoint -ContainerUri 'https://account.blob.core.windows.net/evidence' -SasToken `$sas
 [pscustomobject]@{
-    Commands = @((Get-Command -Module Transferetto -Name '*-Transferetto*').Name | Sort-Object)
+    Commands = @(
+        Get-Command -Module Transferetto |
+            Where-Object Noun -Like 'Transfer*' |
+            Select-Object -ExpandProperty Name |
+            Sort-Object
+    )
     S3Scheme = `$s3.Scheme
     S3DisplayName = `$s3.DisplayName
     BlobScheme = `$blob.Scheme
@@ -40,15 +45,16 @@ Import-Module Transferetto -Force
         $Result = $Json | ConvertFrom-Json
 
         (@($Result.Commands) -join ',') | Should -Be (@(
-            'Connect-TransferettoAzureBlob'
-            'Connect-TransferettoS3'
-            'Copy-TransferettoItem'
-            'Disconnect-TransferettoEndpoint'
-            'Get-TransferettoItem'
-            'Receive-TransferettoItem'
-            'Remove-TransferettoItem'
-            'Send-TransferettoItem'
-            'Test-TransferettoItem'
+            'Close-TransferEndpoint'
+            'Copy-TransferItem'
+            'Get-TransferChildItem'
+            'Get-TransferItem'
+            'New-TransferAzureBlobEndpoint'
+            'New-TransferS3Endpoint'
+            'Receive-TransferItem'
+            'Remove-TransferItem'
+            'Send-TransferItem'
+            'Test-TransferItem'
         ) -join ',')
         $Result.S3Scheme | Should -Be 's3'
         $Result.S3DisplayName | Should -Be 's3://evidence/'

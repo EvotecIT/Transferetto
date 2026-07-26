@@ -10,16 +10,16 @@ namespace Transferetto.PowerShell;
 /// <para type="description">Uses the AWS default credential chain unless an explicit access-key credential is supplied. Custom endpoints support S3-compatible services such as MinIO, Cloudflare R2, and Backblaze B2.</para>
 /// <example>
 ///   <para>Connect with the AWS default credential chain.</para>
-///   <code>$s3 = Connect-TransferettoS3 -BucketName evidence -Region eu-central-1 -Prefix company-a</code>
+///   <code>$s3 = New-TransferS3Endpoint -BucketName evidence -Region eu-central-1 -Prefix company-a</code>
 /// </example>
 /// <example>
 ///   <para>Connect to an S3-compatible endpoint with explicit credentials.</para>
-///   <code>$s3 = Connect-TransferettoS3 -BucketName evidence -ServiceUrl https://storage.example.com -Credential $credential -ForcePathStyle</code>
+///   <code>$s3 = New-TransferS3Endpoint -BucketName evidence -ServiceUrl https://storage.example.com -Credential $credential -ForcePathStyle</code>
 /// </example>
 /// </summary>
-[Cmdlet(VerbsCommunications.Connect, "TransferettoS3")]
+[Cmdlet(VerbsCommon.New, "TransferS3Endpoint")]
 [OutputType(typeof(S3TransferEndpoint))]
-public sealed class CmdletConnectTransferettoS3 : PSCmdlet {
+public sealed class CmdletNewTransferS3Endpoint : PSCmdlet {
     /// <summary>Gets or sets the bucket name.</summary>
     [Parameter(Mandatory = true, Position = 0)]
     public string BucketName { get; set; } = string.Empty;

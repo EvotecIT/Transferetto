@@ -149,20 +149,20 @@ Disconnect-SSH -SshClient $ssh
 
 ### Copy from S3 to Azure Blob Storage
 
-Object-storage commands use one endpoint contract, so listing, upload, download, delete, and cross-provider copy keep the same shape.
+Object-storage commands use one endpoint contract, so listing, upload, download, delete, and cross-provider copy keep the same shape. `New-Transfer*Endpoint` creates a reusable endpoint object; it does not create a bucket, container, or network session.
 
 ```powershell
-$s3 = Connect-TransferettoS3 `
+$s3 = New-TransferS3Endpoint `
     -BucketName 'evidence' `
     -Region 'eu-central-1' `
     -Prefix 'incoming'
 
-$blob = Connect-TransferettoAzureBlob `
+$blob = New-TransferAzureBlobEndpoint `
     -ContainerUri 'https://account.blob.core.windows.net/evidence' `
     -UseDefaultCredential `
     -Prefix 'archive'
 
-$receipt = Copy-TransferettoItem `
+$receipt = Copy-TransferItem `
     -SourceEndpoint $s3 `
     -SourcePath 'server01/latest.json' `
     -DestinationEndpoint $blob `
@@ -172,8 +172,10 @@ $receipt = Copy-TransferettoItem `
 
 $receipt | Format-List
 
-Disconnect-TransferettoEndpoint -Endpoint $s3
-Disconnect-TransferettoEndpoint -Endpoint $blob
+Get-TransferChildItem -Endpoint $blob -Path 'server01/' -Recurse
+
+Close-TransferEndpoint -Endpoint $s3
+Close-TransferEndpoint -Endpoint $blob
 ```
 
 The receipt records the source and destination, transferred byte count, timestamps, provider entity tags, and a SHA-256 digest calculated while the content is streamed. The storage providers perform data-plane operations only; bucket creation, container creation, role assignment, and account administration remain infrastructure concerns.

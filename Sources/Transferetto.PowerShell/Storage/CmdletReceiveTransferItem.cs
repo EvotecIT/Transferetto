@@ -9,12 +9,12 @@ namespace Transferetto.PowerShell;
 /// <summary>
 /// <para type="synopsis">Downloads an item from any readable Transferetto endpoint.</para>
 /// <example>
-///   <code>Receive-TransferettoItem -Endpoint $s3 -Path zones/a/latest.txevidence.json -LocalPath .\latest.json</code>
+///   <code>Receive-TransferItem -Endpoint $s3 -Path zones/a/latest.txevidence.json -LocalPath .\latest.json</code>
 /// </example>
 /// </summary>
-[Cmdlet(VerbsCommunications.Receive, "TransferettoItem")]
+[Cmdlet(VerbsCommunications.Receive, "TransferItem")]
 [OutputType(typeof(TransferReceipt))]
-public sealed class CmdletReceiveTransferettoItem : AsyncPSCmdlet {
+public sealed class CmdletReceiveTransferItem : AsyncPSCmdlet {
     /// <summary>Gets or sets the source endpoint.</summary>
     [Parameter(Mandatory = true, Position = 0)]
     public ITransferEndpoint? Endpoint { get; set; }
@@ -61,7 +61,7 @@ public sealed class CmdletReceiveTransferettoItem : AsyncPSCmdlet {
                 CancelToken).ConfigureAwait(false);
             WriteObject(receipt);
         } catch (Exception exception) {
-            WriteError(new ErrorRecord(exception, "ReceiveTransferettoItemFailed", ErrorCategory.ReadError, Path));
+            WriteError(new ErrorRecord(exception, "ReceiveTransferItemFailed", ErrorCategory.ReadError, Path));
         }
     }
 }

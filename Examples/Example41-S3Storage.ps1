@@ -1,9 +1,9 @@
-$s3 = Connect-TransferettoS3 `
+$s3 = New-TransferS3Endpoint `
     -BucketName 'evidence' `
     -Region 'eu-central-1' `
     -Prefix 'servers'
 
-$receipt = Send-TransferettoItem `
+$receipt = Send-TransferItem `
     -Endpoint $s3 `
     -LocalPath '.\server01.txevidence.json' `
     -Path 'server01/latest.txevidence.json' `
@@ -11,6 +11,6 @@ $receipt = Send-TransferettoItem `
     -Metadata @{ schema = 'testimo_evidence_v3' }
 
 $receipt
-Get-TransferettoItem -Endpoint $s3 -Path 'server01/' -List -Recurse
+Get-TransferChildItem -Endpoint $s3 -Path 'server01/' -Recurse
 
-Disconnect-TransferettoEndpoint -Endpoint $s3
+Close-TransferEndpoint -Endpoint $s3
