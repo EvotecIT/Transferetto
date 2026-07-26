@@ -7,11 +7,11 @@ namespace Transferetto.PowerShell;
 /// <summary>
 /// <para type="synopsis">Disposes a Transferetto endpoint and its owned provider client.</para>
 /// <example>
-///   <code>Disconnect-TransferettoEndpoint -Endpoint $s3</code>
+///   <code>Close-TransferEndpoint -Endpoint $s3</code>
 /// </example>
 /// </summary>
-[Cmdlet(VerbsCommunications.Disconnect, "TransferettoEndpoint")]
-public sealed class CmdletDisconnectTransferettoEndpoint : PSCmdlet {
+[Cmdlet(VerbsCommon.Close, "TransferEndpoint")]
+public sealed class CmdletCloseTransferEndpoint : PSCmdlet {
     /// <summary>Gets or sets the endpoint to dispose.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true)]
     public ITransferEndpoint? Endpoint { get; set; }

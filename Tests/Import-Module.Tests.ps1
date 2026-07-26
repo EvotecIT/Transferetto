@@ -21,15 +21,16 @@ Describe 'Transferetto module import' {
 
     It 'exports the provider-neutral storage command set' {
         $ExpectedCommands = @(
-            'Connect-TransferettoAzureBlob'
-            'Connect-TransferettoS3'
-            'Copy-TransferettoItem'
-            'Disconnect-TransferettoEndpoint'
-            'Get-TransferettoItem'
-            'Receive-TransferettoItem'
-            'Remove-TransferettoItem'
-            'Send-TransferettoItem'
-            'Test-TransferettoItem'
+            'Close-TransferEndpoint'
+            'Copy-TransferItem'
+            'Get-TransferChildItem'
+            'Get-TransferItem'
+            'New-TransferAzureBlobEndpoint'
+            'New-TransferS3Endpoint'
+            'Receive-TransferItem'
+            'Remove-TransferItem'
+            'Send-TransferItem'
+            'Test-TransferItem'
         )
 
         foreach ($CommandName in $ExpectedCommands) {

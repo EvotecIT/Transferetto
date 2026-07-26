@@ -30,7 +30,7 @@ Import-Module Transferetto -Force
 `$credential = [pscredential]::new(
     'access-key',
     (ConvertTo-SecureString 'secret-key' -AsPlainText -Force))
-`$s3 = Connect-TransferettoS3 -BucketName 'evidence' -ServiceUrl 'http://127.0.0.1:9000' -Credential `$credential -ForcePathStyle
+`$s3 = New-TransferS3Endpoint -BucketName 'evidence' -ServiceUrl 'http://127.0.0.1:9000' -Credential `$credential -ForcePathStyle
 `$commandAssembly = `$command.ImplementingType.Assembly
 `$commandAlc = [System.Runtime.Loader.AssemblyLoadContext]::GetLoadContext(`$commandAssembly)
 `$s3Assembly = `$s3.GetType().Assembly

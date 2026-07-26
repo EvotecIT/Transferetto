@@ -12,12 +12,12 @@ namespace Transferetto.PowerShell;
 /// <para type="synopsis">Uploads a local file to any writable Transferetto endpoint.</para>
 /// <example>
 ///   <para>Upload signed evidence without replacing an existing object.</para>
-///   <code>Send-TransferettoItem -Endpoint $s3 -LocalPath .\zone.txevidence.json -Path zones/a/latest.txevidence.json</code>
+///   <code>Send-TransferItem -Endpoint $s3 -LocalPath .\zone.txevidence.json -Path zones/a/latest.txevidence.json</code>
 /// </example>
 /// </summary>
-[Cmdlet(VerbsCommunications.Send, "TransferettoItem")]
+[Cmdlet(VerbsCommunications.Send, "TransferItem")]
 [OutputType(typeof(TransferReceipt))]
-public sealed class CmdletSendTransferettoItem : AsyncPSCmdlet {
+public sealed class CmdletSendTransferItem : AsyncPSCmdlet {
     /// <summary>Gets or sets the destination endpoint.</summary>
     [Parameter(Mandatory = true, Position = 0)]
     public ITransferEndpoint? Endpoint { get; set; }
@@ -68,7 +68,7 @@ public sealed class CmdletSendTransferettoItem : AsyncPSCmdlet {
                 CancelToken).ConfigureAwait(false);
             WriteObject(receipt);
         } catch (Exception exception) {
-            WriteError(new ErrorRecord(exception, "SendTransferettoItemFailed", ErrorCategory.WriteError, Path));
+            WriteError(new ErrorRecord(exception, "SendTransferItemFailed", ErrorCategory.WriteError, Path));
         }
     }
 

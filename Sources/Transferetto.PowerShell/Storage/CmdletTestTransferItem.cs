@@ -8,12 +8,12 @@ namespace Transferetto.PowerShell;
 /// <summary>
 /// <para type="synopsis">Tests whether an item exists on any Transferetto endpoint.</para>
 /// <example>
-///   <code>Test-TransferettoItem -Endpoint $s3 -Path evidence.json</code>
+///   <code>Test-TransferItem -Endpoint $s3 -Path evidence.json</code>
 /// </example>
 /// </summary>
-[Cmdlet(VerbsDiagnostic.Test, "TransferettoItem")]
+[Cmdlet(VerbsDiagnostic.Test, "TransferItem")]
 [OutputType(typeof(bool))]
-public sealed class CmdletTestTransferettoItem : AsyncPSCmdlet {
+public sealed class CmdletTestTransferItem : AsyncPSCmdlet {
     /// <summary>Gets or sets the endpoint.</summary>
     [Parameter(Mandatory = true, Position = 0)]
     public ITransferEndpoint? Endpoint { get; set; }
@@ -27,7 +27,7 @@ public sealed class CmdletTestTransferettoItem : AsyncPSCmdlet {
         try {
             WriteObject(Endpoint != null && await Endpoint.GetItemAsync(Path, CancelToken).ConfigureAwait(false) != null);
         } catch (Exception exception) {
-            WriteError(new ErrorRecord(exception, "TestTransferettoItemFailed", ErrorCategory.ReadError, Path));
+            WriteError(new ErrorRecord(exception, "TestTransferItemFailed", ErrorCategory.ReadError, Path));
         }
     }
 }
