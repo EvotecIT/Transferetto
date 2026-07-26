@@ -1,60 +1,98 @@
-﻿# Transferetto - PowerShell Module
+# Transferetto
 
 <p align="center">
-  <a href="https://dev.azure.com/evotecpl/Transferetto/_build/results?buildId=latest"><img src="https://img.shields.io/azure-devops/build/evotecpl/39c74615-8f34-4af0-a835-68dc33f9214f/14?label=Azure%20Pipelines&style=flat-square"></a>
   <a href="https://www.powershellgallery.com/packages/Transferetto"><img src="https://img.shields.io/powershellgallery/v/Transferetto.svg?style=flat-square"></a>
-  <a href="https://www.powershellgallery.com/packages/Transferetto"><img src="https://img.shields.io/powershellgallery/v/Transferetto.svg?label=powershell%20gallery%20preview&colorB=yellow&style=flat-square&include_prereleases"></a>
+  <a href="https://github.com/EvotecIT/Transferetto/actions/workflows/test-dotnet.yml"><img src="https://github.com/EvotecIT/Transferetto/actions/workflows/test-dotnet.yml/badge.svg"></a>
   <a href="https://github.com/EvotecIT/Transferetto"><img src="https://img.shields.io/github/license/EvotecIT/Transferetto.svg?style=flat-square"></a>
 </p>
 
-<p align="center">
-  <a href="https://www.powershellgallery.com/packages/Transferetto"><img src="https://img.shields.io/powershellgallery/p/Transferetto.svg?style=flat-square"></a>
-  <a href="https://github.com/EvotecIT/Transferetto"><img src="https://img.shields.io/github/languages/top/evotecit/Transferetto.svg?style=flat-square"></a>
-  <a href="https://github.com/EvotecIT/Transferetto"><img src="https://img.shields.io/github/languages/code-size/evotecit/Transferetto.svg?style=flat-square"></a>
-  <a href="https://www.powershellgallery.com/packages/Transferetto"><img src="https://img.shields.io/powershellgallery/dt/Transferetto.svg?style=flat-square"></a>
-</p>
+Transferetto moves files and object data from one endpoint to another. The PowerShell module covers FTP, FTPS, SFTP, SCP, FXP, SSH, Amazon S3 and S3-compatible storage, Azure Blob Storage, and local or mounted filesystems.
 
-<p align="center">
-  <a href="https://twitter.com/PrzemyslawKlys"><img src="https://img.shields.io/twitter/follow/PrzemyslawKlys.svg?label=Twitter%20%40PrzemyslawKlys&style=flat-square&logo=twitter"></a>
-  <a href="https://evotec.xyz/hub"><img src="https://img.shields.io/badge/Blog-evotec.xyz-2A6496.svg?style=flat-square"></a>
-  <a href="https://www.linkedin.com/in/pklys"><img src="https://img.shields.io/badge/LinkedIn-pklys-0077B5.svg?logo=LinkedIn&style=flat-square"></a>
-</p>
+The source tree includes the object-storage commands below. Repository changes are not available from PowerShell Gallery until a release is published, so check the installed module version when trying new commands.
 
-Transferetto is a PowerShell module that aims to provide FTP, FTPS, and SFTP functionality.
-To find out more about it I've created a blog post [Easy way to conjnect to ftps and sftp using PowerShell](https://evotec.xyz/easy-way-to-connect-to-ftps-and-sftp-using-powershell/).
-
-It uses the following .NET libraries to deliver this functionality:
-
-- [FluentFTP](https://github.com/robinrodricks/FluentFTP)
-- [SSH.NET](https://github.com/sshnet/SSH.NET/)
-
-Both libraries are MIT licenses.
-
-## Features
-
-- FTPS/SFTP functionality
-  - Connect to FTP, FTPS, SFTP
-  - Upload/Download files from FTP/FTPS/SFTP
-  - Rename SFTP files
-  - Remove FTP/FTPS files
-  - And some more
-
-Please make sure to read blog post or check examples to see how to use it.
-
-## To install
+## Install the published module
 
 ```powershell
-Install-Module -Name Transferetto -AllowClobber -Force
+Install-Module Transferetto -Scope CurrentUser
 ```
 
-Force and AllowClobber aren't necessary, but they do skip errors in case some appear.
+## Storage endpoints
 
-## And to update
+Storage commands use the same endpoint contract, so upload, download, inspect, list, delete, and cross-provider copy do not need provider-specific implementations.
 
 ```powershell
-Update-Module -Name Transferetto
+# AWS default credential chain: environment, profiles, roles, or workload identity
+$s3 = Connect-TransferettoS3 -BucketName evidence -Region eu-central-1 -Prefix servers
+
+# Passwordless Azure authentication through DefaultAzureCredential
+$blob = Connect-TransferettoAzureBlob `
+    -ContainerUri 'https://account.blob.core.windows.net/evidence' `
+    -UseDefaultCredential `
+    -Prefix archive
+
+Send-TransferettoItem `
+    -Endpoint $s3 `
+    -LocalPath '.\server01.txevidence.json' `
+    -Path 'server01/2026-07-24.txevidence.json' `
+    -ContentType 'application/json' `
+    -Metadata @{ schema = 'testimo_evidence_v3' }
+
+Copy-TransferettoItem `
+    -SourceEndpoint $s3 `
+    -SourcePath 'server01/2026-07-24.txevidence.json' `
+    -DestinationEndpoint $blob `
+    -DestinationPath 'server01/2026-07-24.txevidence.json'
 ```
 
-That's it. Whenever there's a new version, you run the command, and you can enjoy it. Remember that you may need to close, reopen PowerShell session if you have already used module before updating it.
+Every completed copy returns a receipt with the source and destination, byte count, timestamps, provider entity tags, and a SHA-256 digest calculated while the content is streamed. `SkipIfExists`, `FailIfExists`, and `Overwrite` make collision behavior explicit.
 
-**The essential thing** is if something works for you on production, keep using it till you test the new version on a test computer. I do changes that may not be big, but big enough that auto-update may break your code. For example, a small rename to a parameter, and your code stops working! Be responsible!
+For explicit credentials, use `PSCredential` or `SecureString` values:
+
+```powershell
+$s3Credential = Get-Credential -Message 'Username = access key; password = secret key'
+$s3 = Connect-TransferettoS3 `
+    -BucketName evidence `
+    -ServiceUrl 'https://s3.example.com' `
+    -Credential $s3Credential `
+    -ForcePathStyle
+
+$connectionString = Read-Host 'Azure Storage connection string' -AsSecureString
+$blob = Connect-TransferettoAzureBlob `
+    -ConnectionString $connectionString `
+    -ContainerName evidence
+```
+
+Custom remote endpoints must use HTTPS. Loopback HTTP is accepted for local emulators. Transferetto performs data-plane operations only; it does not create buckets, create containers, assign roles, or administer storage accounts.
+
+Metadata names use a portable subset shared by S3 and Azure Blob: ASCII letters, digits, and underscores, starting with a letter or underscore. This prevents provider-specific headers from breaking a cross-provider copy.
+
+## .NET packages
+
+| Package | Purpose |
+| --- | --- |
+| `Transferetto.Core` | Provider-neutral endpoints, streaming engine, filesystem endpoint, progress, integrity receipts, and metadata rules |
+| `Transferetto.S3` | Amazon S3 and S3-compatible data-plane provider |
+| `Transferetto.AzureBlob` | Azure Blob data-plane provider |
+| `Transferetto` | FTP, FTPS, SFTP, SCP, SSH, and existing synchronization APIs |
+
+The PowerShell module combines these assemblies behind one Transferetto command surface. .NET applications can reference only the packages they need.
+
+## How this fits with other Evotec projects
+
+Transferetto owns transport. DbaClientX owns database and provider access. FabricClientX owns Microsoft Fabric and Power BI workflows. OfficeIMO owns document and tabular formats.
+
+That boundary keeps composition simple:
+
+1. OfficeIMO or another producer writes an artifact.
+2. Transferetto uploads it to S3 or Azure Blob and returns a transfer receipt.
+3. FabricClientX ingests or refreshes data when the destination is Microsoft Fabric or Power BI.
+
+OfficeIMO does not need AWS or Azure SDK dependencies. A file or stream is already the reusable handoff between the projects.
+
+## Existing protocols
+
+The existing examples cover FTP, FTPS, SFTP, SCP, SSH shells and tunnels, host-key and certificate policies, progress, streaming, and directory synchronization. See the [`Examples`](Examples) directory and the [protocol capability audit](Docs/ProtocolGapAudit.md).
+
+## License
+
+Transferetto is licensed under the [MIT License](LICENSE).

@@ -40,6 +40,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Transferetto.Core\Transferetto.Core.csproj" />
+    <ProjectReference Include="..\Transferetto.S3\Transferetto.S3.csproj" />
+    <ProjectReference Include="..\Transferetto.AzureBlob\Transferetto.AzureBlob.csproj" />
     <ProjectReference Include="..\Transferetto\Transferetto.csproj" />
   </ItemGroup>
 

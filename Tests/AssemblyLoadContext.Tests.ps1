@@ -27,8 +27,14 @@ Describe 'Packaged AssemblyLoadContext isolation' {
 Import-Module Transferetto -Force
 
 `$command = Get-Command Connect-FTP -Module Transferetto -ErrorAction Stop
+`$credential = [pscredential]::new(
+    'access-key',
+    (ConvertTo-SecureString 'secret-key' -AsPlainText -Force))
+`$s3 = Connect-TransferettoS3 -BucketName 'evidence' -ServiceUrl 'http://127.0.0.1:9000' -Credential `$credential -ForcePathStyle
 `$commandAssembly = `$command.ImplementingType.Assembly
 `$commandAlc = [System.Runtime.Loader.AssemblyLoadContext]::GetLoadContext(`$commandAssembly)
+`$s3Assembly = `$s3.GetType().Assembly
+`$s3Alc = [System.Runtime.Loader.AssemblyLoadContext]::GetLoadContext(`$s3Assembly)
 `$transferettoAssembly = [AppDomain]::CurrentDomain.GetAssemblies() |
     Where-Object { `$_.GetName().Name -eq 'Transferetto' } |
     Select-Object -First 1
@@ -53,6 +59,9 @@ Import-Module Transferetto -Force
     CommandAssemblyPath = `$commandAssembly.Location
     CommandALC = `$commandAlc.Name
     CommandALCIsDefault = [object]::ReferenceEquals(`$commandAlc, [System.Runtime.Loader.AssemblyLoadContext]::Default)
+    S3Assembly = `$s3Assembly.GetName().Name
+    S3ALC = `$s3Alc.Name
+    S3ALCIsDefault = [object]::ReferenceEquals(`$s3Alc, [System.Runtime.Loader.AssemblyLoadContext]::Default)
     TransferettoAssembly = `$transferettoAssembly.GetName().Name
     TransferettoAssemblyPath = `$transferettoAssembly.Location
     TransferettoALC = `$transferettoAlc.Name
@@ -76,6 +85,9 @@ Import-Module Transferetto -Force
         ($result.CommandAssemblyPath -replace '\\', '/') | Should -BeLike '*/Artefacts/Unpacked/Modules/Transferetto/Lib/Core/Transferetto.PowerShell.dll'
         $result.CommandALC | Should -Be 'Transferetto'
         $result.CommandALCIsDefault | Should -BeFalse
+        $result.S3Assembly | Should -Be 'Transferetto.S3'
+        $result.S3ALC | Should -Be 'Transferetto'
+        $result.S3ALCIsDefault | Should -BeFalse
         $result.TransferettoAssembly | Should -Be 'Transferetto'
         ($result.TransferettoAssemblyPath -replace '\\', '/') | Should -BeLike '*/Artefacts/Unpacked/Modules/Transferetto/Lib/Core/Transferetto.dll'
         $result.TransferettoALC | Should -Be 'Transferetto'

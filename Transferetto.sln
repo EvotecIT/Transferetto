@@ -5,6 +5,12 @@ VisualStudioVersion = 17.4.33103.184
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Transferetto", "Sources\Transferetto\Transferetto.csproj", "{25B1457B-3F86-42C4-86C6-D749054E5B52}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Transferetto.Core", "Sources\Transferetto.Core\Transferetto.Core.csproj", "{B1111111-1111-4111-8111-111111111111}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Transferetto.S3", "Sources\Transferetto.S3\Transferetto.S3.csproj", "{B2222222-2222-4222-8222-222222222222}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Transferetto.AzureBlob", "Sources\Transferetto.AzureBlob\Transferetto.AzureBlob.csproj", "{B3333333-3333-4333-8333-333333333333}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Transferetto.PowerShell", "Sources\Transferetto.PowerShell\Transferetto.PowerShell.csproj", "{3D75D5DA-879F-43CB-91EB-96B770DE6251}"
 	ProjectSection(ProjectDependencies) = postProject
 		{25B1457B-3F86-42C4-86C6-D749054E5B52} = {25B1457B-3F86-42C4-86C6-D749054E5B52}
@@ -31,6 +37,18 @@ Global
 		{25B1457B-3F86-42C4-86C6-D749054E5B52}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{25B1457B-3F86-42C4-86C6-D749054E5B52}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{25B1457B-3F86-42C4-86C6-D749054E5B52}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1111111-1111-4111-8111-111111111111}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1111111-1111-4111-8111-111111111111}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1111111-1111-4111-8111-111111111111}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1111111-1111-4111-8111-111111111111}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2222222-2222-4222-8222-222222222222}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2222222-2222-4222-8222-222222222222}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2222222-2222-4222-8222-222222222222}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2222222-2222-4222-8222-222222222222}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3333333-3333-4333-8333-333333333333}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3333333-3333-4333-8333-333333333333}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3333333-3333-4333-8333-333333333333}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3333333-3333-4333-8333-333333333333}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3D75D5DA-879F-43CB-91EB-96B770DE6251}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3D75D5DA-879F-43CB-91EB-96B770DE6251}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3D75D5DA-879F-43CB-91EB-96B770DE6251}.Release|Any CPU.ActiveCfg = Release|Any CPU

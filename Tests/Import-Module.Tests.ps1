@@ -9,10 +9,33 @@ Describe 'Transferetto module import' {
         $Manifest.Description | Should -Match 'SCP'
         $Manifest.Description | Should -Match 'FXP'
         $Manifest.Description | Should -Match 'SSH'
+        $Manifest.Description | Should -Match 'S3'
+        $Manifest.Description | Should -Match 'Azure Blob'
         $Manifest.PrivateData.PSData.ProjectUri | Should -Be 'https://github.com/EvotecIT/Transferetto'
         $Manifest.PrivateData.PSData.Tags | Should -Contain 'fxp'
         $Manifest.PrivateData.PSData.Tags | Should -Contain 'scp'
         $Manifest.PrivateData.PSData.Tags | Should -Contain 'ssh'
+        $Manifest.PrivateData.PSData.Tags | Should -Contain 's3'
+        $Manifest.PrivateData.PSData.Tags | Should -Contain 'azure'
+    }
+
+    It 'exports the provider-neutral storage command set' {
+        $ExpectedCommands = @(
+            'Connect-TransferettoAzureBlob'
+            'Connect-TransferettoS3'
+            'Copy-TransferettoItem'
+            'Disconnect-TransferettoEndpoint'
+            'Get-TransferettoItem'
+            'Receive-TransferettoItem'
+            'Remove-TransferettoItem'
+            'Send-TransferettoItem'
+            'Test-TransferettoItem'
+        )
+
+        foreach ($CommandName in $ExpectedCommands) {
+            $Command = Get-Command -Name $CommandName -Module Transferetto -ErrorAction Stop
+            $Command.CommandType | Should -Be 'Cmdlet'
+        }
     }
 
     It 'exports the binary Connect-FTP cmdlet with advanced connection parameters' {
@@ -113,6 +136,11 @@ Describe 'Transferetto module import' {
     }
 
     It 'rejects multi-file FTP downloads when LocalPath is an existing file' {
+        if ($PSVersionTable.PSEdition -eq 'Core') {
+            Set-ItResult -Skipped -Because 'module dependency types are intentionally isolated in the PowerShell Core AssemblyLoadContext'
+            return
+        }
+
         $client = [FluentFTP.FtpClient]::new('ftp.example.com')
         $constructor = [Transferetto.TransferettoFtpSession].GetConstructors([System.Reflection.BindingFlags]'Instance, NonPublic') | Select-Object -First 1
         $session = $constructor.Invoke(@($client, $null, $null))
