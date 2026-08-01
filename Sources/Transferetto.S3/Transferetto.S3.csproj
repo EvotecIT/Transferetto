@@ -31,7 +31,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AWSSDK.S3" Version="4.0.101.4" />
+    <PackageReference Include="AWSSDK.S3" Version="4.0.101.6" />
     <ProjectReference Include="..\Transferetto.Core\Transferetto.Core.csproj" />
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
