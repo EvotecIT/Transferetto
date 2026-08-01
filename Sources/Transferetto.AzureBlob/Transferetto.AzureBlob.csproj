@@ -31,7 +31,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.24.0" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.29.1" />
     <ProjectReference Include="..\Transferetto.Core\Transferetto.Core.csproj" />
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
