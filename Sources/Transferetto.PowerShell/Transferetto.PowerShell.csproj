@@ -22,22 +22,9 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="MatejKafka.XmlDoc2CmdletDoc" Version="0.8.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
-
   <Target Name="RemoveFilesAfterBuild" AfterTargets="Build">
     <Delete Files="$(OutDir)System.Management.Automation.dll" />
     <Delete Files="$(OutDir)System.Management.dll" />
-  </Target>
-
-  <Target Name="CopyHelpDocumentationToPublishOutput" AfterTargets="Publish">
-    <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll-Help.xml"
-      DestinationFiles="$(PublishDir)$(AssemblyName).dll-Help.xml"
-      Condition="Exists('$(OutputPath)$(AssemblyName).dll-Help.xml')" />
   </Target>
 
   <ItemGroup>
