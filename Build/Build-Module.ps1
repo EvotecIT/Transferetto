@@ -43,7 +43,7 @@ Build-Module -ModuleName 'Transferetto' {
     New-ConfigurationFormat -ApplyTo 'DefaultPSD1', 'DefaultPSM1' -EnableFormatting -Sort None
     New-ConfigurationFormat -ApplyTo 'DefaultPSD1', 'OnMergePSD1' -PSD1Style 'Minimal'
 
-    New-ConfigurationDocumentation -Enable:$false -PathReadme 'Docs\Readme.md' -Path 'Docs'
+    New-ConfigurationDocumentation -Enable -PathReadme 'Docs\Readme.md' -Path 'Docs' -SyncExternalHelpToProjectRoot
     $ImportSelf = if ([string]::IsNullOrWhiteSpace($Env:ImportSelf)) { $true } else { [bool]::Parse($Env:ImportSelf) }
     New-ConfigurationImportModule -ImportSelf:$ImportSelf -ImportRequiredModules
 
