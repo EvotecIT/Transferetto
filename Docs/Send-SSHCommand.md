@@ -13,7 +13,7 @@ Supports multi-line command blocks, structured status results, progressive stdou
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Send-SSHCommand -SshClient <TransferettoSshSession> [-Command <scriptblock>] [-Status] [-StreamOutput] [-CommandTimeoutSeconds <int>] [<CommonParameters>]
+Send-SSHCommand -SshClient <TransferettoSshSession> [-Command <scriptblock>] [-Status] [-StreamOutput] [-CommandTimeoutSeconds <Int32>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -51,7 +51,7 @@ Accept wildcard characters: False
 Gets or sets the timeout, in seconds, applied to the remote command.
 
 ```yaml
-Type: Nullable`1
+Type: Int32
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

@@ -1039,9 +1039,17 @@
           <maml:description>
             <maml:para>Gets or sets the proxy Type.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Nullable`1</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">TransferettoFtpProxyType</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">FtpClientSocks5Proxy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FtpClientHttp11Proxy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FtpClientSocks4aProxy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FtpClientSocks4Proxy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FtpClientUserAtHostProxy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FtpClientBlueCoatProxy</command:parameterValue>
+          </command:parameterValueGroup>
           <dev:type>
-            <maml:name>Nullable`1</maml:name>
+            <maml:name>TransferettoFtpProxyType</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -1551,9 +1559,17 @@
           <maml:description>
             <maml:para>Gets or sets the proxy Type.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Nullable`1</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">TransferettoFtpProxyType</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">FtpClientSocks5Proxy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FtpClientHttp11Proxy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FtpClientSocks4aProxy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FtpClientSocks4Proxy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FtpClientUserAtHostProxy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FtpClientBlueCoatProxy</command:parameterValue>
+          </command:parameterValueGroup>
           <dev:type>
-            <maml:name>Nullable`1</maml:name>
+            <maml:name>TransferettoFtpProxyType</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -2088,9 +2104,17 @@
           <maml:description>
             <maml:para>Gets or sets the proxy Type.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Nullable`1</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">TransferettoFtpProxyType</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">FtpClientSocks5Proxy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FtpClientHttp11Proxy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FtpClientSocks4aProxy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FtpClientSocks4Proxy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FtpClientUserAtHostProxy</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">FtpClientBlueCoatProxy</command:parameterValue>
+          </command:parameterValueGroup>
           <dev:type>
-            <maml:name>Nullable`1</maml:name>
+            <maml:name>TransferettoFtpProxyType</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -2726,9 +2750,17 @@
         <maml:description>
           <maml:para>Gets or sets the proxy Type.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Nullable`1</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">TransferettoFtpProxyType</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">FtpClientSocks5Proxy</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">FtpClientHttp11Proxy</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">FtpClientSocks4aProxy</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">FtpClientSocks4Proxy</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">FtpClientUserAtHostProxy</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">FtpClientBlueCoatProxy</command:parameterValue>
+        </command:parameterValueGroup>
         <dev:type>
-          <maml:name>Nullable`1</maml:name>
+          <maml:name>TransferettoFtpProxyType</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -16009,9 +16041,9 @@
           <maml:description>
             <maml:para>Gets or sets the timeout, in seconds, applied to the remote command.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Nullable`1</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
-            <maml:name>Nullable`1</maml:name>
+            <maml:name>Int32</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -16072,9 +16104,9 @@
         <maml:description>
           <maml:para>Gets or sets the timeout, in seconds, applied to the remote command.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Nullable`1</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
-          <maml:name>Nullable`1</maml:name>
+          <maml:name>Int32</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -16960,9 +16992,9 @@
           <maml:description>
             <maml:para>Gets or sets the download Zero Byte Files.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Nullable`1</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
           <dev:type>
-            <maml:name>Nullable`1</maml:name>
+            <maml:name>Boolean</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -16972,9 +17004,9 @@
           <maml:description>
             <maml:para>Gets or sets the retry Attempts.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Nullable`1</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
-            <maml:name>Nullable`1</maml:name>
+            <maml:name>Int32</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -16999,9 +17031,9 @@
         <maml:description>
           <maml:para>Gets or sets the download Zero Byte Files.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Nullable`1</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
         <dev:type>
-          <maml:name>Nullable`1</maml:name>
+          <maml:name>Boolean</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -17011,9 +17043,9 @@
         <maml:description>
           <maml:para>Gets or sets the retry Attempts.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Nullable`1</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
-          <maml:name>Nullable`1</maml:name>
+          <maml:name>Int32</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>

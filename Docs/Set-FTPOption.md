@@ -13,7 +13,7 @@ Lets scripts fine-tune retry behavior and zero-byte download handling on a live 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Set-FTPOption -Client <TransferettoFtpSession> [-RetryAttempts <int>] [-DownloadZeroByteFiles <bool>] [<CommonParameters>]
+Set-FTPOption -Client <TransferettoFtpSession> [-RetryAttempts <Int32>] [-DownloadZeroByteFiles <Boolean>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -51,7 +51,7 @@ Accept wildcard characters: False
 Gets or sets the download Zero Byte Files.
 
 ```yaml
-Type: Nullable`1
+Type: Boolean
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -67,7 +67,7 @@ Accept wildcard characters: False
 Gets or sets the retry Attempts.
 
 ```yaml
-Type: Nullable`1
+Type: Int32
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

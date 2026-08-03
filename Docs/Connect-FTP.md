@@ -557,10 +557,10 @@ Accept wildcard characters: False
 Gets or sets the proxy Type.
 
 ```yaml
-Type: Nullable`1
+Type: TransferettoFtpProxyType
 Parameter Sets: Password, FtpProfile, ClearText
 Aliases: None
-Possible values:
+Possible values: FtpClientSocks5Proxy, FtpClientHttp11Proxy, FtpClientSocks4aProxy, FtpClientSocks4Proxy, FtpClientUserAtHostProxy, FtpClientBlueCoatProxy
 
 Required: False
 Position: named
