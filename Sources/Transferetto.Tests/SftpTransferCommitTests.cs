@@ -17,7 +17,7 @@ public sealed class SftpTransferCommitTests {
             }
         };
 
-        Assert.Throws<IOException>(() => SftpTransferCommit.Commit(
+        Assert.Throws<IOException>(() => Commit(
             operations,
             "temp",
             "target",
@@ -45,7 +45,7 @@ public sealed class SftpTransferCommitTests {
             }
         };
 
-        IOException exception = Assert.Throws<IOException>(() => SftpTransferCommit.Commit(
+        IOException exception = Assert.Throws<IOException>(() => Commit(
             operations,
             "temp",
             "target",
@@ -61,7 +61,7 @@ public sealed class SftpTransferCommitTests {
     }
 
     [Fact]
-    public void Overwrite_ReportsEveryRetainedBackupAfterRaceAndRollback() {
+    public void Overwrite_RestoresMostRecentConcurrentDestinationWhenCommitFails() {
         FakeSftpCommitOperations operations = new();
         operations.Files["temp"] = "new";
         operations.Files["target"] = "old";
@@ -78,25 +78,81 @@ public sealed class SftpTransferCommitTests {
                 throw new IOException("Injected commit failure.");
             }
         };
-        operations.OnDelete = path => {
-            if (operations.Files.TryGetValue(path, out string? content) && content == "racer") {
-                throw new IOException("Injected cleanup failure.");
-            }
-        };
-
-        IOException exception = Assert.Throws<IOException>(() => SftpTransferCommit.Commit(
+        Assert.Throws<IOException>(() => Commit(
             operations,
             "temp",
             "target",
             "target",
             TransferWriteMode.Overwrite));
 
-        Assert.Equal("old", operations.Files["target"]);
-        KeyValuePair<string, string> retained = Assert.Single(
-            operations.Files,
-            pair => pair.Value == "racer");
-        string retainedPath = retained.Key;
-        Assert.Contains(retainedPath, exception.Message, StringComparison.Ordinal);
+        Assert.Equal("racer", operations.Files["target"]);
+        Assert.Equal("new", operations.Files["temp"]);
+        Assert.DoesNotContain(operations.Files.Keys, path => path.EndsWith(".previous", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Overwrite_ReportsEveryBackupWhenConcurrentDestinationBlocksRecovery() {
+        FakeSftpCommitOperations operations = new();
+        operations.Files["temp"] = "new";
+        operations.Files["target"] = "old";
+        int commitAttempts = 0;
+        operations.OnRename = (source, destination, posix) => {
+            if (posix) {
+                throw new NotSupportedException("POSIX rename is unavailable.");
+            }
+            if (source == "temp" && destination == "target") {
+                commitAttempts++;
+                operations.Files["target"] = commitAttempts == 1 ? "first-racer" : "second-racer";
+                throw new IOException("Injected commit failure.");
+            }
+        };
+
+        IOException exception = Assert.Throws<IOException>(() => Commit(
+            operations,
+            "temp",
+            "target",
+            "target",
+            TransferWriteMode.Overwrite));
+
+        Assert.Equal("second-racer", operations.Files["target"]);
+        KeyValuePair<string, string>[] retained = operations.Files
+            .Where(pair => pair.Key.EndsWith(".previous", StringComparison.Ordinal))
+            .OrderBy(pair => pair.Value, StringComparer.Ordinal)
+            .ToArray();
+        Assert.Equal(2, retained.Length);
+        Assert.Equal(new[] { "first-racer", "old" }, retained.Select(pair => pair.Value));
+        Assert.All(retained, pair => Assert.Contains(pair.Key, exception.Message, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Overwrite_TracksMoveAsideWhenResponseIsLostAndDestinationReappears() {
+        FakeSftpCommitOperations operations = new();
+        operations.Files["temp"] = "new";
+        operations.Files["target"] = "old";
+        bool responseLost = false;
+        operations.OnRename = (source, destination, posix) => {
+            if (posix) {
+                throw new NotSupportedException("POSIX rename is unavailable.");
+            }
+            if (!responseLost && source == "target" && destination.EndsWith(".previous", StringComparison.Ordinal)) {
+                responseLost = true;
+                operations.Files.Remove(source);
+                operations.Files[destination] = "old";
+                operations.Files[source] = "racer";
+                throw new IOException("Rename response was lost.");
+            }
+        };
+
+        bool committed = Commit(
+            operations,
+            "temp",
+            "target",
+            "target",
+            TransferWriteMode.Overwrite);
+
+        Assert.True(committed);
+        Assert.Equal("new", operations.Files["target"]);
+        Assert.DoesNotContain(operations.Files.Keys, path => path.EndsWith(".previous", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -110,7 +166,7 @@ public sealed class SftpTransferCommitTests {
             }
         };
 
-        bool committed = SftpTransferCommit.Commit(
+        bool committed = Commit(
             operations,
             "temp",
             "target",
@@ -120,6 +176,57 @@ public sealed class SftpTransferCommitTests {
         Assert.False(committed);
         Assert.Equal("racer", operations.Files["target"]);
         Assert.False(operations.Files.ContainsKey("temp"));
+    }
+
+    [Fact]
+    public void SkipIfExists_ReportsRetainedTemporaryItemWhenCleanupFails() {
+        FakeSftpCommitOperations operations = new();
+        operations.Files["temp"] = "new";
+        operations.Files["target"] = "existing";
+        operations.OnDelete = path => {
+            if (path == "temp") {
+                throw new IOException("Injected cleanup failure.");
+            }
+        };
+
+        IOException exception = Assert.Throws<IOException>(() => Commit(
+            operations,
+            "temp",
+            "target",
+            "target",
+            TransferWriteMode.SkipIfExists));
+
+        Assert.Contains("temp", exception.Message, StringComparison.Ordinal);
+        Assert.Equal("new", operations.Files["temp"]);
+        Assert.Equal("existing", operations.Files["target"]);
+    }
+
+    [Fact]
+    public void SkipIfExists_ReportsRetainedTemporaryItemAfterRenameRace() {
+        FakeSftpCommitOperations operations = new();
+        operations.Files["temp"] = "new";
+        operations.OnRename = (source, destination, _) => {
+            if (source == "temp" && destination == "target") {
+                operations.Files["target"] = "racer";
+                throw new IOException("Destination exists.");
+            }
+        };
+        operations.OnDelete = path => {
+            if (path == "temp") {
+                throw new IOException("Injected cleanup failure.");
+            }
+        };
+
+        IOException exception = Assert.Throws<IOException>(() => Commit(
+            operations,
+            "temp",
+            "target",
+            "target",
+            TransferWriteMode.SkipIfExists));
+
+        Assert.Contains("temp", exception.Message, StringComparison.Ordinal);
+        Assert.Equal("new", operations.Files["temp"]);
+        Assert.Equal("racer", operations.Files["target"]);
     }
 
     [Fact]
@@ -133,7 +240,7 @@ public sealed class SftpTransferCommitTests {
             }
         };
 
-        IOException exception = Assert.Throws<IOException>(() => SftpTransferCommit.Commit(
+        IOException exception = Assert.Throws<IOException>(() => Commit(
             operations,
             "temp",
             "target",
@@ -143,6 +250,52 @@ public sealed class SftpTransferCommitTests {
         Assert.Contains("already exists", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Equal("racer", operations.Files["target"]);
         Assert.Equal("new", operations.Files["temp"]);
+    }
+
+    [Theory]
+    [InlineData(TransferWriteMode.SkipIfExists)]
+    [InlineData(TransferWriteMode.FailIfExists)]
+    public void NonOverwrite_RecognizesSuccessfulRenameAfterResponseLoss(TransferWriteMode mode) {
+        FakeSftpCommitOperations operations = new();
+        operations.Files["temp"] = "new";
+        operations.OnRename = (source, destination, _) => {
+            if (source == "temp" && destination == "target") {
+                operations.Files.Remove(source);
+                operations.Files[destination] = "new";
+                throw new IOException("Rename response was lost.");
+            }
+        };
+
+        bool committed = Commit(operations, "temp", "target", "target", mode);
+
+        Assert.True(committed);
+        Assert.Equal("new", operations.Files["target"]);
+        Assert.False(operations.Files.ContainsKey("temp"));
+    }
+
+    [Fact]
+    public void Overwrite_RecognizesSuccessfulAtomicRenameAfterResponseLoss() {
+        FakeSftpCommitOperations operations = new();
+        operations.Files["temp"] = "new";
+        operations.Files["target"] = "old";
+        operations.OnRename = (source, destination, posix) => {
+            if (posix) {
+                operations.Files.Remove(source);
+                operations.Files[destination] = "new";
+                throw new IOException("Rename response was lost.");
+            }
+        };
+
+        bool committed = Commit(
+            operations,
+            "temp",
+            "target",
+            "target",
+            TransferWriteMode.Overwrite);
+
+        Assert.True(committed);
+        Assert.Equal("new", operations.Files["target"]);
+        Assert.False(operations.Files.ContainsKey("temp"));
     }
 
     [Fact]
@@ -210,7 +363,20 @@ public sealed class SftpTransferCommitTests {
         }
     }
 
-    private sealed class FakeSftpCommitOperations : ISftpTransferCommitOperations {
+    private static bool Commit(
+        FakeSftpCommitOperations operations,
+        string temporaryPath,
+        string destinationPath,
+        string relativePath,
+        TransferWriteMode mode) => ProtocolTransferCommit.Commit(
+            operations,
+            temporaryPath,
+            destinationPath,
+            relativePath,
+            mode,
+            "SFTP");
+
+    private sealed class FakeSftpCommitOperations : IProtocolTransferCommitOperations {
         internal Dictionary<string, string> Files { get; } = new(StringComparer.Ordinal);
 
         internal Action<string, string, bool>? OnRename { get; set; }

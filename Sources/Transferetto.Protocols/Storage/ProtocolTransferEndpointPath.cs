@@ -6,11 +6,11 @@ namespace Transferetto;
 
 internal static class ProtocolTransferEndpointPath {
     internal static string NormalizeRoot(string? root) {
-        if (string.IsNullOrWhiteSpace(root)) {
+        if (string.IsNullOrEmpty(root)) {
             return string.Empty;
         }
 
-        string normalized = root!.Replace('\\', '/').Trim();
+        string normalized = root!.Replace('\\', '/');
         bool absolute = normalized.StartsWith("/", StringComparison.Ordinal);
         string[] segments = NormalizeSegments(normalized, nameof(root));
         string result = string.Join("/", segments);
@@ -33,14 +33,14 @@ internal static class ProtocolTransferEndpointPath {
     }
 
     internal static string NormalizeRelative(string? path, bool allowEmpty = false) {
-        if (string.IsNullOrWhiteSpace(path)) {
+        if (string.IsNullOrEmpty(path)) {
             if (allowEmpty) {
                 return string.Empty;
             }
             throw new ArgumentException("An endpoint-relative path is required.", nameof(path));
         }
 
-        string normalized = path!.Replace('\\', '/').Trim();
+        string normalized = path!.Replace('\\', '/');
         if (normalized.StartsWith("/", StringComparison.Ordinal)) {
             throw new ArgumentException("The path must be relative to the endpoint root.", nameof(path));
         }

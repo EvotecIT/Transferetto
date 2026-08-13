@@ -21,7 +21,6 @@
     <RepositoryUrl>https://github.com/EvotecIT/Transferetto</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <IsPackable>true</IsPackable>
-    <IncludeBuildOutput>false</IncludeBuildOutput>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <Copyright>(c) 2011 - 2026 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
@@ -35,9 +34,5 @@
     <ProjectReference Include="..\Transferetto.S3\Transferetto.S3.csproj" />
     <ProjectReference Include="..\Transferetto.AzureBlob\Transferetto.AzureBlob.csproj" />
     <None Include="README.md" Pack="true" PackagePath="\" />
-    <None Remove="_._" />
-    <None Include="_._" Pack="true" PackagePath="lib/netstandard2.0" />
-    <None Include="_._" Pack="true" PackagePath="lib/net472" />
-    <None Include="_._" Pack="true" PackagePath="lib/net8.0" />
   </ItemGroup>
 </Project>

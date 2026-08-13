@@ -176,12 +176,13 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
                 await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            bool committed = SftpTransferCommit.Commit(
+            bool committed = ProtocolTransferCommit.Commit(
                 new SftpTransferCommitOperations(_session),
                 temporaryPath,
                 remotePath,
                 relativePath,
-                resolvedOptions.Mode);
+                resolvedOptions.Mode,
+                "SFTP");
             if (!committed) {
                 TransferItem? racedItem = await GetItemAsync(relativePath, cancellationToken).ConfigureAwait(false);
                 if (racedItem != null) {

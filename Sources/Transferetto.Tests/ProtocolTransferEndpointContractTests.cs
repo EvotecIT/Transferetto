@@ -88,6 +88,22 @@ public sealed class ProtocolTransferEndpointContractTests {
         Assert.Equal(expectedRoot, ProtocolTransferEndpointPath.AnchorRoot(prefix, "/home/user"));
     }
 
+    [Theory]
+    [InlineData(" report.csv", " report.csv")]
+    [InlineData("report.csv ", "report.csv ")]
+    [InlineData(" ", " ")]
+    [InlineData("folder/ report.csv ", "folder/ report.csv ")]
+    public void ProtocolEndpoints_PreserveWhitespaceInRelativeNames(string path, string expected) {
+        Assert.Equal(expected, ProtocolTransferEndpointPath.NormalizeRelative(path));
+    }
+
+    [Fact]
+    public void ProtocolEndpoints_PreserveWhitespaceWhenCombiningListedNames() {
+        Assert.Equal(
+            "incoming/ report.csv ",
+            ProtocolTransferEndpointPath.CombineRelative("incoming", " report.csv "));
+    }
+
     private static TransferettoFtpSession CreateFtpSession(FtpClient client) {
         ConstructorInfo constructor = typeof(TransferettoFtpSession)
             .GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic)

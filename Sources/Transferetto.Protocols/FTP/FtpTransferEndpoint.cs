@@ -173,17 +173,19 @@ public sealed class FtpTransferEndpoint : ITransferEndpoint, IDisposable {
                 await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            FtpRemoteExists moveMode = resolvedOptions.Mode == TransferWriteMode.Overwrite
-                ? FtpRemoteExists.Overwrite
-                : FtpRemoteExists.Skip;
-            TransferettoClient.MoveFtpFile(_session, temporaryPath, remotePath, moveMode);
-            if (TransferettoClient.TestFtpFile(_session, temporaryPath)) {
-                TransferettoClient.RemoveFtpFile(_session, temporaryPath);
+            bool committed = ProtocolTransferCommit.Commit(
+                new FtpTransferCommitOperations(_session),
+                temporaryPath,
+                remotePath,
+                relativePath,
+                resolvedOptions.Mode,
+                "FTP");
+            if (!committed) {
                 TransferItem? racedItem = await GetItemAsync(relativePath, cancellationToken).ConfigureAwait(false);
-                if (resolvedOptions.Mode == TransferWriteMode.SkipIfExists && racedItem != null) {
+                if (racedItem != null) {
                     return new TransferWriteResult(racedItem, wasWritten: false);
                 }
-                throw new IOException($"The destination FTP item already exists: {relativePath}");
+                throw new IOException($"The destination FTP item was created concurrently but is no longer available: {relativePath}");
             }
 
             TransferItem? written = await GetItemAsync(relativePath, cancellationToken).ConfigureAwait(false);
