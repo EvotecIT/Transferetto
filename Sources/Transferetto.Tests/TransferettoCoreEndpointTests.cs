@@ -108,6 +108,22 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
         Assert.Null(destination.Length);
     }
 
+    [Theory]
+    [InlineData(3)]
+    [InlineData(8)]
+    public async Task CopyAsync_RejectsChangedSourceLengthBeforeDestinationCommits(long reportedLength) {
+        byte[] content = Encoding.UTF8.GetBytes("length");
+        RecordingEndpoint destination = new();
+
+        await Assert.ThrowsAsync<EndOfStreamException>(() => TransferEngine.CopyAsync(
+            new MetadataSourceEndpoint(content, reportedLength),
+            "source.bin",
+            destination,
+            "destination.bin"));
+
+        Assert.False(destination.Committed);
+    }
+
     [Fact]
     public async Task CopyAsync_RejectsExplicitMetadataForDestinationWithoutMetadataCapability() {
         RecordingEndpoint destination = new(supportsMetadata: false);
@@ -184,6 +200,23 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
             new TransferWriteOptions { Mode = TransferWriteMode.Overwrite });
         Assert.True(overwritten.WasWritten);
         Assert.Equal("two", File.ReadAllText(Path.Combine(_root, "item.txt")));
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(8)]
+    public async Task FileSystemEndpoint_PreservesExistingItemWhenContentLengthChanges(long expectedLength) {
+        FileSystemTransferEndpoint endpoint = new(_root);
+        string targetPath = Path.Combine(_root, "item.txt");
+        File.WriteAllText(targetPath, "original");
+
+        await Assert.ThrowsAsync<EndOfStreamException>(() => endpoint.WriteAsync(
+            "item.txt",
+            new MemoryStream(Encoding.UTF8.GetBytes("length")),
+            expectedLength,
+            new TransferWriteOptions { Mode = TransferWriteMode.Overwrite }));
+
+        Assert.Equal("original", File.ReadAllText(targetPath));
     }
 
     [Theory]
@@ -389,6 +422,8 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
 
         internal long? Length { get; private set; }
 
+        internal bool Committed { get; private set; }
+
         public string Scheme => "destination";
         public string DisplayName => "destination://test/";
         public TransferEndpointCapabilities Capabilities => _supportsMetadata
@@ -405,6 +440,7 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
             Length = length;
             using MemoryStream sink = new();
             await content.CopyToAsync(sink, 81920, cancellationToken);
+            Committed = true;
             return new TransferWriteResult(new TransferItem {
                 Path = path,
                 Length = sink.Length

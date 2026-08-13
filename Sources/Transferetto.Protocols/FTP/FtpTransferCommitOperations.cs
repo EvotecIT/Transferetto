@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using FluentFTP;
 
 namespace Transferetto;
 
@@ -9,6 +11,8 @@ internal sealed class FtpTransferCommitOperations : IProtocolTransferCommitOpera
         _session = session;
     }
 
+    public bool SupportsNoClobberRename => false;
+
     public bool Exists(string path) => TransferettoClient.TestFtpFile(_session, path);
 
     public void Delete(string path) => TransferettoClient.RemoveFtpFile(_session, path);
@@ -17,6 +21,8 @@ internal sealed class FtpTransferCommitOperations : IProtocolTransferCommitOpera
         if (overwriteAtomically) {
             throw new NotSupportedException("FTP does not provide a portable atomic overwrite rename.");
         }
-        TransferettoClient.RenameFtpFile(_session, sourcePath, destinationPath);
+        if (!_session.Client.MoveFile(sourcePath, destinationPath, FtpRemoteExists.Skip)) {
+            throw new IOException($"The destination FTP item already exists: {destinationPath}");
+        }
     }
 }

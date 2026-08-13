@@ -176,11 +176,20 @@ public static class TransferEngine {
 
         private void Track(byte[] buffer, int offset, int read) {
             if (read <= 0) {
+                if (_length.HasValue && BytesRead != _length.Value) {
+                    throw new EndOfStreamException(
+                        $"The source produced {BytesRead} bytes but reported a length of {_length.Value}.");
+                }
                 Complete();
                 return;
             }
+            long nextBytesRead = checked(BytesRead + read);
+            if (_length.HasValue && nextBytesRead > _length.Value) {
+                throw new EndOfStreamException(
+                    $"The source produced more than its reported length of {_length.Value} bytes.");
+            }
             _sha256.TransformBlock(buffer, offset, read, null, 0);
-            BytesRead += read;
+            BytesRead = nextBytesRead;
             ReportProgress(force: false);
         }
 

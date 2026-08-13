@@ -6,6 +6,8 @@ using Transferetto.Core;
 namespace Transferetto;
 
 internal interface IProtocolTransferCommitOperations {
+    bool SupportsNoClobberRename { get; }
+
     bool Exists(string path);
 
     void Delete(string path);
@@ -31,6 +33,12 @@ internal static class ProtocolTransferCommit {
                 return false;
             }
             throw new IOException($"The destination {scheme} item already exists: {relativePath}");
+        }
+
+        if (!operations.SupportsNoClobberRename) {
+            throw new NotSupportedException(
+                $"The {scheme} endpoint cannot guarantee an atomic create-if-absent operation. " +
+                $"Use {nameof(TransferWriteMode)}.{nameof(TransferWriteMode.Overwrite)} or coordinate writers externally.");
         }
 
         try {
@@ -96,6 +104,15 @@ internal static class ProtocolTransferCommit {
         } catch (Exception commitException) {
             if (rollbackPath == null) {
                 throw;
+            }
+
+            if (!operations.SupportsNoClobberRename) {
+                List<string> retainedWithoutRollback = GetRetainedPaths(operations, displacedPaths);
+                throw new IOException(
+                    $"The {scheme} overwrite failed. Automatic displaced-item recovery is unavailable because " +
+                    $"the protocol cannot guarantee a no-clobber rename. Retained item(s): " +
+                    $"{string.Join(", ", retainedWithoutRollback)}",
+                    commitException);
             }
 
             Exception? rollbackFailure = null;

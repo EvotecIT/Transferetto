@@ -142,7 +142,7 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
                 FileShare.None,
                 81920,
                 FileOptions.Asynchronous | FileOptions.SequentialScan)) {
-                await content.CopyToAsync(target, 81920, cancellationToken).ConfigureAwait(false);
+                await TransferContent.CopyToAsync(content, target, length, cancellationToken).ConfigureAwait(false);
                 await target.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
 

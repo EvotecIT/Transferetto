@@ -104,6 +104,43 @@ public sealed class ProtocolTransferEndpointContractTests {
             ProtocolTransferEndpointPath.CombineRelative("incoming", " report.csv "));
     }
 
+    [Theory]
+    [InlineData("report.csv", null)]
+    [InlineData("/report.csv", "/")]
+    [InlineData("/incoming/report.csv", "/incoming")]
+    [InlineData("incoming/report.csv", "incoming")]
+    public void ProtocolEndpoints_CreateBoundedTemporarySiblingNames(
+        string destinationPath,
+        string? expectedParent) {
+        string temporaryPath = ProtocolTransferEndpointPath.CreateTemporaryPath(destinationPath);
+
+        Assert.Equal(expectedParent, ProtocolTransferEndpointPath.GetParent(temporaryPath));
+        string temporaryName = temporaryPath.Split('/').Last();
+        Assert.StartsWith(".transferetto-", temporaryName, StringComparison.Ordinal);
+        Assert.EndsWith(".tmp", temporaryName, StringComparison.Ordinal);
+        Assert.True(System.Text.Encoding.UTF8.GetByteCount(temporaryName + ".previous") <= 255);
+    }
+
+    [Fact]
+    public void ProtocolEndpoints_DoNotExtendMaximumLengthDestinationNames() {
+        string destinationName = new('x', 255);
+
+        string temporaryPath = ProtocolTransferEndpointPath.CreateTemporaryPath("/incoming/" + destinationName);
+
+        Assert.Equal("/incoming", ProtocolTransferEndpointPath.GetParent(temporaryPath));
+        Assert.DoesNotContain(destinationName, temporaryPath, StringComparison.Ordinal);
+        Assert.True(System.Text.Encoding.UTF8.GetByteCount(temporaryPath.Split('/').Last() + ".previous") <= 255);
+    }
+
+    [Theory]
+    [InlineData("/incoming ", "/incoming ")]
+    [InlineData("/   ", "/   ")]
+    [InlineData("/wild?card/", "/wild?card")]
+    [InlineData("folder\\child ", "folder/child ")]
+    public void FtpEndpoint_PreservesExactDirectoryNames(string path, string expected) {
+        Assert.Equal(expected, TransferettoClient.NormalizeExactDirectoryPath(path));
+    }
+
     private static TransferettoFtpSession CreateFtpSession(FtpClient client) {
         ConstructorInfo constructor = typeof(TransferettoFtpSession)
             .GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic)

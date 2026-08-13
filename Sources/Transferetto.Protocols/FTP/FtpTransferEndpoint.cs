@@ -14,6 +14,9 @@ namespace Transferetto;
 /// <remarks>
 /// The configured prefix is a namespace boundary, not a security sandbox. Do not pass untrusted paths to a
 /// privileged session when the remote server can expose symbolic links beneath that prefix.
+/// FTP has no portable atomic create-if-absent operation. When a destination is absent, writes using
+/// <see cref="TransferWriteMode.SkipIfExists"/> or <see cref="TransferWriteMode.FailIfExists"/> fail closed;
+/// use <see cref="TransferWriteMode.Overwrite"/> or coordinate writers externally.
 /// </remarks>
 public sealed class FtpTransferEndpoint : ITransferEndpoint, IDisposable {
     private readonly TransferettoFtpSession _session;
@@ -100,7 +103,7 @@ public sealed class FtpTransferEndpoint : ITransferEndpoint, IDisposable {
         while (pending.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
             (string remotePath, string relativePath) = pending.Dequeue();
-            foreach (TransferettoRemoteItem item in TransferettoClient.GetFtpListing(_session, remotePath)) {
+            foreach (TransferettoRemoteItem item in TransferettoClient.GetFtpDirectoryListingExact(_session, remotePath)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (item.Name == "." || item.Name == ".." || item.Type == FtpObjectType.Link) {
                     continue;
@@ -160,6 +163,11 @@ public sealed class FtpTransferEndpoint : ITransferEndpoint, IDisposable {
                 throw new IOException($"The destination FTP item already exists: {relativePath}");
             }
         }
+        if (resolvedOptions.Mode != TransferWriteMode.Overwrite) {
+            throw new NotSupportedException(
+                "FTP cannot guarantee an atomic create-if-absent operation. " +
+                "Use Overwrite or coordinate writers externally.");
+        }
 
         string? parent = ProtocolTransferEndpointPath.GetParent(remotePath);
         if (!string.IsNullOrEmpty(parent) && parent != "/") {
@@ -169,7 +177,7 @@ public sealed class FtpTransferEndpoint : ITransferEndpoint, IDisposable {
         string temporaryPath = ProtocolTransferEndpointPath.CreateTemporaryPath(remotePath);
         try {
             using (Stream destination = _session.Client.OpenWrite(temporaryPath)) {
-                await content.CopyToAsync(destination, 81920, cancellationToken).ConfigureAwait(false);
+                await TransferContent.CopyToAsync(content, destination, length, cancellationToken).ConfigureAwait(false);
                 await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
 
@@ -188,8 +196,7 @@ public sealed class FtpTransferEndpoint : ITransferEndpoint, IDisposable {
                 throw new IOException($"The destination FTP item was created concurrently but is no longer available: {relativePath}");
             }
 
-            TransferItem? written = await GetItemAsync(relativePath, cancellationToken).ConfigureAwait(false);
-            return new TransferWriteResult(written ?? new TransferItem {
+            return new TransferWriteResult(new TransferItem {
                 Path = relativePath,
                 Length = length,
                 LastModifiedUtc = DateTimeOffset.UtcNow

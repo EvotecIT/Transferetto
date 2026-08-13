@@ -255,6 +255,59 @@ public sealed class SftpTransferCommitTests {
     [Theory]
     [InlineData(TransferWriteMode.SkipIfExists)]
     [InlineData(TransferWriteMode.FailIfExists)]
+    public void NonOverwrite_FailsClosedWithoutNoClobberRename(TransferWriteMode mode) {
+        FakeSftpCommitOperations operations = new() {
+            SupportsNoClobberRename = false
+        };
+        operations.Files["temp"] = "new";
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => Commit(
+            operations,
+            "temp",
+            "target",
+            "target",
+            mode));
+
+        Assert.Contains("atomic create-if-absent", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("new", operations.Files["temp"]);
+        Assert.False(operations.Files.ContainsKey("target"));
+    }
+
+    [Fact]
+    public void Overwrite_RetainsBackupWhenNoClobberRecoveryIsUnavailable() {
+        FakeSftpCommitOperations operations = new() {
+            SupportsNoClobberRename = false
+        };
+        operations.Files["temp"] = "new";
+        operations.Files["target"] = "old";
+        operations.OnRename = (source, destination, posix) => {
+            if (posix) {
+                throw new NotSupportedException("Atomic rename is unavailable.");
+            }
+            if (source == "temp" && destination == "target") {
+                throw new IOException("Injected commit failure.");
+            }
+        };
+
+        IOException exception = Assert.Throws<IOException>(() => Commit(
+            operations,
+            "temp",
+            "target",
+            "target",
+            TransferWriteMode.Overwrite));
+
+        KeyValuePair<string, string> retained = Assert.Single(
+            operations.Files,
+            pair => pair.Key.EndsWith(".previous", StringComparison.Ordinal));
+        Assert.Equal("old", retained.Value);
+        Assert.Contains(retained.Key, exception.Message, StringComparison.Ordinal);
+        Assert.False(operations.Files.ContainsKey("target"));
+        Assert.Equal("new", operations.Files["temp"]);
+    }
+
+    [Theory]
+    [InlineData(TransferWriteMode.SkipIfExists)]
+    [InlineData(TransferWriteMode.FailIfExists)]
     public void NonOverwrite_RecognizesSuccessfulRenameAfterResponseLoss(TransferWriteMode mode) {
         FakeSftpCommitOperations operations = new();
         operations.Files["temp"] = "new";
@@ -382,6 +435,8 @@ public sealed class SftpTransferCommitTests {
         internal Action<string, string, bool>? OnRename { get; set; }
 
         internal Action<string>? OnDelete { get; set; }
+
+        public bool SupportsNoClobberRename { get; set; } = true;
 
         public bool Exists(string path) => Files.ContainsKey(path);
 

@@ -7,6 +7,8 @@ internal sealed class SftpTransferCommitOperations : IProtocolTransferCommitOper
         _session = session;
     }
 
+    public bool SupportsNoClobberRename => true;
+
     public bool Exists(string path) => _session.Client.Exists(path);
 
     public void Delete(string path) => TransferettoClient.RemoveSftpFile(_session, path);

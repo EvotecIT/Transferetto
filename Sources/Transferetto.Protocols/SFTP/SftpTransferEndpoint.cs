@@ -172,7 +172,7 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
         string temporaryPath = ProtocolTransferEndpointPath.CreateTemporaryPath(remotePath);
         try {
             using (Stream destination = _session.Client.OpenWrite(temporaryPath)) {
-                await content.CopyToAsync(destination, 81920, cancellationToken).ConfigureAwait(false);
+                await TransferContent.CopyToAsync(content, destination, length, cancellationToken).ConfigureAwait(false);
                 await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
 
@@ -191,8 +191,7 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
                 throw new IOException($"The destination SFTP item was created concurrently but is no longer available: {relativePath}");
             }
 
-            TransferItem? written = await GetItemAsync(relativePath, cancellationToken).ConfigureAwait(false);
-            return new TransferWriteResult(written ?? new TransferItem {
+            return new TransferWriteResult(new TransferItem {
                 Path = relativePath,
                 Length = length,
                 LastModifiedUtc = DateTimeOffset.UtcNow

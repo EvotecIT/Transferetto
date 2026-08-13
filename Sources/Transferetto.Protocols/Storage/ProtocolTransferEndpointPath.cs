@@ -82,8 +82,16 @@ internal static class ProtocolTransferEndpointPath {
         return path.Substring(0, separator);
     }
 
-    internal static string CreateTemporaryPath(string destinationPath) =>
-        destinationPath + ".transferetto-" + Guid.NewGuid().ToString("N") + ".tmp";
+    internal static string CreateTemporaryPath(string destinationPath) {
+        string temporaryName = ".transferetto-" + Guid.NewGuid().ToString("N") + ".tmp";
+        string? parent = GetParent(destinationPath);
+        if (string.IsNullOrEmpty(parent)) {
+            return temporaryName;
+        }
+        return parent == "/"
+            ? parent + temporaryName
+            : parent + "/" + temporaryName;
+    }
 
     internal static long? NormalizeLength(long length) => length >= 0 ? length : null;
 
