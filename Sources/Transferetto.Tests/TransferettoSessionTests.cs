@@ -603,7 +603,7 @@ public sealed class TransferettoSessionTests {
 
     [Fact]
     public void ScpSessionExposesWrappedClientProperties() {
-        TransferettoScpSession session = CreateScpSession(new ScpClient("scp.example.com", "user", "password"), "none");
+        TransferettoScpSession session = CreateScpSession(new ScpClient("scp.example.com", "user", "password", RemotePathTransformation.ShellQuote), "none");
         TransferettoSshHostKeyInfo hostKeyInfo = new() {
             HostKeyName = "ssh-rsa",
             KeyLength = 2048,
