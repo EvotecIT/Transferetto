@@ -388,7 +388,7 @@ public static partial class TransferettoClient {
     }
 
     private static ScpClient CreateScpClient(TransferettoSshConnectionOptions options) {
-        return new ScpClient(CreateSshConnectionInfo(options));
+        return new ScpClient(CreateSshConnectionInfo(options), RemotePathTransformation.ShellQuote);
     }
 
     private static void ApplyScpClientOptions(ScpClient client, TransferettoSshConnectionOptions options) {
