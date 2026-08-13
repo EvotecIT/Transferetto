@@ -69,12 +69,11 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
         cancellationToken.ThrowIfCancellationRequested();
         string relativePath = ProtocolTransferEndpointPath.NormalizeRelative(path);
         string remotePath = ProtocolTransferEndpointPath.Resolve(_prefix, relativePath);
-        if (!TransferettoClient.TestSftpFile(_session, remotePath)) {
-            return Task.FromResult<TransferItem?>(null);
-        }
-        TransferettoSftpAttributes attributes = TransferettoClient.GetSftpAttributes(_session, remotePath);
+        TransferettoSftpAttributes? attributes = TransferettoClient.TryGetSftpFileAttributes(_session, remotePath);
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult<TransferItem?>(ToTransferItem(relativePath, attributes));
+        return Task.FromResult(attributes == null
+            ? null
+            : (TransferItem?)ToTransferItem(relativePath, attributes));
     }
 
     /// <inheritdoc />
@@ -170,9 +169,10 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
 
         EnsureParentDirectory(remotePath);
         string temporaryPath = ProtocolTransferEndpointPath.CreateTemporaryPath(remotePath);
+        long bytesWritten;
         try {
             using (Stream destination = _session.Client.OpenWrite(temporaryPath)) {
-                await TransferContent.CopyToAsync(content, destination, length, cancellationToken).ConfigureAwait(false);
+                bytesWritten = await TransferContent.CopyToAsync(content, destination, length, cancellationToken).ConfigureAwait(false);
                 await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
 
@@ -194,7 +194,7 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
 
             return new TransferWriteResult(new TransferItem {
                 Path = relativePath,
-                Length = length,
+                Length = bytesWritten,
                 LastModifiedUtc = DateTimeOffset.UtcNow
             }, wasWritten: true);
         } catch {

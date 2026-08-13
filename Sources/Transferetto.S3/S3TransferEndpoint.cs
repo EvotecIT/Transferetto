@@ -284,10 +284,11 @@ public sealed class S3TransferEndpoint : ITransferEndpoint, IDisposable {
             length = 0;
         }
 
+        using TransferReadTrackingStream trackedContent = new(content, leaveOpen: true);
         PutObjectRequest request = new() {
             BucketName = _bucketName,
             Key = key,
-            InputStream = content,
+            InputStream = trackedContent,
             AutoCloseStream = false,
             ContentType = options.ContentType,
             IfNoneMatch = options.Mode == TransferWriteMode.Overwrite ? null : "*"
@@ -299,7 +300,7 @@ public sealed class S3TransferEndpoint : ITransferEndpoint, IDisposable {
             request.Headers.ContentLength = length.Value;
         }
         PutObjectResponse response = await _client.PutObjectAsync(request, cancellationToken).ConfigureAwait(false);
-        return new S3ObjectWriteResult(response.ETag, response.VersionId, length);
+        return new S3ObjectWriteResult(response.ETag, response.VersionId, trackedContent.BytesRead);
     }
 
     private string ResolveKey(string path, bool allowEmpty = false) {

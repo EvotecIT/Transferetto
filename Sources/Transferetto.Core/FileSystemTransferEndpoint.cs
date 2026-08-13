@@ -62,7 +62,7 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
         if (!File.Exists(fullPath)) {
             return Task.FromResult<TransferItem?>(null);
         }
-        return Task.FromResult<TransferItem?>(CreateItem(fullPath));
+        return Task.FromResult(TryCreateItem(fullPath, out TransferItem? item) ? item : null);
     }
 
     /// <inheritdoc />
@@ -200,6 +200,19 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
             ContentType = contentType,
             Metadata = metadata ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         };
+    }
+
+    private bool TryCreateItem(string fullPath, out TransferItem? item) {
+        try {
+            item = CreateItem(fullPath);
+            return true;
+        } catch (FileNotFoundException) {
+            item = null;
+            return false;
+        } catch (DirectoryNotFoundException) {
+            item = null;
+            return false;
+        }
     }
 
     private string ResolvePath(string path, bool allowEmpty = false) {

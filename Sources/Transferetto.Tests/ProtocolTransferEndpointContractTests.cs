@@ -2,10 +2,33 @@ using System.Reflection;
 using FluentFTP;
 using Renci.SshNet;
 using Transferetto.Core;
+using Renci.SshNet.Common;
 
 namespace Transferetto.Tests;
 
 public sealed class ProtocolTransferEndpointContractTests {
+    [Fact]
+    public void SftpInspection_ReturnsNullWhenFileDisappearsDuringMetadataLookup() {
+        TransferettoSftpAttributes? attributes = TransferettoClient.TryGetSftpFileAttributes(
+            () => throw new SftpPathNotFoundException("The file disappeared."));
+
+        Assert.Null(attributes);
+    }
+
+    [Fact]
+    public void SftpInspection_UsesTheSingleFetchedFileSnapshot() {
+        int calls = 0;
+        TransferettoSftpAttributes expected = new() { IsRegularFile = true, Size = 42 };
+
+        TransferettoSftpAttributes? attributes = TransferettoClient.TryGetSftpFileAttributes(() => {
+            calls++;
+            return expected;
+        });
+
+        Assert.Same(expected, attributes);
+        Assert.Equal(1, calls);
+    }
+
     [Fact]
     public void FtpEndpoint_UsesProtocolPackageAndDoesNotExposeCredentials() {
         using FtpClient client = new("ftp.example.com") {

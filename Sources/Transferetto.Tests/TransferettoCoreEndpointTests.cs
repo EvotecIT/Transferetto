@@ -15,6 +15,34 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
     }
 
     [Fact]
+    public async Task ReadTrackingStream_ReportsConsumedBytesAndLeavesSourceOpen() {
+        byte[] content = Encoding.UTF8.GetBytes("actual-upload-content");
+        using MemoryStream source = new(content);
+        using TransferReadTrackingStream tracked = new(source, leaveOpen: true);
+        using MemoryStream destination = new();
+
+        await tracked.CopyToAsync(destination);
+
+        Assert.Equal(content.LongLength, tracked.BytesRead);
+        Assert.Equal(content, destination.ToArray());
+        tracked.Dispose();
+        Assert.True(source.CanRead);
+    }
+
+    [Fact]
+    public void ReadTrackingStream_ExposesForwardOnlyPayloadView() {
+        using MemoryStream source = new(Encoding.UTF8.GetBytes("prefix-payload"));
+        source.Position = "prefix-".Length;
+        using TransferReadTrackingStream tracked = new(source, leaveOpen: true);
+
+        Assert.False(tracked.CanSeek);
+        Assert.Equal("payload".Length, tracked.Length);
+        Assert.Throws<NotSupportedException>(() => tracked.Seek(0, SeekOrigin.Begin));
+        Assert.Equal((int)'p', tracked.ReadByte());
+        Assert.Equal(1, tracked.BytesRead);
+    }
+
+    [Fact]
     public async Task CopyAsync_StreamsContentAndReturnsPortableReceipt() {
         string sourceRoot = Path.Combine(_root, "source");
         string destinationRoot = Path.Combine(_root, "destination");

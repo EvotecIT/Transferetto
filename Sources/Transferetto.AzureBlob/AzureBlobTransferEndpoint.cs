@@ -188,8 +188,9 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
                 : null
         };
         Response<BlobContentInfo> response;
+        using TransferReadTrackingStream trackedContent = new(content, leaveOpen: true);
         try {
-            response = await blob.UploadAsync(content, uploadOptions, cancellationToken).ConfigureAwait(false);
+            response = await blob.UploadAsync(trackedContent, uploadOptions, cancellationToken).ConfigureAwait(false);
         } catch (RequestFailedException exception) when (
             (exception.Status == 409 || exception.Status == 412) &&
             resolvedOptions.Mode == TransferWriteMode.SkipIfExists) {
@@ -205,7 +206,7 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
         }
         return new TransferWriteResult(new TransferItem {
             Path = path,
-            Length = length,
+            Length = trackedContent.BytesRead,
             LastModifiedUtc = response.Value.LastModified,
             ETag = response.Value.ETag.ToString().Trim('"'),
             VersionId = response.Value.VersionId,

@@ -175,9 +175,10 @@ public sealed class FtpTransferEndpoint : ITransferEndpoint, IDisposable {
         }
 
         string temporaryPath = ProtocolTransferEndpointPath.CreateTemporaryPath(remotePath);
+        long bytesWritten;
         try {
             using (Stream destination = _session.Client.OpenWrite(temporaryPath)) {
-                await TransferContent.CopyToAsync(content, destination, length, cancellationToken).ConfigureAwait(false);
+                bytesWritten = await TransferContent.CopyToAsync(content, destination, length, cancellationToken).ConfigureAwait(false);
                 await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
 
@@ -199,7 +200,7 @@ public sealed class FtpTransferEndpoint : ITransferEndpoint, IDisposable {
 
             return new TransferWriteResult(new TransferItem {
                 Path = relativePath,
-                Length = length,
+                Length = bytesWritten,
                 LastModifiedUtc = DateTimeOffset.UtcNow
             }, wasWritten: true);
         } catch {
