@@ -59,6 +59,19 @@ public sealed class ProtocolTransferEndpointContractTests {
         await Assert.ThrowsAsync<ArgumentException>(() => endpoint.GetItemAsync(path));
     }
 
+    [Theory]
+    [InlineData(-1, -1)]
+    [InlineData(0, 0)]
+    [InlineData(42, 42)]
+    public void ProtocolEndpoints_NormalizeUnknownLengths(long providerLength, long expectedLength) {
+        long? normalized = ProtocolTransferEndpointPath.NormalizeLength(providerLength);
+        if (expectedLength < 0) {
+            Assert.Null(normalized);
+        } else {
+            Assert.Equal(expectedLength, normalized);
+        }
+    }
+
     private static TransferettoFtpSession CreateFtpSession(FtpClient client) {
         ConstructorInfo constructor = typeof(TransferettoFtpSession)
             .GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic)

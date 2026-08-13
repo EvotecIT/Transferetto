@@ -222,7 +222,7 @@ public sealed class FtpTransferEndpoint : ITransferEndpoint, IDisposable {
 
     private static TransferItem ToTransferItem(string relativePath, TransferettoRemoteItem item) => new() {
         Path = relativePath,
-        Length = item.Size,
+        Length = ProtocolTransferEndpointPath.NormalizeLength(item.Size),
         LastModifiedUtc = item.Modified == default
             ? null
             : new DateTimeOffset(item.Modified.ToUniversalTime())

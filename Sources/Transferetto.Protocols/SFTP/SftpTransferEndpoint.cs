@@ -98,7 +98,7 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
                 if (item.IsRegularFile) {
                     items.Add(new TransferItem {
                         Path = itemRelativePath,
-                        Length = item.Length,
+                        Length = ProtocolTransferEndpointPath.NormalizeLength(item.Length),
                         LastModifiedUtc = item.LastWriteTime == default
                             ? null
                             : new DateTimeOffset(item.LastWriteTime.ToUniversalTime())
@@ -244,7 +244,7 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
 
     private static TransferItem ToTransferItem(string relativePath, TransferettoSftpAttributes attributes) => new() {
         Path = relativePath,
-        Length = attributes.Size,
+        Length = ProtocolTransferEndpointPath.NormalizeLength(attributes.Size),
         LastModifiedUtc = attributes.LastWriteTimeUtc == default
             ? null
             : new DateTimeOffset(DateTime.SpecifyKind(attributes.LastWriteTimeUtc, DateTimeKind.Utc))

@@ -94,6 +94,21 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
     }
 
     [Fact]
+    public async Task CopyAsync_TreatsNegativeProviderLengthAsUnknown() {
+        byte[] content = Encoding.UTF8.GetBytes("unknown-length");
+        RecordingEndpoint destination = new();
+
+        TransferReceipt receipt = await TransferEngine.CopyAsync(
+            new MetadataSourceEndpoint(content, reportedLength: -1),
+            "source.bin",
+            destination,
+            "destination.bin");
+
+        Assert.Equal(content.LongLength, receipt.BytesTransferred);
+        Assert.Null(destination.Length);
+    }
+
+    [Fact]
     public async Task CopyAsync_RejectsExplicitMetadataForDestinationWithoutMetadataCapability() {
         RecordingEndpoint destination = new(supportsMetadata: false);
         TransferCopyOptions options = new();
@@ -314,9 +329,11 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
 
     private sealed class MetadataSourceEndpoint : ITransferEndpoint {
         private readonly byte[] _content;
+        private readonly long? _reportedLength;
 
-        internal MetadataSourceEndpoint(byte[] content) {
+        internal MetadataSourceEndpoint(byte[] content, long? reportedLength = null) {
             _content = content;
+            _reportedLength = reportedLength;
         }
 
         public string Scheme => "source";
@@ -329,7 +346,7 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
             Task.FromResult(new TransferReadHandle(
                 new TransferItem {
                     Path = path,
-                    Length = _content.LongLength,
+                    Length = _reportedLength ?? _content.LongLength,
                     ContentType = "application/octet-stream",
                     Metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
                         ["build-id"] = "provider-specific",
@@ -370,6 +387,8 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
 
         internal TransferWriteOptions? Options { get; private set; }
 
+        internal long? Length { get; private set; }
+
         public string Scheme => "destination";
         public string DisplayName => "destination://test/";
         public TransferEndpointCapabilities Capabilities => _supportsMetadata
@@ -383,6 +402,7 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
             TransferWriteOptions? options = null,
             CancellationToken cancellationToken = default) {
             Options = options;
+            Length = length;
             using MemoryStream sink = new();
             await content.CopyToAsync(sink, 81920, cancellationToken);
             return new TransferWriteResult(new TransferItem {

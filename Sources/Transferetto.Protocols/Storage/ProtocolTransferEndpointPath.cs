@@ -70,6 +70,8 @@ internal static class ProtocolTransferEndpointPath {
     internal static string CreateTemporaryPath(string destinationPath) =>
         destinationPath + ".transferetto-" + Guid.NewGuid().ToString("N") + ".tmp";
 
+    internal static long? NormalizeLength(long length) => length >= 0 ? length : null;
+
     internal static void ValidateUnsupportedMetadata(TransferWriteOptions options, string scheme) {
         if (!string.IsNullOrWhiteSpace(options.ContentType) || options.Metadata.Count > 0) {
             throw new NotSupportedException(

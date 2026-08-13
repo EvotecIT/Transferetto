@@ -38,11 +38,12 @@ public static class TransferEngine {
         Guid correlationId = Guid.NewGuid();
 
         using TransferReadHandle readHandle = await source.OpenReadAsync(sourcePath, cancellationToken).ConfigureAwait(false);
+        long? sourceLength = NormalizeLength(readHandle.Item.Length);
         using ProgressHashingReadStream trackedStream = new(
             readHandle.Stream,
             sourcePath,
             destinationPath,
-            readHandle.Item.Length,
+            sourceLength,
             resolvedOptions.Progress,
             resolvedOptions.ProgressIntervalBytes);
 
@@ -53,15 +54,15 @@ public static class TransferEngine {
         TransferWriteResult writeResult = await destination.WriteAsync(
             destinationPath,
             trackedStream,
-            readHandle.Item.Length,
+            sourceLength,
             writeOptions,
             cancellationToken).ConfigureAwait(false);
 
         if (writeResult.WasWritten) {
             trackedStream.Complete();
-            if (readHandle.Item.Length.HasValue && trackedStream.BytesRead != readHandle.Item.Length.Value) {
+            if (sourceLength.HasValue && trackedStream.BytesRead != sourceLength.Value) {
                 throw new EndOfStreamException(
-                    $"The destination consumed {trackedStream.BytesRead} bytes but the source length is {readHandle.Item.Length.Value}.");
+                    $"The destination consumed {trackedStream.BytesRead} bytes but the source length is {sourceLength.Value}.");
             }
         }
         return new TransferReceipt {
@@ -79,6 +80,8 @@ public static class TransferEngine {
             CompletedAtUtc = DateTimeOffset.UtcNow
         };
     }
+
+    private static long? NormalizeLength(long? length) => length >= 0 ? length : null;
 
     private static TransferWriteOptions CloneWriteOptions(
         TransferWriteOptions options,
