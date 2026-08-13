@@ -23,15 +23,27 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
     public SftpTransferEndpoint(
         TransferettoSftpSession session,
         string? prefix = null,
-        bool ownsSession = false) {
+        bool ownsSession = false)
+        : this(
+            session,
+            prefix,
+            ownsSession,
+            TransferettoClient.GetSftpWorkingDirectory(session ?? throw new ArgumentNullException(nameof(session)))) {
+    }
+
+    internal SftpTransferEndpoint(
+        TransferettoSftpSession session,
+        string? prefix,
+        bool ownsSession,
+        string workingDirectory) {
         _session = session ?? throw new ArgumentNullException(nameof(session));
-        _prefix = ProtocolTransferEndpointPath.NormalizeRoot(prefix);
+        _prefix = ProtocolTransferEndpointPath.AnchorRoot(prefix, workingDirectory);
         _ownsSession = ownsSession;
     }
 
     /// <summary>Connects an SFTP session and initializes an endpoint that owns it.</summary>
     public SftpTransferEndpoint(TransferettoSftpConnectionOptions options, string? prefix = null)
-        : this(ConnectOwnedSession(options, prefix), prefix, ownsSession: true) {
+        : this(ConnectOwnedEndpoint(options, prefix)) {
     }
 
     /// <inheritdoc />
@@ -213,16 +225,9 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
             return;
         }
 
-        bool absolute = parent!.StartsWith("/", StringComparison.Ordinal);
-        string current = absolute ? "/" : string.Empty;
-        foreach (string segment in parent.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries)) {
-            current = current == "/"
-                ? current + segment
-                : string.IsNullOrEmpty(current) ? segment : current + "/" + segment;
-            if (!_session.Client.Exists(current)) {
-                _session.Client.CreateDirectory(current);
-            }
-        }
+        SftpTransferDirectory.Ensure(
+            new SftpTransferDirectoryOperations(_session),
+            parent!);
     }
 
     private void TryRemoveTemporaryFile(string path) {
@@ -235,11 +240,39 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
         }
     }
 
-    private static TransferettoSftpSession ConnectOwnedSession(
+    private SftpTransferEndpoint(OwnedEndpointState state) {
+        _session = state.Session;
+        _prefix = state.Root;
+        _ownsSession = true;
+    }
+
+    private static OwnedEndpointState ConnectOwnedEndpoint(
         TransferettoSftpConnectionOptions options,
         string? prefix) {
         _ = ProtocolTransferEndpointPath.NormalizeRoot(prefix);
-        return TransferettoClient.ConnectSftp(options);
+        TransferettoSftpSession session = TransferettoClient.ConnectSftp(options);
+        try {
+            return new OwnedEndpointState(
+                session,
+                ProtocolTransferEndpointPath.AnchorRoot(
+                    prefix,
+                    TransferettoClient.GetSftpWorkingDirectory(session)));
+        } catch {
+            session.Dispose();
+            throw;
+        }
+    }
+
+    private sealed class OwnedEndpointState {
+        internal OwnedEndpointState(
+            TransferettoSftpSession session,
+            string root) {
+            Session = session;
+            Root = root;
+        }
+
+        internal TransferettoSftpSession Session { get; }
+        internal string Root { get; }
     }
 
     private static TransferItem ToTransferItem(string relativePath, TransferettoSftpAttributes attributes) => new() {

@@ -176,6 +176,31 @@ public sealed class SftpTransferCommitTests {
         Assert.Throws<ArgumentException>(() => new SftpTransferEndpoint(sftpOptions, "../outside"));
     }
 
+    [Fact]
+    public void DirectoryCreation_ToleratesAnotherWriterWinningTheRace() {
+        FakeSftpDirectoryOperations operations = new();
+        operations.OnCreate = path => {
+            operations.Directories.Add(path);
+            throw new IOException("Directory already exists.");
+        };
+
+        SftpTransferDirectory.Ensure(operations, "/home/user/incoming");
+
+        Assert.Contains("/home", operations.Directories);
+        Assert.Contains("/home/user", operations.Directories);
+        Assert.Contains("/home/user/incoming", operations.Directories);
+    }
+
+    [Fact]
+    public void DirectoryCreation_PreservesFailureWhenPathIsStillMissing() {
+        FakeSftpDirectoryOperations operations = new() {
+            OnCreate = _ => throw new IOException("Permission denied.")
+        };
+
+        Assert.Throws<IOException>(() =>
+            SftpTransferDirectory.Ensure(operations, "/restricted/incoming"));
+    }
+
     private sealed class TrackingStream : MemoryStream {
         internal bool WasDisposed { get; private set; }
 
@@ -209,6 +234,19 @@ public sealed class SftpTransferCommitTests {
             }
             Files.Remove(sourcePath);
             Files[destinationPath] = content;
+        }
+    }
+
+    private sealed class FakeSftpDirectoryOperations : ISftpTransferDirectoryOperations {
+        internal HashSet<string> Directories { get; } = new(StringComparer.Ordinal);
+
+        internal Action<string>? OnCreate { get; set; }
+
+        public bool IsDirectory(string path) => Directories.Contains(path);
+
+        public void CreateDirectory(string path) {
+            OnCreate?.Invoke(path);
+            Directories.Add(path);
         }
     }
 }

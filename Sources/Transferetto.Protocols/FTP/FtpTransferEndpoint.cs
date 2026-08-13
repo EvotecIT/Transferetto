@@ -24,15 +24,27 @@ public sealed class FtpTransferEndpoint : ITransferEndpoint, IDisposable {
     public FtpTransferEndpoint(
         TransferettoFtpSession session,
         string? prefix = null,
-        bool ownsSession = false) {
+        bool ownsSession = false)
+        : this(
+            session,
+            prefix,
+            ownsSession,
+            TransferettoClient.GetFtpWorkingDirectory(session ?? throw new ArgumentNullException(nameof(session)))) {
+    }
+
+    internal FtpTransferEndpoint(
+        TransferettoFtpSession session,
+        string? prefix,
+        bool ownsSession,
+        string workingDirectory) {
         _session = session ?? throw new ArgumentNullException(nameof(session));
-        _prefix = ProtocolTransferEndpointPath.NormalizeRoot(prefix);
+        _prefix = ProtocolTransferEndpointPath.AnchorRoot(prefix, workingDirectory);
         _ownsSession = ownsSession;
     }
 
     /// <summary>Connects an FTP or FTPS session and initializes an endpoint that owns it.</summary>
     public FtpTransferEndpoint(TransferettoFtpConnectionOptions options, string? prefix = null)
-        : this(ConnectOwnedSession(options, prefix), prefix, ownsSession: true) {
+        : this(ConnectOwnedEndpoint(options, prefix)) {
     }
 
     /// <inheritdoc />
@@ -213,11 +225,39 @@ public sealed class FtpTransferEndpoint : ITransferEndpoint, IDisposable {
         }
     }
 
-    private static TransferettoFtpSession ConnectOwnedSession(
+    private FtpTransferEndpoint(OwnedEndpointState state) {
+        _session = state.Session;
+        _prefix = state.Root;
+        _ownsSession = true;
+    }
+
+    private static OwnedEndpointState ConnectOwnedEndpoint(
         TransferettoFtpConnectionOptions options,
         string? prefix) {
         _ = ProtocolTransferEndpointPath.NormalizeRoot(prefix);
-        return TransferettoClient.ConnectFtp(options);
+        TransferettoFtpSession session = TransferettoClient.ConnectFtp(options);
+        try {
+            return new OwnedEndpointState(
+                session,
+                ProtocolTransferEndpointPath.AnchorRoot(
+                    prefix,
+                    TransferettoClient.GetFtpWorkingDirectory(session)));
+        } catch {
+            session.Dispose();
+            throw;
+        }
+    }
+
+    private sealed class OwnedEndpointState {
+        internal OwnedEndpointState(
+            TransferettoFtpSession session,
+            string root) {
+            Session = session;
+            Root = root;
+        }
+
+        internal TransferettoFtpSession Session { get; }
+        internal string Root { get; }
     }
 
     private static TransferItem ToTransferItem(string relativePath, TransferettoRemoteItem item) => new() {

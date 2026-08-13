@@ -17,6 +17,21 @@ internal static class ProtocolTransferEndpointPath {
         return absolute ? "/" + result : result;
     }
 
+    internal static string AnchorRoot(string? root, string workingDirectory) {
+        string normalizedRoot = NormalizeRoot(root);
+        if (normalizedRoot.StartsWith("/", StringComparison.Ordinal)) {
+            return normalizedRoot;
+        }
+
+        string normalizedWorkingDirectory = NormalizeRoot(workingDirectory);
+        if (!normalizedWorkingDirectory.StartsWith("/", StringComparison.Ordinal)) {
+            throw new ArgumentException("The session working directory must be absolute.", nameof(workingDirectory));
+        }
+        return string.IsNullOrEmpty(normalizedRoot)
+            ? normalizedWorkingDirectory
+            : Resolve(normalizedWorkingDirectory, normalizedRoot);
+    }
+
     internal static string NormalizeRelative(string? path, bool allowEmpty = false) {
         if (string.IsNullOrWhiteSpace(path)) {
             if (allowEmpty) {

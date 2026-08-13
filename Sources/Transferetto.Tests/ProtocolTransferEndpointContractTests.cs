@@ -12,7 +12,7 @@ public sealed class ProtocolTransferEndpointContractTests {
             Credentials = new System.Net.NetworkCredential("user", "secret")
         };
         using TransferettoFtpSession session = CreateFtpSession(client);
-        using FtpTransferEndpoint endpoint = new(session, "incoming");
+        using FtpTransferEndpoint endpoint = new(session, "incoming", ownsSession: false, workingDirectory: "/");
 
         Assert.Equal("Transferetto.Protocols", typeof(FtpTransferEndpoint).Assembly.GetName().Name);
         Assert.Equal("ftp://ftp.example.com/incoming", endpoint.DisplayName.TrimEnd('/'));
@@ -25,10 +25,14 @@ public sealed class ProtocolTransferEndpointContractTests {
     public void SftpEndpoint_UsesProtocolPackageAndDoesNotExposeCredentials() {
         using SftpClient client = new("sftp.example.com", "user", "secret");
         using TransferettoSftpSession session = CreateSftpSession(client);
-        using SftpTransferEndpoint endpoint = new(session, "incoming");
+        using SftpTransferEndpoint endpoint = new(
+            session,
+            "incoming",
+            ownsSession: false,
+            workingDirectory: "/srv/data");
 
         Assert.Equal("Transferetto.Protocols", typeof(SftpTransferEndpoint).Assembly.GetName().Name);
-        Assert.Equal("sftp://sftp.example.com:22/incoming", endpoint.DisplayName.TrimEnd('/'));
+        Assert.Equal("sftp://sftp.example.com:22/srv/data/incoming", endpoint.DisplayName.TrimEnd('/'));
         Assert.DoesNotContain("user", endpoint.DisplayName, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("secret", endpoint.DisplayName, StringComparison.OrdinalIgnoreCase);
         Assert.False(endpoint.Capabilities.HasFlag(TransferEndpointCapabilities.Metadata));
@@ -43,8 +47,10 @@ public sealed class ProtocolTransferEndpointContractTests {
         using SftpClient sftpClient = new("sftp.example.com", "user", "secret");
         using TransferettoSftpSession sftpSession = CreateSftpSession(sftpClient);
 
-        Assert.Throws<ArgumentException>(() => new FtpTransferEndpoint(ftpSession, prefix));
-        Assert.Throws<ArgumentException>(() => new SftpTransferEndpoint(sftpSession, prefix));
+        Assert.Throws<ArgumentException>(() =>
+            new FtpTransferEndpoint(ftpSession, prefix, ownsSession: false, workingDirectory: "/home/user"));
+        Assert.Throws<ArgumentException>(() =>
+            new SftpTransferEndpoint(sftpSession, prefix, ownsSession: false, workingDirectory: "/home/user"));
     }
 
     [Theory]
@@ -54,7 +60,7 @@ public sealed class ProtocolTransferEndpointContractTests {
     public async Task ProtocolEndpoints_RejectInvalidEndpointRelativePaths(string path) {
         using FtpClient client = new("ftp.example.com");
         using TransferettoFtpSession session = CreateFtpSession(client);
-        using FtpTransferEndpoint endpoint = new(session);
+        using FtpTransferEndpoint endpoint = new(session, null, ownsSession: false, workingDirectory: "/");
 
         await Assert.ThrowsAsync<ArgumentException>(() => endpoint.GetItemAsync(path));
     }
@@ -70,6 +76,16 @@ public sealed class ProtocolTransferEndpointContractTests {
         } else {
             Assert.Equal(expectedLength, normalized);
         }
+    }
+
+    [Theory]
+    [InlineData(null, "/home/user")]
+    [InlineData("incoming", "/home/user/incoming")]
+    [InlineData("/archive", "/archive")]
+    public void ProtocolEndpoints_AnchorPrefixesToConstructionWorkingDirectory(
+        string? prefix,
+        string expectedRoot) {
+        Assert.Equal(expectedRoot, ProtocolTransferEndpointPath.AnchorRoot(prefix, "/home/user"));
     }
 
     private static TransferettoFtpSession CreateFtpSession(FtpClient client) {
