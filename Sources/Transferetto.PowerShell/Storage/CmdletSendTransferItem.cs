@@ -56,7 +56,7 @@ public sealed class CmdletSendTransferItem : AsyncPSCmdlet {
             if (!sourceFile.Exists) {
                 throw new FileNotFoundException("The local source file does not exist.", sourceFile.FullName);
             }
-            string destinationPath = string.IsNullOrWhiteSpace(Path) ? sourceFile.Name : Path!;
+            string destinationPath = string.IsNullOrEmpty(Path) ? sourceFile.Name : Path!;
             FileSystemTransferEndpoint source = new(sourceFile.DirectoryName!);
             TransferCopyOptions options = CreateOptions();
             TransferReceipt receipt = await TransferEngine.CopyAsync(

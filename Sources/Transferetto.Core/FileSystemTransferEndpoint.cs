@@ -216,7 +216,7 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
     }
 
     private string ResolvePath(string path, bool allowEmpty = false) {
-        if (!allowEmpty && string.IsNullOrWhiteSpace(path)) {
+        if (!allowEmpty && string.IsNullOrEmpty(path)) {
             throw new ArgumentException("An endpoint-relative path is required.", nameof(path));
         }
         if (Path.IsPathRooted(path ?? string.Empty)) {

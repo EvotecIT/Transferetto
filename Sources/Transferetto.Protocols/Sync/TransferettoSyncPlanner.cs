@@ -18,11 +18,11 @@ public static class TransferettoSyncPlanner {
         TransferettoSyncOptions? options = null) {
         TransferettoSyncOptions resolvedOptions = options ?? new TransferettoSyncOptions();
         Dictionary<string, TransferettoSyncEntry> source = sourceEntries
-            .Where(entry => !string.IsNullOrWhiteSpace(entry.RelativePath))
+            .Where(entry => !string.IsNullOrEmpty(entry.RelativePath))
             .GroupBy(entry => NormalizeRelativePath(entry.RelativePath), StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         Dictionary<string, TransferettoSyncEntry> destination = destinationEntries
-            .Where(entry => !string.IsNullOrWhiteSpace(entry.RelativePath))
+            .Where(entry => !string.IsNullOrEmpty(entry.RelativePath))
             .GroupBy(entry => NormalizeRelativePath(entry.RelativePath), StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         HashSet<string> includedSourceFiles = new(
@@ -59,13 +59,13 @@ public static class TransferettoSyncPlanner {
             if (destinationEntry is null) {
                 string parentPath = GetParentRelativePath(relativePath);
                 if (!resolvedOptions.CreateDestinationDirectories
-                    && !string.IsNullOrWhiteSpace(parentPath)
+                    && !string.IsNullOrEmpty(parentPath)
                     && !destination.TryGetValue(parentPath, out TransferettoSyncEntry? parentEntry)) {
                     plan.Add(CreatePlanItem(TransferettoSyncAction.Skip, sourceFile, null, resolvedOptions, "Destination parent directory is missing and directory creation is disabled."));
                     continue;
                 }
 
-                if (!string.IsNullOrWhiteSpace(parentPath)
+                if (!string.IsNullOrEmpty(parentPath)
                     && destination.TryGetValue(parentPath, out parentEntry)
                     && !parentEntry.IsDirectory
                     && (!resolvedOptions.CreateDestinationDirectories

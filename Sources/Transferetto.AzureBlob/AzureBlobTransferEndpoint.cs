@@ -252,7 +252,7 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
 
     private string ResolveName(string path, bool allowEmpty = false) {
         string normalized = (path ?? string.Empty).Replace('\\', '/').TrimStart('/');
-        if (!allowEmpty && string.IsNullOrWhiteSpace(normalized)) {
+        if (!allowEmpty && string.IsNullOrEmpty(normalized)) {
             throw new ArgumentException("An endpoint-relative blob name is required.", nameof(path));
         }
         if (normalized.Split('/').Any(segment => segment == "..")) {
@@ -266,7 +266,7 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
 
     private static string NormalizePrefix(string? prefix) {
         string normalized = (prefix ?? string.Empty).Replace('\\', '/').Trim('/');
-        return string.IsNullOrWhiteSpace(normalized) ? string.Empty : normalized + "/";
+        return string.IsNullOrEmpty(normalized) ? string.Empty : normalized + "/";
     }
 
     private static void ValidateContainerUri(Uri? containerUri) {

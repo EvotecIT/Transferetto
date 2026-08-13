@@ -26,10 +26,10 @@ public static class TransferEngine {
         if (destination == null) {
             throw new ArgumentNullException(nameof(destination));
         }
-        if (string.IsNullOrWhiteSpace(sourcePath)) {
+        if (string.IsNullOrEmpty(sourcePath)) {
             throw new ArgumentException("A source path is required.", nameof(sourcePath));
         }
-        if (string.IsNullOrWhiteSpace(destinationPath)) {
+        if (string.IsNullOrEmpty(destinationPath)) {
             throw new ArgumentException("A destination path is required.", nameof(destinationPath));
         }
 

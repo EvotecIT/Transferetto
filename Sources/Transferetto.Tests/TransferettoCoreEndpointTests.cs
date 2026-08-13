@@ -70,6 +70,23 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
     }
 
     [Fact]
+    public async Task CopyAsync_PreservesWhitespaceOnlyOpaquePaths() {
+        byte[] content = Encoding.UTF8.GetBytes("opaque-path");
+        RecordingEndpoint destination = new();
+
+        TransferReceipt receipt = await TransferEngine.CopyAsync(
+            new MetadataSourceEndpoint(content),
+            " ",
+            destination,
+            "  ");
+
+        Assert.Equal(" ", receipt.SourcePath);
+        Assert.Equal("  ", receipt.DestinationPath);
+        Assert.Equal("  ", destination.Path);
+        Assert.Equal(content.LongLength, receipt.BytesTransferred);
+    }
+
+    [Fact]
     public async Task CopyAsync_SkipIfExistsDoesNotConsumeOrMisreportContent() {
         string sourceRoot = Path.Combine(_root, "source");
         string destinationRoot = Path.Combine(_root, "destination");
@@ -457,6 +474,8 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
 
         internal bool Committed { get; private set; }
 
+        internal string? Path { get; private set; }
+
         public string Scheme => "destination";
         public string DisplayName => "destination://test/";
         public TransferEndpointCapabilities Capabilities => _supportsMetadata
@@ -471,6 +490,7 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
             CancellationToken cancellationToken = default) {
             Options = options;
             Length = length;
+            Path = path;
             using MemoryStream sink = new();
             await content.CopyToAsync(sink, 81920, cancellationToken);
             Committed = true;
