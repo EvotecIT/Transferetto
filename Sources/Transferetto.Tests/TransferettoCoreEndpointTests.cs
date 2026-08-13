@@ -30,16 +30,21 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
     }
 
     [Fact]
-    public void ReadTrackingStream_ExposesForwardOnlyPayloadView() {
+    public void ReadTrackingStream_PreservesSeekabilityWithoutDoubleCountingRetries() {
         using MemoryStream source = new(Encoding.UTF8.GetBytes("prefix-payload"));
         source.Position = "prefix-".Length;
         using TransferReadTrackingStream tracked = new(source, leaveOpen: true);
+        byte[] buffer = new byte["payload".Length];
 
-        Assert.False(tracked.CanSeek);
-        Assert.Equal("payload".Length, tracked.Length);
-        Assert.Throws<NotSupportedException>(() => tracked.Seek(0, SeekOrigin.Begin));
-        Assert.Equal((int)'p', tracked.ReadByte());
-        Assert.Equal(1, tracked.BytesRead);
+        Assert.True(tracked.CanSeek);
+        Assert.Equal(source.Length, tracked.Length);
+        Assert.Equal("prefix-".Length, tracked.Position);
+        Assert.Equal(buffer.Length, tracked.Read(buffer, 0, buffer.Length));
+        Assert.Equal(buffer.LongLength, tracked.BytesRead);
+
+        Assert.Equal("prefix-".Length, tracked.Seek("prefix-".Length, SeekOrigin.Begin));
+        Assert.Equal(buffer.Length, tracked.Read(buffer, 0, buffer.Length));
+        Assert.Equal(buffer.LongLength, tracked.BytesRead);
     }
 
     [Fact]

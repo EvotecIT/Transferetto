@@ -9,13 +9,13 @@ namespace Transferetto.Core;
 /// Wraps a readable stream and records how many bytes its consumer actually reads.
 /// </summary>
 /// <remarks>
-/// The wrapper intentionally presents a forward-only view. This keeps the count tied to the payload consumed by
-/// an uploader rather than to a caller-supplied length hint or to provider metadata fetched after the commit.
+/// Seekable streams remain seekable so upload providers can retry by rewinding them. Re-reading an already consumed
+/// range does not increase <see cref="BytesRead"/>; non-seekable streams are counted cumulatively.
 /// </remarks>
 public sealed class TransferReadTrackingStream : Stream {
     private readonly Stream _inner;
     private readonly bool _leaveOpen;
-    private readonly long? _length;
+    private readonly long _initialPosition;
 
     /// <summary>Initializes a tracking stream.</summary>
     /// <param name="inner">The readable stream to wrap.</param>
@@ -26,7 +26,7 @@ public sealed class TransferReadTrackingStream : Stream {
             throw new ArgumentException("The wrapped stream must be readable.", nameof(inner));
         }
         _leaveOpen = leaveOpen;
-        _length = inner.CanSeek ? checked(inner.Length - inner.Position) : null;
+        _initialPosition = inner.CanSeek ? inner.Position : 0;
     }
 
     /// <summary>Gets the number of bytes consumed through this wrapper.</summary>
@@ -36,18 +36,18 @@ public sealed class TransferReadTrackingStream : Stream {
     public override bool CanRead => true;
 
     /// <inheritdoc />
-    public override bool CanSeek => false;
+    public override bool CanSeek => _inner.CanSeek;
 
     /// <inheritdoc />
     public override bool CanWrite => false;
 
     /// <inheritdoc />
-    public override long Length => _length ?? throw new NotSupportedException();
+    public override long Length => _inner.Length;
 
     /// <inheritdoc />
     public override long Position {
-        get => BytesRead;
-        set => throw new NotSupportedException();
+        get => _inner.Position;
+        set => _inner.Position = value;
     }
 
     /// <inheritdoc />
@@ -104,8 +104,17 @@ public sealed class TransferReadTrackingStream : Stream {
     }
 
     private void Track(int read) {
-        if (read > 0) {
+        if (read <= 0) {
+            return;
+        }
+        if (!_inner.CanSeek) {
             BytesRead = checked(BytesRead + read);
+            return;
+        }
+
+        long logicalBytesRead = checked(_inner.Position - _initialPosition);
+        if (logicalBytesRead > BytesRead) {
+            BytesRead = logicalBytesRead;
         }
     }
 
@@ -113,7 +122,7 @@ public sealed class TransferReadTrackingStream : Stream {
     public override void Flush() => throw new NotSupportedException();
 
     /// <inheritdoc />
-    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+    public override long Seek(long offset, SeekOrigin origin) => _inner.Seek(offset, origin);
 
     /// <inheritdoc />
     public override void SetLength(long value) => throw new NotSupportedException();
