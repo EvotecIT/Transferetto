@@ -4,13 +4,14 @@ using Transferetto.Core;
 
 namespace Transferetto;
 
+// FTP and SFTP use '/' as the path separator; '\\' is a legal filename character.
 internal static class ProtocolTransferEndpointPath {
     internal static string NormalizeRoot(string? root) {
         if (string.IsNullOrEmpty(root)) {
             return string.Empty;
         }
 
-        string normalized = root!.Replace('\\', '/');
+        string normalized = root!;
         bool absolute = normalized.StartsWith("/", StringComparison.Ordinal);
         string[] segments = NormalizeSegments(normalized, nameof(root));
         string result = string.Join("/", segments);
@@ -40,7 +41,7 @@ internal static class ProtocolTransferEndpointPath {
             throw new ArgumentException("An endpoint-relative path is required.", nameof(path));
         }
 
-        string normalized = path!.Replace('\\', '/');
+        string normalized = path!;
         if (normalized.StartsWith("/", StringComparison.Ordinal)) {
             throw new ArgumentException("The path must be relative to the endpoint root.", nameof(path));
         }

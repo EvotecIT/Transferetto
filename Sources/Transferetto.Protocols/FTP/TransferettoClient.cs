@@ -606,10 +606,9 @@ public static partial class TransferettoClient {
     }
 
     internal static string NormalizeExactDirectoryPath(string path) {
-        string normalized = path.Replace('\\', '/');
-        return normalized.Length > 1
-            ? normalized.TrimEnd('/')
-            : normalized;
+        return path.Length > 1
+            ? path.TrimEnd('/')
+            : path;
     }
 
     private static FtpListItem[] ExecuteFtpListing(

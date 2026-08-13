@@ -81,6 +81,7 @@ public sealed class ProtocolTransferEndpointContractTests {
     [Theory]
     [InlineData(null, "/home/user")]
     [InlineData("incoming", "/home/user/incoming")]
+    [InlineData(@"incoming\archive", @"/home/user/incoming\archive")]
     [InlineData("/archive", "/archive")]
     public void ProtocolEndpoints_AnchorPrefixesToConstructionWorkingDirectory(
         string? prefix,
@@ -93,15 +94,19 @@ public sealed class ProtocolTransferEndpointContractTests {
     [InlineData("report.csv ", "report.csv ")]
     [InlineData(" ", " ")]
     [InlineData("folder/ report.csv ", "folder/ report.csv ")]
-    public void ProtocolEndpoints_PreserveWhitespaceInRelativeNames(string path, string expected) {
+    [InlineData(@"report\final.csv", @"report\final.csv")]
+    public void ProtocolEndpoints_PreserveLegalRelativeNameCharacters(string path, string expected) {
         Assert.Equal(expected, ProtocolTransferEndpointPath.NormalizeRelative(path));
     }
 
     [Fact]
-    public void ProtocolEndpoints_PreserveWhitespaceWhenCombiningListedNames() {
+    public void ProtocolEndpoints_PreserveLegalNameCharactersWhenCombiningListedNames() {
         Assert.Equal(
             "incoming/ report.csv ",
             ProtocolTransferEndpointPath.CombineRelative("incoming", " report.csv "));
+        Assert.Equal(
+            @"incoming/report\final.csv",
+            ProtocolTransferEndpointPath.CombineRelative("incoming", @"report\final.csv"));
     }
 
     [Theory]
@@ -136,7 +141,7 @@ public sealed class ProtocolTransferEndpointContractTests {
     [InlineData("/incoming ", "/incoming ")]
     [InlineData("/   ", "/   ")]
     [InlineData("/wild?card/", "/wild?card")]
-    [InlineData("folder\\child ", "folder/child ")]
+    [InlineData("folder\\child ", "folder\\child ")]
     public void FtpEndpoint_PreservesExactDirectoryNames(string path, string expected) {
         Assert.Equal(expected, TransferettoClient.NormalizeExactDirectoryPath(path));
     }

@@ -146,6 +146,7 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
                 await target.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             EnsureNoLinkTraversal(fullPath);
             if (resolvedOptions.Mode == TransferWriteMode.Overwrite) {
                 CommitOverwrite(tempPath, fullPath);

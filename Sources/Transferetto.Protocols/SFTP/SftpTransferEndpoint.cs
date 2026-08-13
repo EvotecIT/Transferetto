@@ -176,6 +176,7 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
                 await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             bool committed = ProtocolTransferCommit.Commit(
                 new SftpTransferCommitOperations(_session),
                 temporaryPath,

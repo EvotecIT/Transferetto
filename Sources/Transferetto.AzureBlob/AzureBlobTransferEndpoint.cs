@@ -177,17 +177,19 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
             }
         }
 
+        Dictionary<string, string> metadata = TransferMetadata.CopyPortable(resolvedOptions.Metadata);
         BlobUploadOptions uploadOptions = new() {
             HttpHeaders = string.IsNullOrWhiteSpace(resolvedOptions.ContentType)
                 ? null
                 : new BlobHttpHeaders { ContentType = resolvedOptions.ContentType },
-            Metadata = TransferMetadata.CopyPortable(resolvedOptions.Metadata),
+            Metadata = metadata,
             Conditions = resolvedOptions.Mode != TransferWriteMode.Overwrite
                 ? new BlobRequestConditions { IfNoneMatch = ETag.All }
                 : null
         };
+        Response<BlobContentInfo> response;
         try {
-            await blob.UploadAsync(content, uploadOptions, cancellationToken).ConfigureAwait(false);
+            response = await blob.UploadAsync(content, uploadOptions, cancellationToken).ConfigureAwait(false);
         } catch (RequestFailedException exception) when (
             (exception.Status == 409 || exception.Status == 412) &&
             resolvedOptions.Mode == TransferWriteMode.SkipIfExists) {
@@ -201,12 +203,14 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
             resolvedOptions.Mode == TransferWriteMode.FailIfExists) {
             throw new IOException($"The destination blob already exists: {path}", exception);
         }
-        TransferItem? written = await GetItemAsync(path, cancellationToken).ConfigureAwait(false);
-        return new TransferWriteResult(written ?? new TransferItem {
+        return new TransferWriteResult(new TransferItem {
             Path = path,
             Length = length,
+            LastModifiedUtc = response.Value.LastModified,
+            ETag = response.Value.ETag.ToString().Trim('"'),
+            VersionId = response.Value.VersionId,
             ContentType = resolvedOptions.ContentType,
-            Metadata = TransferMetadata.CopyPortable(resolvedOptions.Metadata)
+            Metadata = metadata
         }, wasWritten: true);
     }
 

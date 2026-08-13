@@ -181,6 +181,7 @@ public sealed class FtpTransferEndpoint : ITransferEndpoint, IDisposable {
                 await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             bool committed = ProtocolTransferCommit.Commit(
                 new FtpTransferCommitOperations(_session),
                 temporaryPath,
