@@ -69,6 +69,19 @@ public sealed class TransferettoStorageContractTests {
     }
 
     [Fact]
+    public void ObjectStorageEndpoints_PreserveWhitespaceOnlyKeys() {
+        using S3TransferEndpoint s3 = new(new S3EndpointOptions {
+            BucketName = "evidence",
+            ServiceUrl = "http://127.0.0.1:9000"
+        });
+        AzureBlobTransferEndpoint blob = new(
+            new Uri("https://account.blob.core.windows.net/evidence"));
+
+        Assert.Equal(" ", InvokePathResolver(s3, "ResolveKey", " "));
+        Assert.Equal(" ", InvokePathResolver(blob, "ResolveName", " "));
+    }
+
+    [Fact]
     public void S3Endpoint_PreservesProviderMetadataOnRead() {
         MetadataCollection metadata = new();
         metadata["x-amz-meta-build-id"] = "external";
@@ -111,5 +124,12 @@ public sealed class TransferettoStorageContractTests {
     [InlineData("Company123")]
     public void PortableMetadata_AcceptsCrossProviderNames(string name) {
         TransferMetadata.ValidateName(name);
+    }
+
+    private static string InvokePathResolver(object endpoint, string methodName, string path) {
+        MethodInfo method = endpoint.GetType().GetMethod(
+            methodName,
+            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        return (string)method.Invoke(endpoint, new object[] { path, false })!;
     }
 }

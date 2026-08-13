@@ -8,6 +8,10 @@ namespace Transferetto.Core;
 /// <summary>
 /// Provides provider-neutral access to opaque file or object content.
 /// </summary>
+/// <remarks>
+/// Item paths are provider-defined opaque values. A path must be non-empty, but whitespace can be a legal and
+/// significant part of a remote filename or object key.
+/// </remarks>
 public interface ITransferEndpoint {
     /// <summary>Gets the provider scheme, such as <c>file</c>, <c>s3</c>, or <c>azureblob</c>.</summary>
     string Scheme { get; }

@@ -4,6 +4,7 @@
   "ExpectedVersionMap": {
     "Transferetto": "2.0.X",
     "Transferetto.Core": "2.0.X",
+    "Transferetto.Protocols": "2.0.X",
     "Transferetto.S3": "2.0.X",
     "Transferetto.AzureBlob": "2.0.X"
   },

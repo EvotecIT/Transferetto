@@ -224,10 +224,20 @@ Creates an Azure Blob Transferetto endpoint.
 
 Connects through a protected connection string or a container URI, including a container SAS URI. The endpoint performs blob data-plane operations and does not create or administer storage resources.
 
+### [New-TransferFtpEndpoint](New-TransferFtpEndpoint.md)
+Wraps a connected FTP or FTPS session as a Transferetto endpoint.
+
+Reuses a session created by Connect-FTP so provider-neutral commands such as Copy-TransferItem can stream data between FTP or FTPS and other Transferetto providers.
+
 ### [New-TransferS3Endpoint](New-TransferS3Endpoint.md)
 Creates an Amazon S3 or S3-compatible Transferetto endpoint.
 
 Uses the AWS default credential chain unless an explicit access-key credential is supplied. Custom endpoints support S3-compatible services such as MinIO, Cloudflare R2, and Backblaze B2.
+
+### [New-TransferSftpEndpoint](New-TransferSftpEndpoint.md)
+Wraps a connected SFTP session as a Transferetto endpoint.
+
+Reuses a session created by Connect-SFTP so provider-neutral commands such as Copy-TransferItem can stream data between SFTP and other Transferetto providers.
 
 ### [Open-FTPStream](Open-FTPStream.md)
 Opens a readable or writable FTP stream for a remote file.

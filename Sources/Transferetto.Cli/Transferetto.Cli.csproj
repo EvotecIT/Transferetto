@@ -8,6 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Transferetto\Transferetto.csproj" />
+    <ProjectReference Include="..\Transferetto.Protocols\Transferetto.Protocols.csproj" />
   </ItemGroup>
 </Project>

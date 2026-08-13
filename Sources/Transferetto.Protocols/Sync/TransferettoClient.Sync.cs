@@ -63,7 +63,7 @@ public static partial class TransferettoClient {
     private static string CombineSyncRemotePath(string basePath, string relativePath) {
         string normalizedBasePath = NormalizeRemotePath(basePath);
         string normalizedRelativePath = TransferettoSyncPlanner.NormalizeRelativePath(relativePath);
-        if (string.IsNullOrWhiteSpace(normalizedRelativePath)) {
+        if (string.IsNullOrEmpty(normalizedRelativePath)) {
             return normalizedBasePath;
         }
 
@@ -93,7 +93,7 @@ public static partial class TransferettoClient {
     }
 
     private static string GetRemoteManifestName(string path) {
-        if (string.IsNullOrWhiteSpace(path) || path == "/") {
+        if (string.IsNullOrEmpty(path) || path == "/") {
             return path;
         }
 

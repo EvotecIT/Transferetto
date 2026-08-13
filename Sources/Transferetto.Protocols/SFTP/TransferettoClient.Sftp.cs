@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Renci.SshNet;
+using Renci.SshNet.Common;
 using Renci.SshNet.Sftp;
 
 namespace Transferetto;
@@ -84,6 +85,32 @@ public static partial class TransferettoClient {
         EnsureNotNullOrWhiteSpace(path, nameof(path));
 
         return TransferettoSftpAttributes.FromFileAttributes(path, session.Client.GetAttributes(path));
+    }
+
+    internal static TransferettoSftpAttributes? TryGetSftpFileAttributes(
+        TransferettoSftpSession session,
+        string path) {
+        TransferettoSftpAttributes? attributes = TryGetSftpAttributes(session, path);
+        return attributes?.IsRegularFile == true ? attributes : null;
+    }
+
+    internal static TransferettoSftpAttributes? TryGetSftpAttributes(
+        TransferettoSftpSession session,
+        string path) => TryGetSftpAttributes(() => GetSftpAttributes(session, path));
+
+    internal static TransferettoSftpAttributes? TryGetSftpFileAttributes(
+        Func<TransferettoSftpAttributes> getAttributes) {
+        TransferettoSftpAttributes? attributes = TryGetSftpAttributes(getAttributes);
+        return attributes?.IsRegularFile == true ? attributes : null;
+    }
+
+    private static TransferettoSftpAttributes? TryGetSftpAttributes(
+        Func<TransferettoSftpAttributes> getAttributes) {
+        try {
+            return getAttributes();
+        } catch (SftpPathNotFoundException) {
+            return null;
+        }
     }
     /// <summary>
     /// Gets SFTP permission bits for a remote item.
@@ -175,7 +202,7 @@ public static partial class TransferettoClient {
     public static bool TestSftpFile(TransferettoSftpSession session, string path) {
         EnsureNotNull(session, nameof(session));
         EnsureNotNullOrWhiteSpace(path, nameof(path));
-        return session.Client.Exists(path) && !session.Client.GetAttributes(path).IsDirectory;
+        return TryGetSftpAttributes(session, path)?.IsRegularFile == true;
     }
     /// <summary>
     /// Tests whether a remote SFTP directory exists.
@@ -184,7 +211,7 @@ public static partial class TransferettoClient {
     public static bool TestSftpDirectory(TransferettoSftpSession session, string path) {
         EnsureNotNull(session, nameof(session));
         EnsureNotNullOrWhiteSpace(path, nameof(path));
-        return session.Client.Exists(path) && session.Client.GetAttributes(path).IsDirectory;
+        return TryGetSftpAttributes(session, path)?.IsDirectory == true;
     }
     /// <summary>
     /// Tests whether a remote SFTP path is a symbolic link.
@@ -193,7 +220,7 @@ public static partial class TransferettoClient {
     public static bool TestSftpSymbolicLink(TransferettoSftpSession session, string path) {
         EnsureNotNull(session, nameof(session));
         EnsureNotNullOrWhiteSpace(path, nameof(path));
-        return session.Client.Exists(path) && session.Client.GetAttributes(path).IsSymbolicLink;
+        return TryGetSftpAttributes(session, path)?.IsSymbolicLink == true;
     }
     /// <summary>
     /// Creates a remote SFTP directory.

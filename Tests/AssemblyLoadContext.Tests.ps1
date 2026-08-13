@@ -36,9 +36,14 @@ Import-Module Transferetto -Force
 `$s3Assembly = `$s3.GetType().Assembly
 `$s3Alc = [System.Runtime.Loader.AssemblyLoadContext]::GetLoadContext(`$s3Assembly)
 `$transferettoAssembly = [AppDomain]::CurrentDomain.GetAssemblies() |
-    Where-Object { `$_.GetName().Name -eq 'Transferetto' } |
+    Where-Object { `$_.GetName().Name -eq 'Transferetto.Protocols' } |
     Select-Object -First 1
 `$transferettoAlc = [System.Runtime.Loader.AssemblyLoadContext]::GetLoadContext(`$transferettoAssembly)
+`$compatibilityAssembly = `$commandAlc.LoadFromAssemblyName([System.Reflection.AssemblyName]::new('Transferetto'))
+`$compatibilityAlc = [System.Runtime.Loader.AssemblyLoadContext]::GetLoadContext(`$compatibilityAssembly)
+`$forwardedClientType = `$compatibilityAssembly.GetForwardedTypes() |
+    Where-Object FullName -eq 'Transferetto.TransferettoClient' |
+    Select-Object -First 1
 `$fluentFtpAssembly = [AppDomain]::CurrentDomain.GetAssemblies() |
     Where-Object { `$_.GetName().Name -eq 'FluentFTP' } |
     Select-Object -First 1
@@ -66,6 +71,11 @@ Import-Module Transferetto -Force
     TransferettoAssemblyPath = `$transferettoAssembly.Location
     TransferettoALC = `$transferettoAlc.Name
     TransferettoALCIsDefault = [object]::ReferenceEquals(`$transferettoAlc, [System.Runtime.Loader.AssemblyLoadContext]::Default)
+    CompatibilityAssembly = `$compatibilityAssembly.GetName().Name
+    CompatibilityAssemblyPath = `$compatibilityAssembly.Location
+    CompatibilityALC = `$compatibilityAlc.Name
+    CompatibilityALCIsDefault = [object]::ReferenceEquals(`$compatibilityAlc, [System.Runtime.Loader.AssemblyLoadContext]::Default)
+    ForwardedClientAssembly = `$forwardedClientType.Assembly.GetName().Name
     FluentFtpAssembly = `$fluentFtpAssembly.GetName().Name
     FluentFtpALC = `$fluentFtpAlc.Name
     FluentFtpALCIsDefault = [object]::ReferenceEquals(`$fluentFtpAlc, [System.Runtime.Loader.AssemblyLoadContext]::Default)
@@ -88,10 +98,15 @@ Import-Module Transferetto -Force
         $result.S3Assembly | Should -Be 'Transferetto.S3'
         $result.S3ALC | Should -Be 'Transferetto'
         $result.S3ALCIsDefault | Should -BeFalse
-        $result.TransferettoAssembly | Should -Be 'Transferetto'
-        ($result.TransferettoAssemblyPath -replace '\\', '/') | Should -BeLike '*/Artefacts/Unpacked/Modules/Transferetto/Lib/Core/Transferetto.dll'
+        $result.TransferettoAssembly | Should -Be 'Transferetto.Protocols'
+        ($result.TransferettoAssemblyPath -replace '\\', '/') | Should -BeLike '*/Artefacts/Unpacked/Modules/Transferetto/Lib/Core/Transferetto.Protocols.dll'
         $result.TransferettoALC | Should -Be 'Transferetto'
         $result.TransferettoALCIsDefault | Should -BeFalse
+        $result.CompatibilityAssembly | Should -Be 'Transferetto'
+        ($result.CompatibilityAssemblyPath -replace '\\', '/') | Should -BeLike '*/Artefacts/Unpacked/Modules/Transferetto/Lib/Core/Transferetto.dll'
+        $result.CompatibilityALC | Should -Be 'Transferetto'
+        $result.CompatibilityALCIsDefault | Should -BeFalse
+        $result.ForwardedClientAssembly | Should -Be 'Transferetto.Protocols'
         $result.FluentFtpAssembly | Should -Be 'FluentFTP'
         $result.FluentFtpALC | Should -Be 'Transferetto'
         $result.FluentFtpALCIsDefault | Should -BeFalse

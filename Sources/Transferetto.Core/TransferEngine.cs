@@ -26,10 +26,10 @@ public static class TransferEngine {
         if (destination == null) {
             throw new ArgumentNullException(nameof(destination));
         }
-        if (string.IsNullOrWhiteSpace(sourcePath)) {
+        if (string.IsNullOrEmpty(sourcePath)) {
             throw new ArgumentException("A source path is required.", nameof(sourcePath));
         }
-        if (string.IsNullOrWhiteSpace(destinationPath)) {
+        if (string.IsNullOrEmpty(destinationPath)) {
             throw new ArgumentException("A destination path is required.", nameof(destinationPath));
         }
 
@@ -38,29 +38,31 @@ public static class TransferEngine {
         Guid correlationId = Guid.NewGuid();
 
         using TransferReadHandle readHandle = await source.OpenReadAsync(sourcePath, cancellationToken).ConfigureAwait(false);
+        long? sourceLength = NormalizeLength(readHandle.Item.Length);
         using ProgressHashingReadStream trackedStream = new(
             readHandle.Stream,
             sourcePath,
             destinationPath,
-            readHandle.Item.Length,
+            sourceLength,
             resolvedOptions.Progress,
             resolvedOptions.ProgressIntervalBytes);
 
         TransferWriteOptions writeOptions = CloneWriteOptions(
             resolvedOptions.WriteOptions,
-            readHandle.Item);
+            readHandle.Item,
+            destination.Capabilities);
         TransferWriteResult writeResult = await destination.WriteAsync(
             destinationPath,
             trackedStream,
-            readHandle.Item.Length,
+            sourceLength,
             writeOptions,
             cancellationToken).ConfigureAwait(false);
 
         if (writeResult.WasWritten) {
             trackedStream.Complete();
-            if (readHandle.Item.Length.HasValue && trackedStream.BytesRead != readHandle.Item.Length.Value) {
+            if (sourceLength.HasValue && trackedStream.BytesRead != sourceLength.Value) {
                 throw new EndOfStreamException(
-                    $"The destination consumed {trackedStream.BytesRead} bytes but the source length is {readHandle.Item.Length.Value}.");
+                    $"The destination consumed {trackedStream.BytesRead} bytes but the source length is {sourceLength.Value}.");
             }
         }
         return new TransferReceipt {
@@ -79,20 +81,31 @@ public static class TransferEngine {
         };
     }
 
+    private static long? NormalizeLength(long? length) => length >= 0 ? length : null;
+
     private static TransferWriteOptions CloneWriteOptions(
         TransferWriteOptions options,
-        TransferItem sourceItem) {
+        TransferItem sourceItem,
+        TransferEndpointCapabilities destinationCapabilities) {
+        bool supportsMetadata = (destinationCapabilities & TransferEndpointCapabilities.Metadata) != 0;
+        if (!supportsMetadata &&
+            (!string.IsNullOrWhiteSpace(options.ContentType) || options.Metadata.Count > 0)) {
+            throw new NotSupportedException(
+                "The destination endpoint does not support explicitly requested content type or metadata.");
+        }
         TransferWriteOptions clone = new() {
             Mode = options.Mode,
-            ContentType = options.ContentType ?? sourceItem.ContentType
+            ContentType = supportsMetadata ? options.ContentType ?? sourceItem.ContentType : null
         };
-        foreach (var pair in sourceItem.Metadata) {
-            if (TransferMetadata.IsPortableName(pair.Key) && pair.Value != null) {
+        if (supportsMetadata) {
+            foreach (var pair in sourceItem.Metadata) {
+                if (TransferMetadata.IsPortableName(pair.Key) && pair.Value != null) {
+                    clone.Metadata[pair.Key] = pair.Value;
+                }
+            }
+            foreach (var pair in options.Metadata) {
                 clone.Metadata[pair.Key] = pair.Value;
             }
-        }
-        foreach (var pair in options.Metadata) {
-            clone.Metadata[pair.Key] = pair.Value;
         }
         return clone;
     }
@@ -163,11 +176,20 @@ public static class TransferEngine {
 
         private void Track(byte[] buffer, int offset, int read) {
             if (read <= 0) {
+                if (_length.HasValue && BytesRead != _length.Value) {
+                    throw new EndOfStreamException(
+                        $"The source produced {BytesRead} bytes but reported a length of {_length.Value}.");
+                }
                 Complete();
                 return;
             }
+            long nextBytesRead = checked(BytesRead + read);
+            if (_length.HasValue && nextBytesRead > _length.Value) {
+                throw new EndOfStreamException(
+                    $"The source produced more than its reported length of {_length.Value} bytes.");
+            }
             _sha256.TransformBlock(buffer, offset, read, null, 0);
-            BytesRead += read;
+            BytesRead = nextBytesRead;
             ReportProgress(force: false);
         }
 

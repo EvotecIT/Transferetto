@@ -15,6 +15,39 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
     }
 
     [Fact]
+    public async Task ReadTrackingStream_ReportsConsumedBytesAndLeavesSourceOpen() {
+        byte[] content = Encoding.UTF8.GetBytes("actual-upload-content");
+        using MemoryStream source = new(content);
+        using TransferReadTrackingStream tracked = new(source, leaveOpen: true);
+        using MemoryStream destination = new();
+
+        await tracked.CopyToAsync(destination);
+
+        Assert.Equal(content.LongLength, tracked.BytesRead);
+        Assert.Equal(content, destination.ToArray());
+        tracked.Dispose();
+        Assert.True(source.CanRead);
+    }
+
+    [Fact]
+    public void ReadTrackingStream_PreservesSeekabilityWithoutDoubleCountingRetries() {
+        using MemoryStream source = new(Encoding.UTF8.GetBytes("prefix-payload"));
+        source.Position = "prefix-".Length;
+        using TransferReadTrackingStream tracked = new(source, leaveOpen: true);
+        byte[] buffer = new byte["payload".Length];
+
+        Assert.True(tracked.CanSeek);
+        Assert.Equal(source.Length, tracked.Length);
+        Assert.Equal("prefix-".Length, tracked.Position);
+        Assert.Equal(buffer.Length, tracked.Read(buffer, 0, buffer.Length));
+        Assert.Equal(buffer.LongLength, tracked.BytesRead);
+
+        Assert.Equal("prefix-".Length, tracked.Seek("prefix-".Length, SeekOrigin.Begin));
+        Assert.Equal(buffer.Length, tracked.Read(buffer, 0, buffer.Length));
+        Assert.Equal(buffer.LongLength, tracked.BytesRead);
+    }
+
+    [Fact]
     public async Task CopyAsync_StreamsContentAndReturnsPortableReceipt() {
         string sourceRoot = Path.Combine(_root, "source");
         string destinationRoot = Path.Combine(_root, "destination");
@@ -34,6 +67,23 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
         Assert.Equal(content, File.ReadAllBytes(Path.Combine(destinationRoot, "archive", "evidence.json")));
         Assert.NotEqual(Guid.Empty, receipt.CorrelationId);
         Assert.True(receipt.CompletedAtUtc >= receipt.StartedAtUtc);
+    }
+
+    [Fact]
+    public async Task CopyAsync_PreservesWhitespaceOnlyOpaquePaths() {
+        byte[] content = Encoding.UTF8.GetBytes("opaque-path");
+        RecordingEndpoint destination = new();
+
+        TransferReceipt receipt = await TransferEngine.CopyAsync(
+            new MetadataSourceEndpoint(content),
+            " ",
+            destination,
+            "  ");
+
+        Assert.Equal(" ", receipt.SourcePath);
+        Assert.Equal("  ", receipt.DestinationPath);
+        Assert.Equal("  ", destination.Path);
+        Assert.Equal(content.LongLength, receipt.BytesTransferred);
     }
 
     [Fact]
@@ -72,8 +122,90 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
 
         Assert.Equal(TransferReceiptOutcome.Copied, receipt.Outcome);
         Assert.NotNull(destination.Options);
-        Assert.Equal("portable", destination.Options!.Metadata["evidence_id"]);
+        Assert.Equal("application/octet-stream", destination.Options!.ContentType);
+        Assert.Equal("portable", destination.Options.Metadata["evidence_id"]);
         Assert.DoesNotContain("build-id", destination.Options.Metadata.Keys);
+    }
+
+    [Fact]
+    public async Task CopyAsync_DropsAutomaticMetadataForDestinationWithoutMetadataCapability() {
+        RecordingEndpoint destination = new(supportsMetadata: false);
+
+        TransferReceipt receipt = await TransferEngine.CopyAsync(
+            new MetadataSourceEndpoint(Encoding.UTF8.GetBytes("metadata")),
+            "source.bin",
+            destination,
+            "destination.bin");
+
+        Assert.Equal(TransferReceiptOutcome.Copied, receipt.Outcome);
+        Assert.NotNull(destination.Options);
+        Assert.Null(destination.Options!.ContentType);
+        Assert.Empty(destination.Options.Metadata);
+    }
+
+    [Fact]
+    public async Task CopyAsync_TreatsNegativeProviderLengthAsUnknown() {
+        byte[] content = Encoding.UTF8.GetBytes("unknown-length");
+        RecordingEndpoint destination = new();
+
+        TransferReceipt receipt = await TransferEngine.CopyAsync(
+            new MetadataSourceEndpoint(content, reportedLength: -1),
+            "source.bin",
+            destination,
+            "destination.bin");
+
+        Assert.Equal(content.LongLength, receipt.BytesTransferred);
+        Assert.Null(destination.Length);
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(8)]
+    public async Task CopyAsync_RejectsChangedSourceLengthBeforeDestinationCommits(long reportedLength) {
+        byte[] content = Encoding.UTF8.GetBytes("length");
+        RecordingEndpoint destination = new();
+
+        await Assert.ThrowsAsync<EndOfStreamException>(() => TransferEngine.CopyAsync(
+            new MetadataSourceEndpoint(content, reportedLength),
+            "source.bin",
+            destination,
+            "destination.bin"));
+
+        Assert.False(destination.Committed);
+    }
+
+    [Fact]
+    public async Task CopyAsync_RejectsExplicitMetadataForDestinationWithoutMetadataCapability() {
+        RecordingEndpoint destination = new(supportsMetadata: false);
+        TransferCopyOptions options = new();
+        options.WriteOptions.Metadata["evidence_id"] = "explicit";
+
+        NotSupportedException exception = await Assert.ThrowsAsync<NotSupportedException>(() =>
+            TransferEngine.CopyAsync(
+                new MetadataSourceEndpoint(Encoding.UTF8.GetBytes("metadata")),
+                "source.bin",
+                destination,
+                "destination.bin",
+                options));
+
+        Assert.Contains("explicitly requested", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Null(destination.Options);
+    }
+
+    [Fact]
+    public async Task CopyAsync_RejectsExplicitContentTypeForDestinationWithoutMetadataCapability() {
+        RecordingEndpoint destination = new(supportsMetadata: false);
+        TransferCopyOptions options = new() {
+            WriteOptions = new TransferWriteOptions { ContentType = "application/json" }
+        };
+
+        await Assert.ThrowsAsync<NotSupportedException>(() => TransferEngine.CopyAsync(
+            new MetadataSourceEndpoint(Encoding.UTF8.GetBytes("metadata")),
+            "source.bin",
+            destination,
+            "destination.bin",
+            options));
+        Assert.Null(destination.Options);
     }
 
     [Fact]
@@ -118,6 +250,23 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
             new TransferWriteOptions { Mode = TransferWriteMode.Overwrite });
         Assert.True(overwritten.WasWritten);
         Assert.Equal("two", File.ReadAllText(Path.Combine(_root, "item.txt")));
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(8)]
+    public async Task FileSystemEndpoint_PreservesExistingItemWhenContentLengthChanges(long expectedLength) {
+        FileSystemTransferEndpoint endpoint = new(_root);
+        string targetPath = Path.Combine(_root, "item.txt");
+        File.WriteAllText(targetPath, "original");
+
+        await Assert.ThrowsAsync<EndOfStreamException>(() => endpoint.WriteAsync(
+            "item.txt",
+            new MemoryStream(Encoding.UTF8.GetBytes("length")),
+            expectedLength,
+            new TransferWriteOptions { Mode = TransferWriteMode.Overwrite }));
+
+        Assert.Equal("original", File.ReadAllText(targetPath));
     }
 
     [Theory]
@@ -263,9 +412,11 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
 
     private sealed class MetadataSourceEndpoint : ITransferEndpoint {
         private readonly byte[] _content;
+        private readonly long? _reportedLength;
 
-        internal MetadataSourceEndpoint(byte[] content) {
+        internal MetadataSourceEndpoint(byte[] content, long? reportedLength = null) {
             _content = content;
+            _reportedLength = reportedLength;
         }
 
         public string Scheme => "source";
@@ -278,7 +429,8 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
             Task.FromResult(new TransferReadHandle(
                 new TransferItem {
                     Path = path,
-                    Length = _content.LongLength,
+                    Length = _reportedLength ?? _content.LongLength,
+                    ContentType = "application/octet-stream",
                     Metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
                         ["build-id"] = "provider-specific",
                         ["evidence_id"] = "portable"
@@ -310,11 +462,25 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
     }
 
     private sealed class RecordingEndpoint : ITransferEndpoint {
+        private readonly bool _supportsMetadata;
+
+        internal RecordingEndpoint(bool supportsMetadata = true) {
+            _supportsMetadata = supportsMetadata;
+        }
+
         internal TransferWriteOptions? Options { get; private set; }
+
+        internal long? Length { get; private set; }
+
+        internal bool Committed { get; private set; }
+
+        internal string? Path { get; private set; }
 
         public string Scheme => "destination";
         public string DisplayName => "destination://test/";
-        public TransferEndpointCapabilities Capabilities => TransferEndpointCapabilities.Write;
+        public TransferEndpointCapabilities Capabilities => _supportsMetadata
+            ? TransferEndpointCapabilities.Write | TransferEndpointCapabilities.Metadata
+            : TransferEndpointCapabilities.Write;
 
         public async Task<TransferWriteResult> WriteAsync(
             string path,
@@ -323,8 +489,11 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
             TransferWriteOptions? options = null,
             CancellationToken cancellationToken = default) {
             Options = options;
+            Length = length;
+            Path = path;
             using MemoryStream sink = new();
             await content.CopyToAsync(sink, 81920, cancellationToken);
+            Committed = true;
             return new TransferWriteResult(new TransferItem {
                 Path = path,
                 Length = sink.Length

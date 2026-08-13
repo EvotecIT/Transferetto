@@ -400,6 +400,33 @@ public sealed class TransferettoSyncPlannerTests {
     }
 
     [Fact]
+    public void PlannerPreservesWhitespaceOnlyRelativePaths() {
+        DateTime now = DateTime.UtcNow;
+        TransferettoSyncEntry[] source = {
+            File(" ", @"/src/ ", "/wwwroot/ ", 1, now)
+        };
+
+        IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(
+            source,
+            Array.Empty<TransferettoSyncEntry>(),
+            new TransferettoSyncOptions { Direction = TransferettoSyncDirection.Upload });
+
+        TransferettoSyncPlanItem item = Assert.Single(plan);
+        Assert.Equal(TransferettoSyncAction.UploadFile, item.Action);
+        Assert.Equal(" ", item.RelativePath);
+    }
+
+    [Fact]
+    public void RemotePathCombinationPreservesWhitespaceOnlyRelativeNames() {
+        MethodInfo method = typeof(TransferettoClient).GetMethod("CombineSyncRemotePath", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("CombineSyncRemotePath was not found.");
+
+        string remotePath = (string)method.Invoke(null, new object[] { "/root", " " })!;
+
+        Assert.Equal("/root/ ", remotePath);
+    }
+
+    [Fact]
     public void RemoteRelativePathPreservesServerBackslashes() {
         MethodInfo method = typeof(TransferettoClient).GetMethod("GetRemoteRelativePath", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new InvalidOperationException("GetRemoteRelativePath was not found.");

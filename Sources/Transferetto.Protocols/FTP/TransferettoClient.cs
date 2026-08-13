@@ -80,6 +80,18 @@ public static partial class TransferettoClient {
 
         return items.Select(TransferettoRemoteItem.FromFtpListItem).ToArray();
     }
+
+    internal static IReadOnlyList<TransferettoRemoteItem> GetFtpDirectoryListingExact(
+        TransferettoFtpSession session,
+        string path,
+        FtpListOption? options = null) {
+        EnsureNotNull(session, nameof(session));
+
+        string exactPath = NormalizeExactDirectoryPath(path);
+        return GetFtpDirectoryListing(session, exactPath, options)
+            .Select(TransferettoRemoteItem.FromFtpListItem)
+            .ToArray();
+    }
     /// <summary>
     /// Uploads one or more files to an FTP or FTPS server.
     /// </summary>
@@ -591,6 +603,12 @@ public static partial class TransferettoClient {
                 session.Client.SetWorkingDirectory(originalWorkingDirectory);
             }
         }
+    }
+
+    internal static string NormalizeExactDirectoryPath(string path) {
+        return path.Length > 1
+            ? path.TrimEnd('/')
+            : path;
     }
 
     private static FtpListItem[] ExecuteFtpListing(

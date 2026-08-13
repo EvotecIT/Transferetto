@@ -62,7 +62,7 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
         if (!File.Exists(fullPath)) {
             return Task.FromResult<TransferItem?>(null);
         }
-        return Task.FromResult<TransferItem?>(CreateItem(fullPath));
+        return Task.FromResult(TryCreateItem(fullPath, out TransferItem? item) ? item : null);
     }
 
     /// <inheritdoc />
@@ -142,10 +142,11 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
                 FileShare.None,
                 81920,
                 FileOptions.Asynchronous | FileOptions.SequentialScan)) {
-                await content.CopyToAsync(target, 81920, cancellationToken).ConfigureAwait(false);
+                await TransferContent.CopyToAsync(content, target, length, cancellationToken).ConfigureAwait(false);
                 await target.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             EnsureNoLinkTraversal(fullPath);
             if (resolvedOptions.Mode == TransferWriteMode.Overwrite) {
                 CommitOverwrite(tempPath, fullPath);
@@ -201,8 +202,21 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
         };
     }
 
+    private bool TryCreateItem(string fullPath, out TransferItem? item) {
+        try {
+            item = CreateItem(fullPath);
+            return true;
+        } catch (FileNotFoundException) {
+            item = null;
+            return false;
+        } catch (DirectoryNotFoundException) {
+            item = null;
+            return false;
+        }
+    }
+
     private string ResolvePath(string path, bool allowEmpty = false) {
-        if (!allowEmpty && string.IsNullOrWhiteSpace(path)) {
+        if (!allowEmpty && string.IsNullOrEmpty(path)) {
             throw new ArgumentException("An endpoint-relative path is required.", nameof(path));
         }
         if (Path.IsPathRooted(path ?? string.Empty)) {
