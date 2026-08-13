@@ -43,7 +43,7 @@
     <ProjectReference Include="..\Transferetto.Core\Transferetto.Core.csproj" />
     <ProjectReference Include="..\Transferetto.S3\Transferetto.S3.csproj" />
     <ProjectReference Include="..\Transferetto.AzureBlob\Transferetto.AzureBlob.csproj" />
-    <ProjectReference Include="..\Transferetto\Transferetto.csproj" />
+    <ProjectReference Include="..\Transferetto.Protocols\Transferetto.Protocols.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' != 'net472'">

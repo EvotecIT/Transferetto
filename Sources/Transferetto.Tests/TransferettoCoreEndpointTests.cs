@@ -72,8 +72,59 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
 
         Assert.Equal(TransferReceiptOutcome.Copied, receipt.Outcome);
         Assert.NotNull(destination.Options);
-        Assert.Equal("portable", destination.Options!.Metadata["evidence_id"]);
+        Assert.Equal("application/octet-stream", destination.Options!.ContentType);
+        Assert.Equal("portable", destination.Options.Metadata["evidence_id"]);
         Assert.DoesNotContain("build-id", destination.Options.Metadata.Keys);
+    }
+
+    [Fact]
+    public async Task CopyAsync_DropsAutomaticMetadataForDestinationWithoutMetadataCapability() {
+        RecordingEndpoint destination = new(supportsMetadata: false);
+
+        TransferReceipt receipt = await TransferEngine.CopyAsync(
+            new MetadataSourceEndpoint(Encoding.UTF8.GetBytes("metadata")),
+            "source.bin",
+            destination,
+            "destination.bin");
+
+        Assert.Equal(TransferReceiptOutcome.Copied, receipt.Outcome);
+        Assert.NotNull(destination.Options);
+        Assert.Null(destination.Options!.ContentType);
+        Assert.Empty(destination.Options.Metadata);
+    }
+
+    [Fact]
+    public async Task CopyAsync_RejectsExplicitMetadataForDestinationWithoutMetadataCapability() {
+        RecordingEndpoint destination = new(supportsMetadata: false);
+        TransferCopyOptions options = new();
+        options.WriteOptions.Metadata["evidence_id"] = "explicit";
+
+        NotSupportedException exception = await Assert.ThrowsAsync<NotSupportedException>(() =>
+            TransferEngine.CopyAsync(
+                new MetadataSourceEndpoint(Encoding.UTF8.GetBytes("metadata")),
+                "source.bin",
+                destination,
+                "destination.bin",
+                options));
+
+        Assert.Contains("explicitly requested", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Null(destination.Options);
+    }
+
+    [Fact]
+    public async Task CopyAsync_RejectsExplicitContentTypeForDestinationWithoutMetadataCapability() {
+        RecordingEndpoint destination = new(supportsMetadata: false);
+        TransferCopyOptions options = new() {
+            WriteOptions = new TransferWriteOptions { ContentType = "application/json" }
+        };
+
+        await Assert.ThrowsAsync<NotSupportedException>(() => TransferEngine.CopyAsync(
+            new MetadataSourceEndpoint(Encoding.UTF8.GetBytes("metadata")),
+            "source.bin",
+            destination,
+            "destination.bin",
+            options));
+        Assert.Null(destination.Options);
     }
 
     [Fact]
@@ -279,6 +330,7 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
                 new TransferItem {
                     Path = path,
                     Length = _content.LongLength,
+                    ContentType = "application/octet-stream",
                     Metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
                         ["build-id"] = "provider-specific",
                         ["evidence_id"] = "portable"
@@ -310,11 +362,19 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
     }
 
     private sealed class RecordingEndpoint : ITransferEndpoint {
+        private readonly bool _supportsMetadata;
+
+        internal RecordingEndpoint(bool supportsMetadata = true) {
+            _supportsMetadata = supportsMetadata;
+        }
+
         internal TransferWriteOptions? Options { get; private set; }
 
         public string Scheme => "destination";
         public string DisplayName => "destination://test/";
-        public TransferEndpointCapabilities Capabilities => TransferEndpointCapabilities.Write;
+        public TransferEndpointCapabilities Capabilities => _supportsMetadata
+            ? TransferEndpointCapabilities.Write | TransferEndpointCapabilities.Metadata
+            : TransferEndpointCapabilities.Write;
 
         public async Task<TransferWriteResult> WriteAsync(
             string path,

@@ -95,8 +95,8 @@ Build-Module -ModuleName 'Transferetto' {
     New-ConfigurationProjectBuild -Name 'Transferetto' -ConfigPath $ProjectBuildConfigPath -Enabled -BuildBeforeModule -UseAsReleaseVersionSource -ProvideLocalNuGetFeed -PublishNuget
     New-ConfigurationRelease -StageRoot 'Artefacts\UploadReady' -VersionSource ProjectBuild -PrimaryProject 'Transferetto' -SynchronizeModuleVersion -PublishOrder 'NuGet', 'PowerShellGallery', 'GitHub'
 
-    New-ConfigurationArtefact -Type Unpacked -Enable -Path 'Artefacts\Unpacked' -ModulesPath 'Artefacts\Unpacked\Modules'
-    New-ConfigurationArtefact -Type Packed -Enable -Path 'Artefacts\Packed' -ModulesPath 'Artefacts\Packed\Modules' -IncludeTagName -ArtefactName 'Transferetto-PowerShellModule.<TagModuleVersionWithPreRelease>.zip' -ID 'ToGitHub'
+    New-ConfigurationArtefact -Type Unpacked -Enable -Path "$PSScriptRoot\..\Artefacts\Unpacked" -ModulesPath "$PSScriptRoot\..\Artefacts\Unpacked\Modules"
+    New-ConfigurationArtefact -Type Packed -Enable -Path "$PSScriptRoot\..\Artefacts\Packed" -ModulesPath "$PSScriptRoot\..\Artefacts\Packed\Modules" -IncludeTagName -ArtefactName 'Transferetto-PowerShellModule.<TagModuleVersionWithPreRelease>.zip' -ID 'ToGitHub'
 
     New-ConfigurationPublish -Type PowerShellGallery -FilePath $PowerShellGalleryApiKeyPath -Enabled:$false
     New-ConfigurationPublish -Type GitHub -FilePath $GitHubApiKeyPath -UserName 'EvotecIT' -RepositoryName 'Transferetto' -Enabled:$false -GenerateReleaseNotes -OverwriteTagName '{ModuleName}-v{ModuleVersionWithPreRelease}'

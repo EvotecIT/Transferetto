@@ -48,7 +48,8 @@ public static class TransferEngine {
 
         TransferWriteOptions writeOptions = CloneWriteOptions(
             resolvedOptions.WriteOptions,
-            readHandle.Item);
+            readHandle.Item,
+            destination.Capabilities);
         TransferWriteResult writeResult = await destination.WriteAsync(
             destinationPath,
             trackedStream,
@@ -81,18 +82,27 @@ public static class TransferEngine {
 
     private static TransferWriteOptions CloneWriteOptions(
         TransferWriteOptions options,
-        TransferItem sourceItem) {
+        TransferItem sourceItem,
+        TransferEndpointCapabilities destinationCapabilities) {
+        bool supportsMetadata = (destinationCapabilities & TransferEndpointCapabilities.Metadata) != 0;
+        if (!supportsMetadata &&
+            (!string.IsNullOrWhiteSpace(options.ContentType) || options.Metadata.Count > 0)) {
+            throw new NotSupportedException(
+                "The destination endpoint does not support explicitly requested content type or metadata.");
+        }
         TransferWriteOptions clone = new() {
             Mode = options.Mode,
-            ContentType = options.ContentType ?? sourceItem.ContentType
+            ContentType = supportsMetadata ? options.ContentType ?? sourceItem.ContentType : null
         };
-        foreach (var pair in sourceItem.Metadata) {
-            if (TransferMetadata.IsPortableName(pair.Key) && pair.Value != null) {
+        if (supportsMetadata) {
+            foreach (var pair in sourceItem.Metadata) {
+                if (TransferMetadata.IsPortableName(pair.Key) && pair.Value != null) {
+                    clone.Metadata[pair.Key] = pair.Value;
+                }
+            }
+            foreach (var pair in options.Metadata) {
                 clone.Metadata[pair.Key] = pair.Value;
             }
-        }
-        foreach (var pair in options.Metadata) {
-            clone.Metadata[pair.Key] = pair.Value;
         }
         return clone;
     }

@@ -36,7 +36,7 @@ Import-Module Transferetto -Force
 `$s3Assembly = `$s3.GetType().Assembly
 `$s3Alc = [System.Runtime.Loader.AssemblyLoadContext]::GetLoadContext(`$s3Assembly)
 `$transferettoAssembly = [AppDomain]::CurrentDomain.GetAssemblies() |
-    Where-Object { `$_.GetName().Name -eq 'Transferetto' } |
+    Where-Object { `$_.GetName().Name -eq 'Transferetto.Protocols' } |
     Select-Object -First 1
 `$transferettoAlc = [System.Runtime.Loader.AssemblyLoadContext]::GetLoadContext(`$transferettoAssembly)
 `$fluentFtpAssembly = [AppDomain]::CurrentDomain.GetAssemblies() |
@@ -88,8 +88,8 @@ Import-Module Transferetto -Force
         $result.S3Assembly | Should -Be 'Transferetto.S3'
         $result.S3ALC | Should -Be 'Transferetto'
         $result.S3ALCIsDefault | Should -BeFalse
-        $result.TransferettoAssembly | Should -Be 'Transferetto'
-        ($result.TransferettoAssemblyPath -replace '\\', '/') | Should -BeLike '*/Artefacts/Unpacked/Modules/Transferetto/Lib/Core/Transferetto.dll'
+        $result.TransferettoAssembly | Should -Be 'Transferetto.Protocols'
+        ($result.TransferettoAssemblyPath -replace '\\', '/') | Should -BeLike '*/Artefacts/Unpacked/Modules/Transferetto/Lib/Core/Transferetto.Protocols.dll'
         $result.TransferettoALC | Should -Be 'Transferetto'
         $result.TransferettoALCIsDefault | Should -BeFalse
         $result.FluentFtpAssembly | Should -Be 'FluentFTP'

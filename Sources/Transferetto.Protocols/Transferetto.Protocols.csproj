@@ -6,38 +6,49 @@
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`OSX`))' Or '$([MSBuild]::IsOsPlatform(`Linux`))' ">
       netstandard2.0;net8.0
     </TargetFrameworks>
-    <AssemblyName>Transferetto</AssemblyName>
-    <Title>Transferetto</Title>
-    <Description>Umbrella package for the Transferetto core engine and supported transfer providers.</Description>
+    <AssemblyName>Transferetto.Protocols</AssemblyName>
+    <Title>Transferetto Protocol Providers</Title>
+    <Description>FTP, FTPS, FXP, SFTP, SCP, and SSH providers and protocol operations for Transferetto.</Description>
     <VersionPrefix>2.0.1</VersionPrefix>
     <AssemblyVersion>2.0.1</AssemblyVersion>
     <FileVersion>2.0.1</FileVersion>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-    <PackageId>Transferetto</PackageId>
+    <PackageId>Transferetto.Protocols</PackageId>
     <PackageProjectUrl>https://github.com/EvotecIT/Transferetto</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageTags>transfer;ftp;ftps;sftp;scp;ssh;s3;azure;blob;storage</PackageTags>
+    <PackageTags>transfer;ftp;ftps;sftp;scp;ssh</PackageTags>
     <RepositoryUrl>https://github.com/EvotecIT/Transferetto</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <IsPackable>true</IsPackable>
-    <IncludeBuildOutput>false</IncludeBuildOutput>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <Copyright>(c) 2011 - 2026 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FluentFTP" Version="54.2.0" />
+    <PackageReference Include="FluentFTP.GnuTLS" Version="1.0.40" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.10" />
+    <PackageReference Include="SSH.NET" Version="2026.0.0" />
+    <PackageReference Include="System.Formats.Asn1" Version="10.0.10" />
     <ProjectReference Include="..\Transferetto.Core\Transferetto.Core.csproj" />
-    <ProjectReference Include="..\Transferetto.Protocols\Transferetto.Protocols.csproj" />
-    <ProjectReference Include="..\Transferetto.S3\Transferetto.S3.csproj" />
-    <ProjectReference Include="..\Transferetto.AzureBlob\Transferetto.AzureBlob.csproj" />
-    <None Include="README.md" Pack="true" PackagePath="\" />
-    <None Remove="_._" />
-    <None Include="_._" Pack="true" PackagePath="lib/netstandard2.0" />
-    <None Include="_._" Pack="true" PackagePath="lib/net472" />
-    <None Include="_._" Pack="true" PackagePath="lib/net8.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Files Include="$(MSBuildThisFileDirectory)/../content/*.dll" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <Target Name="CopyNativeFilesAfterBuild" AfterTargets="Build">
+    <Copy SourceFiles="@(Files)" DestinationFolder="$(TargetDir)" />
+  </Target>
+
+  <Target Name="CopyNativeFilesAfterPublish" AfterTargets="Publish">
+    <Copy SourceFiles="@(Files)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

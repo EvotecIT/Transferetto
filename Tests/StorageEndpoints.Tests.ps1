@@ -1,4 +1,21 @@
 Describe 'Transferetto storage endpoints' {
+    It 'exposes FTP and SFTP endpoint adapters over existing sessions' {
+        $FtpCommand = Get-Command New-TransferFtpEndpoint
+        $SftpCommand = Get-Command New-TransferSftpEndpoint
+
+        $FtpCommand.Parameters.Keys | Should -Contain 'FtpSession'
+        $FtpCommand.Parameters.Keys | Should -Contain 'Prefix'
+        $FtpCommand.Parameters.Keys | Should -Contain 'OwnSession'
+        ($FtpCommand.Parameters['FtpSession'].Attributes | Where-Object { $_ -is [Management.Automation.ParameterAttribute] }).ValueFromPipeline |
+            Should -Contain $true
+
+        $SftpCommand.Parameters.Keys | Should -Contain 'SftpSession'
+        $SftpCommand.Parameters.Keys | Should -Contain 'Prefix'
+        $SftpCommand.Parameters.Keys | Should -Contain 'OwnSession'
+        ($SftpCommand.Parameters['SftpSession'].Attributes | Where-Object { $_ -is [Management.Automation.ParameterAttribute] }).ValueFromPipeline |
+            Should -Contain $true
+    }
+
     It 'creates S3-compatible endpoints without exposing credentials' {
         $Credential = [pscredential]::new(
             'access-key',

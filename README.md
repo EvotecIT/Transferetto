@@ -36,15 +36,17 @@ Install-Module Transferetto -Scope CurrentUser
 
 ### .NET
 
-Install the package for the protocols or provider your application uses:
+Install the umbrella package for every provider, or choose only the focused packages your application uses:
 
 ```shell
 dotnet add package Transferetto
+dotnet add package Transferetto.Protocols
+dotnet add package Transferetto.Core
 dotnet add package Transferetto.S3
 dotnet add package Transferetto.AzureBlob
 ```
 
-`Transferetto` includes the FTP, FTPS, SFTP, SCP, FXP, and SSH APIs. The provider packages use `Transferetto.Core`, which can also be referenced directly for the endpoint contract and filesystem transfers.
+`Transferetto` is the convenience package and depends on all supported providers. `Transferetto.Protocols` owns the FTP, FTPS, SFTP, SCP, FXP, and SSH APIs. Every provider uses `Transferetto.Core`, which can also be referenced directly for the endpoint contract and filesystem transfers.
 
 ## PowerShell examples
 
@@ -232,19 +234,32 @@ TransferReceipt receipt = await TransferEngine.CopyAsync(
     cancellationToken);
 ```
 
-Use `FileSystemTransferEndpoint` for a local or mounted-filesystem side of the copy. `Transferetto.S3` and `Transferetto.AzureBlob` provide the object-storage endpoints.
+Use `FileSystemTransferEndpoint` for a local or mounted-filesystem side of the copy. `Transferetto.Protocols` provides `FtpTransferEndpoint` and `SftpTransferEndpoint`; `Transferetto.S3` and `Transferetto.AzureBlob` provide the object-storage endpoints.
+
+In PowerShell, wrap an existing protocol session before using the provider-neutral transfer commands:
+
+```powershell
+$ftpEndpoint = Connect-FTP -Server 'ftp.example.com' -Credential (Get-Credential) |
+    New-TransferFtpEndpoint -Prefix 'incoming' -OwnSession
+$sftpEndpoint = Connect-SFTP -Server 'sftp.example.com' -Credential (Get-Credential) |
+    New-TransferSftpEndpoint -Prefix 'archive' -OwnSession
+
+Copy-TransferItem -SourceEndpoint $ftpEndpoint -SourcePath 'report.csv' `
+    -DestinationEndpoint $sftpEndpoint -DestinationPath 'report.csv'
+```
 
 ## Packages
 
 | Package | Purpose |
 | --- | --- |
-| [`Transferetto`](https://www.nuget.org/packages/Transferetto) | FTP, FTPS, SFTP, SCP, FXP, SSH, synchronization, streams, and shared transfer results |
+| [`Transferetto`](https://www.nuget.org/packages/Transferetto) | Umbrella package that installs Core and every supported provider |
 | [`Transferetto.Core`](https://www.nuget.org/packages/Transferetto.Core) | Provider-neutral endpoint contracts, streaming copy engine, filesystem endpoint, progress, integrity receipts, and metadata rules |
+| [`Transferetto.Protocols`](https://www.nuget.org/packages/Transferetto.Protocols) | FTP, FTPS, SFTP, SCP, FXP, SSH, synchronization, streams, and protocol endpoint adapters |
 | [`Transferetto.S3`](https://www.nuget.org/packages/Transferetto.S3) | Amazon S3 and S3-compatible object-storage provider |
 | [`Transferetto.AzureBlob`](https://www.nuget.org/packages/Transferetto.AzureBlob) | Azure Blob Storage provider |
 | [`Transferetto`](https://www.powershellgallery.com/packages/Transferetto) on PowerShell Gallery | One PowerShell command surface over the protocol and storage assemblies |
 
-The main NuGet package embeds this repository README, so its introduction, capability map, and examples stay aligned with the repository. Provider-specific packages include shorter READMEs focused on their own setup and constraints.
+The umbrella and provider packages include focused package READMEs, while this repository README documents the complete toolkit.
 
 ## More examples
 

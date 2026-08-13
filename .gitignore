@@ -1,0 +1,13 @@
+# .NET build outputs
+**/bin/
+**/obj/
+
+# PowerForge and local package validation outputs
+Artefacts/
+Lib/
+_artifacts/
+
+# IDE-local state
+.vs/
+*.user
+*.suo
