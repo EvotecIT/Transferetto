@@ -2,13 +2,14 @@
   "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/project.build.schema.json",
   "RootPath": "..",
   "ExpectedVersionMap": {
-    "Transferetto": "1.0.X",
-    "Transferetto.Core": "1.0.X",
-    "Transferetto.S3": "1.0.X",
-    "Transferetto.AzureBlob": "1.0.X"
+    "Transferetto": "2.0.X",
+    "Transferetto.Core": "2.0.X",
+    "Transferetto.S3": "2.0.X",
+    "Transferetto.AzureBlob": "2.0.X"
   },
   "ExpectedVersionMapAsInclude": true,
   "ExpectedVersionMapUseWildcards": false,
+  "AlignPackageVersions": true,
   "ExcludeProjects": [
     "Transferetto.Cli",
     "Transferetto.PowerShell",
@@ -26,7 +27,7 @@
   "PublishNuget": false,
   "PublishGitHub": false,
   "CreateReleaseZip": true,
-  "CertificateThumbprint": "483292C9E317AA13B07BB7A96AE9D1A5ED9E7703",
+  "CertificateThumbprint": "92E95FB58EFFA6A4A75E77A33CDD6BFE6DD30F1A",
   "CertificateStore": "CurrentUser",
   "TimeStampServer": "http://timestamp.digicert.com",
   "PublishSource": "https://api.nuget.org/v3/index.json",

@@ -9,9 +9,9 @@
     <AssemblyName>Transferetto.Core</AssemblyName>
     <Title>Transferetto Core</Title>
     <Description>Provider-neutral streaming, integrity receipts, and endpoint contracts for Transferetto.</Description>
-    <VersionPrefix>1.0.0</VersionPrefix>
-    <AssemblyVersion>1.0.0</AssemblyVersion>
-    <FileVersion>1.0.0</FileVersion>
+    <VersionPrefix>2.0.1</VersionPrefix>
+    <AssemblyVersion>2.0.1</AssemblyVersion>
+    <FileVersion>2.0.1</FileVersion>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <PackageId>Transferetto.Core</PackageId>
     <PackageProjectUrl>https://github.com/EvotecIT/Transferetto</PackageProjectUrl>

@@ -1,3 +1,18 @@
+param(
+    [ValidateSet('Manifest', 'Documentation', 'Build', 'Publish')]
+    [string] $ConfigurationGateMode = 'Build',
+
+    [bool] $SignModule = $true,
+
+    [string] $ProjectBuildConfigPath = 'Build\project.build.json',
+
+    [string] $PowerShellGalleryApiKeyPath = 'C:\Support\Important\PowerShellGalleryAPI.txt',
+
+    [string] $GitHubApiKeyPath = 'C:\Support\Important\GitHubAPI.txt'
+)
+
+Import-Module PSPublishModule -Force -ErrorAction Stop
+
 Build-Module -ModuleName 'Transferetto' {
     $Manifest = [ordered] @{
         ModuleVersion        = '2.0.X'
@@ -44,16 +59,15 @@ Build-Module -ModuleName 'Transferetto' {
     New-ConfigurationFormat -ApplyTo 'DefaultPSD1', 'OnMergePSD1' -PSD1Style 'Minimal'
 
     New-ConfigurationDocumentation -Enable -PathReadme 'Docs\Readme.md' -Path 'Docs' -SyncExternalHelpToProjectRoot
-    $ImportSelf = if ([string]::IsNullOrWhiteSpace($Env:ImportSelf)) { $true } else { [bool]::Parse($Env:ImportSelf) }
-    New-ConfigurationImportModule -ImportSelf:$ImportSelf -ImportRequiredModules
+    New-ConfigurationImportModule -ImportSelf -ImportRequiredModules
 
     $newConfigurationBuildSplat = @{
         Enable                            = $true
-        SignModule                        = if ([string]::IsNullOrWhiteSpace($Env:SignModule)) { $true } else { [bool]::Parse($Env:SignModule) }
+        SignModule                        = $SignModule
         MergeModuleOnBuild                = $true
         MergeFunctionsFromApprovedModules = $true
         CertificateThumbprint             = '92e95fb58effa6a4a75e77a33cdd6bfe6dd30f1a'
-        NETProjectPath                    = "$PSScriptRoot\..\Sources\Transferetto.PowerShell"
+        NETProjectPath                    = 'Sources\Transferetto.PowerShell\Transferetto.PowerShell.csproj'
         ResolveBinaryConflicts            = $true
         ResolveBinaryConflictsName        = 'Transferetto.PowerShell'
         NETProjectName                    = 'Transferetto.PowerShell'
@@ -75,13 +89,17 @@ Build-Module -ModuleName 'Transferetto' {
         NETSearchClass                    = 'Transferetto.PowerShell.CmdletConnectFtp'
         NETBinaryModuleDocumentation      = $true
         DeleteTargetModuleBeforeBuild     = $true
-        RefreshPSD1Only                   = if ([string]::IsNullOrWhiteSpace($Env:RefreshPSD1Only)) { $true } else { [bool]::Parse($Env:RefreshPSD1Only) }
     }
     New-ConfigurationBuild @newConfigurationBuildSplat
 
-    New-ConfigurationArtefact -Type Unpacked -Enable -Path "$PSScriptRoot\..\Artefacts\Unpacked" -RequiredModulesPath "$PSScriptRoot\..\Artefacts\Unpacked\Modules"
-    New-ConfigurationArtefact -Type Packed -Enable -Path "$PSScriptRoot\..\Artefacts\Packed" -IncludeTagName -ArtefactName "Transferetto-PowerShellModule.<TagModuleVersionWithPreRelease>.zip" -ID 'ToGitHub'
+    New-ConfigurationProjectBuild -Name 'Transferetto' -ConfigPath $ProjectBuildConfigPath -Enabled -BuildBeforeModule -UseAsReleaseVersionSource -ProvideLocalNuGetFeed -PublishNuget
+    New-ConfigurationRelease -StageRoot 'Artefacts\UploadReady' -VersionSource ProjectBuild -PrimaryProject 'Transferetto' -SynchronizeModuleVersion -PublishOrder 'NuGet', 'PowerShellGallery', 'GitHub'
 
-    #New-ConfigurationPublish -Type PowerShellGallery -FilePath 'C:\Support\Important\PowerShellGalleryAPI.txt' -Enabled:$true
-    #New-ConfigurationPublish -Type GitHub -FilePath 'C:\Support\Important\GitHubAPI.txt' -UserName 'EvotecIT' -Enabled:$true -GenerateReleaseNotes -OverwriteTagName '{ModuleName}-v{ModuleVersionWithPreRelease}'
-}
+    New-ConfigurationArtefact -Type Unpacked -Enable -Path 'Artefacts\Unpacked' -ModulesPath 'Artefacts\Unpacked\Modules'
+    New-ConfigurationArtefact -Type Packed -Enable -Path 'Artefacts\Packed' -ModulesPath 'Artefacts\Packed\Modules' -IncludeTagName -ArtefactName 'Transferetto-PowerShellModule.<TagModuleVersionWithPreRelease>.zip' -ID 'ToGitHub'
+
+    New-ConfigurationPublish -Type PowerShellGallery -FilePath $PowerShellGalleryApiKeyPath -Enabled:$false
+    New-ConfigurationPublish -Type GitHub -FilePath $GitHubApiKeyPath -UserName 'EvotecIT' -RepositoryName 'Transferetto' -Enabled:$false -GenerateReleaseNotes -OverwriteTagName '{ModuleName}-v{ModuleVersionWithPreRelease}'
+
+    New-ConfigurationGate -Mode $ConfigurationGateMode
+} -ExitCode
