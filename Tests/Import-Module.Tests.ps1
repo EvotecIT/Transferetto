@@ -66,13 +66,15 @@ Describe 'Transferetto module import' {
             'ActivePorts'
             'PassiveBlockedPorts'
             'PassiveMaxAttempts'
-            'EncodingName'
+            'Encoding'
             'UseGnuTls'
         )
 
         foreach ($ParameterName in $ExpectedParameters) {
             $Command.Parameters.Keys | Should -Contain $ParameterName
         }
+
+        $Command.Parameters['Encoding'].Aliases | Should -Contain 'EncodingName'
     }
 
     It 'exports the FXP preflight cmdlet' {

@@ -807,7 +807,7 @@ public static partial class TransferettoClient {
         }
 
         if (!string.IsNullOrWhiteSpace(options.EncodingName)) {
-            client.Encoding = Encoding.GetEncoding(options.EncodingName!);
+            client.Encoding = ResolveFtpControlEncoding(options.EncodingName!);
         }
 
         if (options.SendHost) {
@@ -825,6 +825,11 @@ public static partial class TransferettoClient {
             client.Config.LogPassword = trace.LogPassword;
             client.Config.LogToConsole = trace.LogToConsole;
         }
+    }
+
+    private static Encoding ResolveFtpControlEncoding(string encodingName) {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        return Encoding.GetEncoding(encodingName);
     }
 
     private static TransferettoFtpCertificateInfo EvaluateFtpCertificateTrust(TransferettoFtpConnectionOptions options, FtpClient client, FtpSslValidationEventArgs args) {
