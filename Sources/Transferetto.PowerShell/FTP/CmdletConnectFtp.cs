@@ -19,6 +19,10 @@ namespace Transferetto.PowerShell;
 ///   <para>Reuse a FluentFTP profile and still override proxy/runtime settings for the session.</para>
 ///   <code>$ftp = Connect-FTP -FtpProfile $profile -ProxyType UserAtHost -ProxyHost 'proxy.example.com' -ProxyPort 21 -ConnectTimeout 15000</code>
 /// </example>
+/// <example>
+///   <para>Use a legacy server's control-channel encoding for credentials that contain non-ASCII characters.</para>
+///   <code>$ftp = Connect-FTP -Server 'ftp.example.com' -Credential (Get-Credential) -Encoding 'windows-1252'</code>
+/// </example>
 /// </summary>
 [Cmdlet("Connect", "FTP", DefaultParameterSetName = "Password")]
 public sealed class CmdletConnectFtp : PSCmdlet
@@ -358,7 +362,8 @@ public sealed class CmdletConnectFtp : PSCmdlet
 	[Parameter(ParameterSetName = "FtpProfile")]
 	[Parameter(ParameterSetName = "ClearText")]
 	[Parameter(ParameterSetName = "Password")]
-	public string? EncodingName { get; set; }
+	[Alias("EncodingName")]
+	public string? Encoding { get; set; }
 	/// <summary>
 	/// Gets or sets the network port.
 	/// </summary>
@@ -431,7 +436,7 @@ public sealed class CmdletConnectFtp : PSCmdlet
 				ActivePorts = ActivePorts,
 				PassiveBlockedPorts = PassiveBlockedPorts,
 				PassiveMaxAttempts = (base.MyInvocation.BoundParameters.ContainsKey("PassiveMaxAttempts") ? new int?(PassiveMaxAttempts) : ((int?)null)),
-				EncodingName = EncodingName,
+				EncodingName = Encoding,
 				SendHost = SendHost.IsPresent,
 				SocketKeepAlive = SocketKeepAlive.IsPresent,
 				AutoConnect = AutoConnect.IsPresent,

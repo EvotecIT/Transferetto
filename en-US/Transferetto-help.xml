@@ -796,8 +796,8 @@
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>EncodingName</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="EncodingName">
+          <maml:name>Encoding</maml:name>
           <maml:description>
             <maml:para>Gets or sets the text encoding name used by the FTP control channel.</maml:para>
           </maml:description>
@@ -1334,8 +1334,8 @@
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>EncodingName</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="EncodingName">
+          <maml:name>Encoding</maml:name>
           <maml:description>
             <maml:para>Gets or sets the text encoding name used by the FTP control channel.</maml:para>
           </maml:description>
@@ -1849,8 +1849,8 @@
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>EncodingName</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="EncodingName">
+          <maml:name>Encoding</maml:name>
           <maml:description>
             <maml:para>Gets or sets the text encoding name used by the FTP control channel.</maml:para>
           </maml:description>
@@ -2483,8 +2483,8 @@
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>EncodingName</maml:name>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="EncodingName">
+        <maml:name>Encoding</maml:name>
         <maml:description>
           <maml:para>Gets or sets the text encoding name used by the FTP control channel.</maml:para>
         </maml:description>
