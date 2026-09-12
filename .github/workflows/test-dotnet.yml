@@ -50,7 +50,7 @@ jobs:
                     --publish 9000:9000 \
                     --env MINIO_ROOT_USER=minioadmin \
                     --env MINIO_ROOT_PASSWORD=minioadmin \
-                    minio/minio:RELEASE.2025-04-22T22-12-26Z server /data
+                    minio/minio:RELEASE.2025-09-07T16-13-09Z server /data
                   docker run --detach --name transferetto-azurite \
                     --publish 10000:10000 \
                     mcr.microsoft.com/azure-storage/azurite:3.35.0 \
