@@ -30,7 +30,7 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 15
         env:
-            TRANSFERETTO_S3_ENDPOINT: http://127.0.0.1:9000
+            TRANSFERETTO_S3_ENDPOINT: http://127.0.0.1:9090
             TRANSFERETTO_S3_ACCESS_KEY: minioadmin
             TRANSFERETTO_S3_SECRET_KEY: minioadmin
             TRANSFERETTO_AZURE_CONNECTION_STRING: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;
@@ -46,23 +46,21 @@ jobs:
             - name: Start storage emulators
               shell: bash
               run: |
-                  docker run --detach --name transferetto-minio \
-                    --publish 9000:9000 \
-                    --env MINIO_ROOT_USER=minioadmin \
-                    --env MINIO_ROOT_PASSWORD=minioadmin \
-                    quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z server /data
+                  docker run --detach --name transferetto-s3mock \
+                    --publish 9090:9090 \
+                    adobe/s3mock:5.2.2@sha256:e7c36014dcf4c7f0f6bec9de888477d1d9b8f55eceb7d9c1186f70d7aadf81ca
                   docker run --detach --name transferetto-azurite \
                     --publish 10000:10000 \
                     mcr.microsoft.com/azure-storage/azurite:3.35.0 \
                     azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck
                   for attempt in {1..30}; do
-                    if curl --fail --silent http://127.0.0.1:9000/minio/health/live >/dev/null &&
+                    if curl --fail --silent http://127.0.0.1:9090/favicon.ico >/dev/null &&
                        curl --silent http://127.0.0.1:10000/devstoreaccount1?comp=list >/dev/null; then
                       exit 0
                     fi
                     sleep 1
                   done
-                  docker logs transferetto-minio
+                  docker logs transferetto-s3mock
                   docker logs transferetto-azurite
                   exit 1
 
