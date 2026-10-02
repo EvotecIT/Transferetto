@@ -654,7 +654,7 @@ public sealed class TransferettoSyncPlannerTests {
 
             MethodInfo method = typeof(TransferettoClient).GetMethod("ExecuteSftpSyncPlanItem", BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new InvalidOperationException("ExecuteSftpSyncPlanItem was not found.");
-            TransferettoSyncResult result = (TransferettoSyncResult)method.Invoke(null, new object?[] { null, planItem, options, new TransferettoTransferOptions() })!;
+            TransferettoSyncResult result = (TransferettoSyncResult)method.Invoke(null, new object?[] { null, planItem, options, new TransferettoTransferOptions(), root })!;
 
             Assert.True(result.Status);
             Assert.True(result.IsSkipped);

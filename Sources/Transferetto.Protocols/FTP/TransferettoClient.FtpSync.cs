@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Transferetto.Core;
 using FluentFTP;
 
 namespace Transferetto;
@@ -34,15 +35,15 @@ public static partial class TransferettoClient {
         }
 
         IReadOnlyList<TransferettoSyncEntry> localManifest = resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload
-            ? BuildLocalSyncManifest(localPath, normalizedRemotePath)
-            : BuildLocalSyncManifestOrEmpty(localPath, normalizedRemotePath);
+            ? BuildLocalSyncManifest(localPath, normalizedRemotePath, resolvedTransferOptions.CancellationToken)
+            : BuildLocalSyncManifestOrEmpty(localPath, normalizedRemotePath, resolvedTransferOptions.CancellationToken);
         IReadOnlyList<TransferettoSyncEntry> remoteManifest = remoteRootIsDirectory
             ? BuildFtpRemoteSyncManifest(session, normalizedRemotePath, localPath)
             : Array.Empty<TransferettoSyncEntry>();
         IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(
             resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload ? localManifest : remoteManifest,
             resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload ? remoteManifest : localManifest,
-            resolvedSyncOptions);
+            resolvedSyncOptions, resolvedTransferOptions.CancellationToken);
         if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload && remoteRootIsFile) {
             plan = HandleConflictingUploadRootFile(plan, localPath, normalizedRemotePath, resolvedSyncOptions);
         } else if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload && !remoteRootIsDirectory) {
@@ -62,13 +63,14 @@ public static partial class TransferettoClient {
         }
 
         if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Download && resolvedSyncOptions.CreateDestinationDirectories && !localRootIsFile) {
+            TransferFileSystem.EnsureNoLinkTraversal(localPath, localPath);
             Directory.CreateDirectory(localPath);
         }
 
         List<TransferettoSyncResult> results = new();
         foreach (TransferettoSyncPlanItem item in plan) {
             resolvedTransferOptions.CancellationToken.ThrowIfCancellationRequested();
-            TransferettoSyncResult result = ExecuteFtpSyncPlanItem(session, item, resolvedSyncOptions, resolvedTransferOptions);
+            TransferettoSyncResult result = ExecuteFtpSyncPlanItem(session, item, resolvedSyncOptions, resolvedTransferOptions, localPath);
             results.Add(result);
             if (ShouldStopMirrorAfterFileTransferFailure(item, result, resolvedSyncOptions)) {
                 break;
@@ -82,11 +84,12 @@ public static partial class TransferettoClient {
         TransferettoFtpSession session,
         TransferettoSyncPlanItem item,
         TransferettoSyncOptions syncOptions,
-        TransferettoTransferOptions transferOptions) {
+        TransferettoTransferOptions transferOptions, string localRoot) {
         if (item.Action == TransferettoSyncAction.Skip) {
             return CreateSyncResult(item, true, false, true, null, item.Message);
         }
 
+        TransferFileSystem.EnsureNoLinkTraversal(localRoot, item.LocalPath!);
         switch (item.Action) {
             case TransferettoSyncAction.CreateDirectory:
                 if (syncOptions.Direction == TransferettoSyncDirection.Upload) {
@@ -122,6 +125,7 @@ public static partial class TransferettoClient {
                     FtpVerify.None,
                     transferOptions);
                 if (syncOptions.PreserveTimestamps && IsCompletedFileTransfer(downloadResult) && item.Source?.LastWriteTimeUtc is DateTime downloadTimestamp && File.Exists(item.LocalPath)) {
+                    TransferFileSystem.EnsureNoLinkTraversal(localRoot, item.LocalPath!);
                     File.SetLastWriteTimeUtc(item.LocalPath!, downloadTimestamp);
                 }
 
@@ -164,7 +168,7 @@ public static partial class TransferettoClient {
             }
 
             string relativePath = GetRemoteRelativePath(remoteRoot, item.FullName);
-            string localPath = Path.Combine(localRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
+            string localPath = TransferFileSystem.ResolveRelativePath(localRoot, relativePath);
             bool isDirectory = item.Type == FtpObjectType.Directory;
             bool isFile = item.Type == FtpObjectType.File;
             if (!isDirectory && !isFile) {

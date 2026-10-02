@@ -8,6 +8,11 @@ namespace Transferetto;
 
 public sealed class TransferettoSshShellReadOptions {
     /// <summary>
+    /// Gets or sets the maximum output characters retained by a shell read. Null retains all output;
+    /// exceeding a configured limit throws IOException after reporting the received chunk to OutputProgress.
+    /// </summary>
+    public int? MaxCapturedCharacters { get; set; }
+    /// <summary>
     /// Gets or sets a token used to cancel a shell read or wait operation.
     /// </summary>
     public CancellationToken CancellationToken { get; set; }

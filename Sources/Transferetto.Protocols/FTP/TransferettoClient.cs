@@ -126,6 +126,8 @@ public static partial class TransferettoClient {
 
         string[] resolvedPaths = localPaths?.Where(static p => !string.IsNullOrWhiteSpace(p)).ToArray() ?? Array.Empty<string>();
         FileInfo[] resolvedFiles = localFiles?.Where(static file => file is not null).ToArray() ?? Array.Empty<FileInfo>();
+        foreach (string path in resolvedPaths) { EnsureSafeLocalFilePath(path); }
+        foreach (FileInfo file in resolvedFiles) { EnsureSafeLocalFilePath(file.FullName); }
 
         if (resolvedPaths.Length == 0 && resolvedFiles.Length == 0) {
             return Array.Empty<TransferettoTransferResult>();
@@ -222,6 +224,7 @@ public static partial class TransferettoClient {
         EnsureNotNullOrWhiteSpace(remotePath, nameof(remotePath));
         options?.CancellationToken.ThrowIfCancellationRequested();
 
+        EnsureSafeLocalFilePath(localPath);
         long remoteSize = GetFtpFileSize(session, remotePath, -1);
         long? totalBytes = remoteSize >= 0 ? remoteSize : null;
         long bytesTransferred = 0;
@@ -242,7 +245,17 @@ public static partial class TransferettoClient {
                     lastReportedBytes);
             };
 
-        FtpStatus status = session.Client.DownloadFile(localPath, remotePath, localExists, verifyOptions, progress);
+        string downloadPath = localExists == FtpLocalExists.Overwrite ? CreateTemporaryLocalTransferPath(localPath) : localPath;
+        FtpStatus status;
+        try {
+            status = session.Client.DownloadFile(downloadPath, remotePath, localExists, verifyOptions, progress);
+            if (status == FtpStatus.Success && downloadPath != localPath) {
+                options?.CancellationToken.ThrowIfCancellationRequested();
+                Transferetto.Core.TransferFileSystem.CommitStagedFile(downloadPath, localPath);
+            }
+        } finally {
+            if (downloadPath != localPath) { TryDeleteLocalFile(downloadPath); }
+        }
         if (status == FtpStatus.Success) {
             if (File.Exists(localPath)) {
                 bytesTransferred = Math.Max(bytesTransferred, new FileInfo(localPath).Length);
@@ -315,6 +328,11 @@ public static partial class TransferettoClient {
                     lastReportedBytes);
             };
 
+        Transferetto.Core.TransferFileSystem.EnsureNoLinkTraversal(localPath, localPath);
+        foreach (string remotePath in resolvedPaths) {
+            string name = remotePath.Substring(remotePath.LastIndexOf('/') + 1);
+            Transferetto.Core.TransferFileSystem.ResolveRelativePath(localPath, name);
+        }
         List<FtpResult> results = session.Client.DownloadFiles(localPath, resolvedPaths, localExists, verifyOptions, errorHandling, progress, null);
         return results.Select(result => new TransferettoTransferResult {
             Action = "DownloadFile",
@@ -856,222 +874,6 @@ public static partial class TransferettoClient {
             ? TransferettoFtpCertificateTrustSource.PolicyChain
             : TransferettoFtpCertificateTrustSource.None;
         return certificateInfo;
-    }
-
-    private static TransferettoFtpCertificateInfo EvaluateKnownCertificateTrust(
-        TransferettoFtpConnectionOptions options,
-        FtpClient client,
-        TransferettoFtpCertificateInfo certificateInfo,
-        bool trustOnFirstUse) {
-        string knownCertificatesPath = ResolveKnownCertificatesPath(options);
-        certificateInfo.KnownCertificatesPath = knownCertificatesPath;
-        string host = ResolveFtpTrustHost(options, client);
-        int port = ResolveFtpTrustPort(options, client);
-
-        List<TransferettoFtpKnownCertificateEntry> entries = LoadKnownCertificates(knownCertificatesPath);
-        TransferettoFtpKnownCertificateEntry[] matchingEntries = entries
-            .Where(entry => string.Equals(entry.Host, host, StringComparison.OrdinalIgnoreCase) && entry.Port == port)
-            .ToArray();
-
-        if (matchingEntries.Length == 0) {
-            if (!trustOnFirstUse) {
-                certificateInfo.CanTrust = false;
-                certificateInfo.TrustSource = TransferettoFtpCertificateTrustSource.None;
-                return certificateInfo;
-            }
-
-            entries.Add(CreateKnownCertificateEntry(options, client, certificateInfo));
-            SaveKnownCertificates(knownCertificatesPath, entries);
-            certificateInfo.CanTrust = true;
-            certificateInfo.TrustSource = TransferettoFtpCertificateTrustSource.TrustOnFirstUse;
-            certificateInfo.WasPersisted = true;
-            return certificateInfo;
-        }
-
-        TransferettoFtpKnownCertificateEntry? trustedEntry = matchingEntries.FirstOrDefault(entry => KnownCertificateMatches(entry, certificateInfo));
-        bool isTrusted = trustedEntry is not null;
-        if (trustedEntry is not null) {
-            trustedEntry.LastSeenUtc = DateTime.UtcNow.ToString("O");
-            SaveKnownCertificates(knownCertificatesPath, entries);
-        }
-
-        certificateInfo.CanTrust = isTrusted;
-        certificateInfo.TrustSource = isTrusted
-            ? TransferettoFtpCertificateTrustSource.KnownCertificates
-            : TransferettoFtpCertificateTrustSource.None;
-        return certificateInfo;
-    }
-
-    private static TransferettoFtpCertificateInfo CreateFtpCertificateInfo(FtpSslValidationEventArgs args) {
-        if (args.Certificate is null) {
-            return new TransferettoFtpCertificateInfo {
-                PolicyErrors = args.PolicyErrors.ToString(),
-                CanTrust = false,
-                TrustSource = TransferettoFtpCertificateTrustSource.None
-            };
-        }
-
-        X509Certificate2 certificate = args.Certificate as X509Certificate2 ?? new X509Certificate2(args.Certificate);
-        try {
-            return new TransferettoFtpCertificateInfo {
-                Subject = certificate.Subject,
-                Issuer = certificate.Issuer,
-                ThumbprintSHA1 = NormalizeCertificateThumbprint(certificate.Thumbprint),
-                ThumbprintSHA256 = GetCertificateHash(certificate, SHA256.Create()),
-                NotBefore = certificate.NotBefore,
-                NotAfter = certificate.NotAfter,
-                PolicyErrors = args.PolicyErrors == SslPolicyErrors.None ? null : args.PolicyErrors.ToString()
-            };
-        } finally {
-            if (!ReferenceEquals(certificate, args.Certificate)) {
-                certificate.Dispose();
-            }
-        }
-    }
-
-    private static bool CertificateThumbprintMatches(IEnumerable<string> expectedThumbprints, TransferettoFtpCertificateInfo certificateInfo) {
-        HashSet<string> actualThumbprints = new(StringComparer.OrdinalIgnoreCase);
-        AddCertificateThumbprint(actualThumbprints, "SHA1", certificateInfo.ThumbprintSHA1);
-        AddCertificateThumbprint(actualThumbprints, "SHA256", certificateInfo.ThumbprintSHA256);
-
-        foreach (string expectedThumbprint in expectedThumbprints.Where(static value => !string.IsNullOrWhiteSpace(value))) {
-            string normalizedExpected = NormalizeCertificateThumbprint(expectedThumbprint);
-            if (actualThumbprints.Contains(normalizedExpected)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool KnownCertificateMatches(TransferettoFtpKnownCertificateEntry entry, TransferettoFtpCertificateInfo certificateInfo) {
-        return CertificateThumbprintMatches(
-            new[] {
-                entry.ThumbprintSHA1,
-                entry.ThumbprintSHA256
-            }.Where(static value => !string.IsNullOrWhiteSpace(value))!,
-            certificateInfo);
-    }
-
-    private static bool HasExpectedCertificateThumbprints(TransferettoFtpConnectionOptions options) {
-        return options.ExpectedCertificateThumbprints?.Any(static value => !string.IsNullOrWhiteSpace(value)) == true;
-    }
-
-    private static string ResolveKnownCertificatesPath(TransferettoFtpConnectionOptions options) {
-        if (!string.IsNullOrWhiteSpace(options.KnownCertificatesPath)) {
-            return options.KnownCertificatesPath!;
-        }
-
-        string root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        if (string.IsNullOrWhiteSpace(root)) {
-            root = AppDomain.CurrentDomain.BaseDirectory;
-        }
-
-        return Path.Combine(root, "Transferetto", "ftps-known-certificates.tsv");
-    }
-
-    private static int ResolveFtpPort(TransferettoFtpConnectionOptions options) {
-        if (options.Port.HasValue && options.Port.Value > 0) {
-            return options.Port.Value;
-        }
-
-        return options.EncryptionMode?.Contains(FtpEncryptionMode.Implicit) == true ? 990 : 21;
-    }
-
-    private static List<TransferettoFtpKnownCertificateEntry> LoadKnownCertificates(string path) {
-        if (!File.Exists(path)) {
-            return new List<TransferettoFtpKnownCertificateEntry>();
-        }
-
-        List<TransferettoFtpKnownCertificateEntry> entries = new();
-        foreach (string rawLine in File.ReadAllLines(path)) {
-            string line = rawLine.Trim();
-            if (line.Length == 0 || line.StartsWith("#", StringComparison.Ordinal)) {
-                continue;
-            }
-
-            string[] parts = line.Split('\t');
-            if (parts.Length < 8) {
-                continue;
-            }
-
-            if (!int.TryParse(parts[1], out int port)) {
-                continue;
-            }
-
-            entries.Add(new TransferettoFtpKnownCertificateEntry {
-                Host = parts[0],
-                Port = port,
-                Subject = parts[2],
-                Issuer = parts[3],
-                ThumbprintSHA1 = parts[4],
-                ThumbprintSHA256 = parts[5],
-                FirstSeenUtc = parts[6],
-                LastSeenUtc = parts[7]
-            });
-        }
-
-        return entries;
-    }
-
-    private static void SaveKnownCertificates(string path, IEnumerable<TransferettoFtpKnownCertificateEntry> entries) {
-        string? directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrWhiteSpace(directory)) {
-            Directory.CreateDirectory(directory);
-        }
-
-        string[] lines = entries.Select(SerializeKnownCertificateEntry).ToArray();
-        File.WriteAllLines(path, lines);
-    }
-
-    private static string SerializeKnownCertificateEntry(TransferettoFtpKnownCertificateEntry entry) {
-        return string.Join("\t", new[] {
-            SanitizeKnownCertificateValue(entry.Host),
-            entry.Port.ToString(),
-            SanitizeKnownCertificateValue(entry.Subject),
-            SanitizeKnownCertificateValue(entry.Issuer),
-            SanitizeKnownCertificateValue(entry.ThumbprintSHA1),
-            SanitizeKnownCertificateValue(entry.ThumbprintSHA256),
-            SanitizeKnownCertificateValue(entry.FirstSeenUtc),
-            SanitizeKnownCertificateValue(entry.LastSeenUtc)
-        });
-    }
-
-    private static TransferettoFtpKnownCertificateEntry CreateKnownCertificateEntry(
-        TransferettoFtpConnectionOptions options,
-        FtpClient client,
-        TransferettoFtpCertificateInfo certificateInfo) {
-        string now = DateTime.UtcNow.ToString("O");
-        return new TransferettoFtpKnownCertificateEntry {
-            Host = ResolveFtpTrustHost(options, client),
-            Port = ResolveFtpTrustPort(options, client),
-            Subject = certificateInfo.Subject,
-            Issuer = certificateInfo.Issuer,
-            ThumbprintSHA1 = certificateInfo.ThumbprintSHA1,
-            ThumbprintSHA256 = certificateInfo.ThumbprintSHA256,
-            FirstSeenUtc = now,
-            LastSeenUtc = now
-        };
-    }
-
-    private static string ResolveFtpTrustHost(TransferettoFtpConnectionOptions options, FtpClient client) {
-        if (!string.IsNullOrWhiteSpace(client.Host)) {
-            return client.Host;
-        }
-
-        return options.Server ?? string.Empty;
-    }
-
-    private static int ResolveFtpTrustPort(TransferettoFtpConnectionOptions options, FtpClient client) {
-        if (client.Port > 0) {
-            return client.Port;
-        }
-
-        return ResolveFtpPort(options);
-    }
-
-    private static string SanitizeKnownCertificateValue(string? value) {
-        return (value ?? string.Empty).Replace("\t", " ").Trim();
     }
 
     private static void AddCertificateThumbprint(HashSet<string> thumbprints, string algorithm, string? thumbprint) {

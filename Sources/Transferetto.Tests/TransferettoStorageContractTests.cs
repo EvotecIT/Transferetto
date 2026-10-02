@@ -102,7 +102,7 @@ public sealed class TransferettoStorageContractTests {
         MethodInfo method = uploader.GetMethod(
             "RequiresMultipartUpload",
             BindingFlags.NonPublic | BindingFlags.Static)!;
-        const long maximumSinglePut = 5L * 1024 * 1024 * 1024;
+        const long maximumSinglePut = 64L * 1024 * 1024;
 
         Assert.True((bool)method.Invoke(null, new object?[] { null })!);
         Assert.False((bool)method.Invoke(null, new object?[] { maximumSinglePut })!);

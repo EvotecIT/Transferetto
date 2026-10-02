@@ -154,8 +154,8 @@ public static partial class TransferettoClient {
         bool allowOverride,
         TransferettoTransferOptions? options = null,
         CancellationToken cancellationToken = default) {
-        return RunTransferAsync(
-            resolvedOptions => UploadSftpFile(session, localPath, remotePath, allowOverride, resolvedOptions),
+        return RunNativeTransferAsync(
+            resolvedOptions => UploadSftpFileCoreAsync(session, localPath, remotePath, allowOverride, resolvedOptions),
             options,
             cancellationToken);
     }
@@ -169,8 +169,8 @@ public static partial class TransferettoClient {
         string localPath,
         TransferettoTransferOptions? options = null,
         CancellationToken cancellationToken = default) {
-        return RunTransferAsync(
-            resolvedOptions => DownloadSftpFile(session, remotePath, localPath, resolvedOptions),
+        return RunNativeTransferAsync(
+            resolvedOptions => DownloadSftpFileCoreAsync(session, remotePath, localPath, resolvedOptions),
             options,
             cancellationToken);
     }
@@ -280,6 +280,15 @@ public static partial class TransferettoClient {
         } finally {
             linkedCancellationSource?.Dispose();
         }
+    }
+
+    private static async Task<T> RunNativeTransferAsync<T>(
+        Func<TransferettoTransferOptions?, Task<T>> operation, TransferettoTransferOptions? options, CancellationToken cancellationToken) {
+        CancellationTokenSource? linkedCancellationSource = null;
+        try {
+            TransferettoTransferOptions? resolvedOptions = ResolveAsyncTransferOptions(options, cancellationToken, out linkedCancellationSource);
+            return await operation(resolvedOptions).ConfigureAwait(false);
+        } finally { linkedCancellationSource?.Dispose(); }
     }
 
     private static TransferettoTransferOptions? ResolveAsyncTransferOptions(

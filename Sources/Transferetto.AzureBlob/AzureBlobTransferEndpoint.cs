@@ -9,6 +9,7 @@ using Azure.Core;
 using Azure.Storage;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs.Specialized;
 using Transferetto.Core;
 
 namespace Transferetto.AzureBlob;
@@ -169,7 +170,7 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
         }
 
         TransferWriteOptions resolvedOptions = options ?? new TransferWriteOptions();
-        BlobClient blob = _container.GetBlobClient(ResolveName(path));
+        BlockBlobClient blob = _container.GetBlockBlobClient(ResolveName(path));
         if (resolvedOptions.Mode == TransferWriteMode.SkipIfExists) {
             TransferItem? existing = await GetItemAsync(path, cancellationToken).ConfigureAwait(false);
             if (existing != null) {
@@ -188,9 +189,9 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
                 : null
         };
         Response<BlobContentInfo> response;
-        using TransferReadTrackingStream trackedContent = new(content, leaveOpen: true);
+        long bytesWritten;
         try {
-            response = await blob.UploadAsync(trackedContent, uploadOptions, cancellationToken).ConfigureAwait(false);
+            (response, bytesWritten) = await AzureBlobVerifiedUploader.UploadAsync(blob, content, length, uploadOptions, cancellationToken).ConfigureAwait(false);
         } catch (RequestFailedException exception) when (
             (exception.Status == 409 || exception.Status == 412) &&
             resolvedOptions.Mode == TransferWriteMode.SkipIfExists) {
@@ -206,7 +207,7 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
         }
         return new TransferWriteResult(new TransferItem {
             Path = path,
-            Length = trackedContent.BytesRead,
+            Length = bytesWritten,
             LastModifiedUtc = response.Value.LastModified,
             ETag = response.Value.ETag.ToString().Trim('"'),
             VersionId = response.Value.VersionId,

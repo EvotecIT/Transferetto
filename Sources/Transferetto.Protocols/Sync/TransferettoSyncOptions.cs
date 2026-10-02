@@ -7,6 +7,12 @@ namespace Transferetto;
 /// </summary>
 public sealed class TransferettoSyncOptions {
     /// <summary>
+    /// Gets or sets how destination paths are compared. Automatic uses case-insensitive comparison for
+    /// downloads on Windows and ordinal comparison otherwise. Select Ordinal for a case-sensitive Windows directory.
+    /// </summary>
+    public TransferettoSyncPathComparison PathComparison { get; set; }
+
+    /// <summary>
     /// Gets or sets which side is treated as the source.
     /// </summary>
     public TransferettoSyncDirection Direction { get; set; } = TransferettoSyncDirection.Upload;
@@ -55,4 +61,14 @@ public sealed class TransferettoSyncOptions {
     /// Gets or sets wildcard patterns for relative paths that should be excluded.
     /// </summary>
     public string[]? ExcludePatterns { get; set; }
+}
+
+/// <summary>Specifies the destination filesystem's path comparison rules.</summary>
+public enum TransferettoSyncPathComparison {
+    /// <summary>Uses the destination platform's default comparison.</summary>
+    Automatic,
+    /// <summary>Compares paths case sensitively.</summary>
+    Ordinal,
+    /// <summary>Compares paths without case distinctions.</summary>
+    OrdinalIgnoreCase
 }

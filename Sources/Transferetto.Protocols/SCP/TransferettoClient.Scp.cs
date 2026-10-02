@@ -266,6 +266,7 @@ public static partial class TransferettoClient {
                 session.Client.Uploading += progress;
             }
 
+            EnsureSafeLocalDirectoryTree(localPath, options?.CancellationToken ?? default);
             session.Client.Upload(directoryInfo, remotePath);
         } finally {
             if (progress is not null) {
@@ -317,6 +318,7 @@ public static partial class TransferettoClient {
         EnsureNotNullOrWhiteSpace(localPath, nameof(localPath));
         options?.CancellationToken.ThrowIfCancellationRequested();
 
+        EnsureSafeLocalDirectoryTree(localPath, options?.CancellationToken ?? default);
         DirectoryInfo directoryInfo = new(localPath);
         if (!directoryInfo.Exists) {
             directoryInfo.Create();
