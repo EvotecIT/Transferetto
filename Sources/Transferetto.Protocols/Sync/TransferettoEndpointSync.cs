@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Transferetto.Core;
@@ -10,7 +14,7 @@ namespace Transferetto;
 
 /// <summary>Runs the established synchronization planner over any two file-oriented transfer endpoints.</summary>
 /// <remarks>Endpoint listings contain files, so empty directories are not represented. Endpoint writers must
-/// create needed parent directories. Mirror removes files only; it leaves empty local directories in place.</remarks>
+/// create needed parent directories. Mirror removes empty physical directories when the destination supports it.</remarks>
 public static class TransferettoEndpointSync {
     /// <summary>Builds a read-only plan from endpoint file listings.</summary>
     public static async Task<IReadOnlyList<TransferettoSyncPlanItem>> PlanAsync(
@@ -35,15 +39,17 @@ public static class TransferettoEndpointSync {
         if (resolvedOptions.Mode == TransferettoSyncMode.Mirror && sourceItems.Count == 0 && !allowEmptySourceMirror) {
             throw new InvalidOperationException("An empty source listing cannot initiate a mirror without explicit opt-in.");
         }
+        if (!resolvedOptions.DryRun && plan.Any(item => IsDeleteDirectory(item.Action))
+            && destination is not ITransferDirectoryEndpoint) {
+            throw new NotSupportedException("Mirror directory removal requires an endpoint that can delete empty directories.");
+        }
 
         string sourceRoot = NormalizePrefix(sourcePrefix);
         string destinationRoot = NormalizePrefix(destinationPrefix);
         List<TransferettoEndpointSyncItemResult> results = new(plan.Count);
         foreach (TransferettoSyncPlanItem item in plan) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!item.ChangesDestination || resolvedOptions.DryRun || item.Action == TransferettoSyncAction.CreateDirectory
-                || item.Action == TransferettoSyncAction.DeleteLocalDirectory
-                || item.Action == TransferettoSyncAction.DeleteRemoteDirectory) {
+            if (!item.ChangesDestination || resolvedOptions.DryRun || item.Action == TransferettoSyncAction.CreateDirectory) {
                 results.Add(new TransferettoEndpointSyncItemResult(item, null, false, null));
                 continue;
             }
@@ -57,12 +63,23 @@ public static class TransferettoEndpointSync {
                     string sourcePath = Combine(sourceRoot, relative);
                     TransferItem? current = await source.GetItemAsync(sourcePath, cancellationToken).ConfigureAwait(false);
                     EnsureSameVersion(recorded, current, "source");
+                    TransferWriteOptions write = new() {
+                        Mode = resolvedOptions.OverwriteExisting ? TransferWriteMode.Overwrite : TransferWriteMode.FailIfExists
+                    };
+                    if (resolvedOptions.PreserveTimestamps && destination is not ITransferTimestampEndpoint
+                        && (destination.Capabilities & TransferEndpointCapabilities.Metadata) != 0) {
+                        write.Metadata[SyncSourceIdentityKey] = SyncSourceIdentity(recorded);
+                    }
                     TransferReceipt receipt = await TransferEngine.CopyAsync(source, sourcePath,
                         destination, Combine(destinationRoot, relative), new TransferCopyOptions {
-                            WriteOptions = new TransferWriteOptions {
-                                Mode = resolvedOptions.OverwriteExisting ? TransferWriteMode.Overwrite : TransferWriteMode.FailIfExists
-                            }
+                            WriteOptions = write
                         }, cancellationToken).ConfigureAwait(false);
+                    if (resolvedOptions.PreserveTimestamps && current?.LastModifiedUtc is DateTimeOffset modified
+                        && destination is ITransferTimestampEndpoint timestamps
+                        && receipt.Outcome == TransferReceiptOutcome.Copied) {
+                        await timestamps.SetLastModifiedUtcAsync(Combine(destinationRoot, relative), modified,
+                            cancellationToken).ConfigureAwait(false);
+                    }
                     results.Add(new TransferettoEndpointSyncItemResult(item, receipt, false, null));
                 } else if (item.Action == TransferettoSyncAction.DeleteLocalFile || item.Action == TransferettoSyncAction.DeleteRemoteFile) {
                     if (!destinationItems.TryGetValue(relative, out TransferItem? recorded)) {
@@ -72,6 +89,12 @@ public static class TransferettoEndpointSync {
                     TransferItem? current = await destination.GetItemAsync(destinationPath, cancellationToken).ConfigureAwait(false);
                     EnsureSameVersion(recorded, current, "destination");
                     bool deleted = await destination.DeleteAsync(destinationPath, cancellationToken).ConfigureAwait(false);
+                    results.Add(new TransferettoEndpointSyncItemResult(item, null, deleted, null));
+                } else if (IsDeleteDirectory(item.Action)) {
+                    bool deleted = destination is ITransferDirectoryEndpoint directories
+                        ? await directories.DeleteEmptyDirectoryAsync(Combine(destinationRoot, relative), cancellationToken)
+                            .ConfigureAwait(false)
+                        : false;
                     results.Add(new TransferettoEndpointSyncItemResult(item, null, deleted, null));
                 } else {
                     throw new NotSupportedException($"Unsupported endpoint sync action: {item.Action}.");
@@ -108,10 +131,29 @@ public static class TransferettoEndpointSync {
         string destinationRoot = NormalizePrefix(destinationPrefix);
         IReadOnlyList<TransferItem> sourceListing = await source.ListAsync(sourceRoot, true, cancellationToken).ConfigureAwait(false);
         IReadOnlyList<TransferItem> destinationListing = await destination.ListAsync(destinationRoot, true, cancellationToken).ConfigureAwait(false);
+        if (resolved.PreserveTimestamps && resolved.Comparison != TransferettoSyncComparison.Size
+            && resolved.Comparison != TransferettoSyncComparison.Always
+            && destination is not ITransferTimestampEndpoint
+            && (destination.Capabilities & TransferEndpointCapabilities.Metadata) != 0) {
+            destinationListing = await ApplySyncSourceIdentitiesAsync(sourceListing, sourceRoot,
+                destinationListing, destinationRoot, destination, cancellationToken).ConfigureAwait(false);
+        }
         var sourceManifest = BuildManifest(sourceListing, sourceRoot);
         var destinationManifest = BuildManifest(destinationListing, destinationRoot);
+        if (destination.Scheme == "file" && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            HashSet<string> mappedPaths = new(StringComparer.OrdinalIgnoreCase);
+            foreach (TransferettoSyncEntry entry in sourceManifest.Entries) {
+                if (!mappedPaths.Add(entry.RelativePath)) {
+                    throw new InvalidDataException("Distinct source paths collide on the Windows destination filesystem.");
+                }
+            }
+        }
+        TransferettoSyncOptions plannerOptions = resolved.PathComparison == TransferettoSyncPathComparison.Automatic
+            && destination.Scheme == "file" && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? CopyWithPathComparison(resolved, TransferettoSyncPathComparison.OrdinalIgnoreCase)
+            : resolved;
         IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(
-            sourceManifest.Entries, destinationManifest.Entries, resolved, cancellationToken);
+            sourceManifest.Entries, destinationManifest.Entries, plannerOptions, cancellationToken);
         return (plan, sourceManifest.Items, destinationManifest.Items);
     }
 
@@ -168,11 +210,77 @@ public static class TransferettoEndpointSync {
 
     private static string Combine(string root, string relative) => root.Length == 0 ? relative : root + "/" + relative;
 
+    private static bool IsDeleteDirectory(TransferettoSyncAction action) =>
+        action == TransferettoSyncAction.DeleteLocalDirectory || action == TransferettoSyncAction.DeleteRemoteDirectory;
+
+    private const string SyncSourceIdentityKey = "transferetto_sync_source";
+
+    private static string SyncSourceIdentity(TransferItem item) {
+        string value = string.Join("\n", new[] {
+            item.Length?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            item.LastModifiedUtc?.ToString("O", CultureInfo.InvariantCulture) ?? string.Empty,
+            item.ETag ?? string.Empty,
+            item.VersionId ?? string.Empty
+        });
+        using SHA256 sha = SHA256.Create();
+        return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(value))).Replace("-", string.Empty)
+            .ToLowerInvariant();
+    }
+
+    private static async Task<IReadOnlyList<TransferItem>> ApplySyncSourceIdentitiesAsync(
+        IReadOnlyList<TransferItem> sourceListing, string sourceRoot,
+        IReadOnlyList<TransferItem> destinationListing, string destinationRoot,
+        ITransferEndpoint destination, CancellationToken cancellationToken) {
+        Dictionary<string, TransferItem> sources = new(StringComparer.Ordinal);
+        foreach (TransferItem item in sourceListing) {
+            if (TryRelative(sourceRoot, item.Path, out string? relative)) { sources[relative] = item; }
+        }
+        List<TransferItem> adjusted = new(destinationListing.Count);
+        foreach (TransferItem item in destinationListing) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!TryRelative(destinationRoot, item.Path, out string? relative)
+                || !sources.TryGetValue(relative, out TransferItem? source)
+                || !source.LastModifiedUtc.HasValue || source.Length != item.Length
+                || source.LastModifiedUtc == item.LastModifiedUtc) {
+                adjusted.Add(item);
+                continue;
+            }
+            TransferItem? inspected = await destination.GetItemAsync(item.Path, cancellationToken).ConfigureAwait(false);
+            if (inspected != null && inspected.Metadata.TryGetValue(SyncSourceIdentityKey, out string? stamp)
+                && string.Equals(stamp, SyncSourceIdentity(source), StringComparison.Ordinal)) {
+                adjusted.Add(new TransferItem {
+                    Path = item.Path, Length = item.Length, LastModifiedUtc = source.LastModifiedUtc,
+                    ETag = item.ETag, VersionId = item.VersionId,
+                    ContentType = item.ContentType, Metadata = inspected.Metadata
+                });
+            } else {
+                adjusted.Add(item);
+            }
+        }
+        return adjusted;
+    }
+
+    private static TransferettoSyncOptions CopyWithPathComparison(TransferettoSyncOptions options,
+        TransferettoSyncPathComparison comparison) => new() {
+        PathComparison = comparison,
+        Direction = options.Direction,
+        Mode = options.Mode,
+        Comparison = options.Comparison,
+        DryRun = options.DryRun,
+        OverwriteExisting = options.OverwriteExisting,
+        CreateDestinationDirectories = options.CreateDestinationDirectories,
+        PreserveTimestamps = options.PreserveTimestamps,
+        TimestampTolerance = options.TimestampTolerance,
+        IncludePatterns = options.IncludePatterns,
+        ExcludePatterns = options.ExcludePatterns
+    };
+
     private static void EnsureSameVersion(TransferItem recorded, TransferItem? current, string side) {
         if (current == null || (recorded.Length.HasValue && recorded.Length != current.Length)
             || (recorded.ETag != null && !string.Equals(recorded.ETag, current.ETag, StringComparison.Ordinal))
             || (recorded.VersionId != null && !string.Equals(recorded.VersionId, current.VersionId, StringComparison.Ordinal))
-            || (recorded.LastModifiedUtc.HasValue && recorded.LastModifiedUtc != current.LastModifiedUtc)) {
+            || (recorded.ETag == null && recorded.VersionId == null && recorded.LastModifiedUtc.HasValue
+                && recorded.LastModifiedUtc != current.LastModifiedUtc)) {
             throw new IOException($"The planned {side} item changed after listing; synchronization stopped.");
         }
     }

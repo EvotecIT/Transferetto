@@ -14,7 +14,8 @@ namespace Transferetto;
 /// The configured prefix is a namespace boundary, not a security sandbox. Do not pass untrusted paths to a
 /// privileged session when the remote server can expose symbolic links beneath that prefix.
 /// </remarks>
-public sealed class SftpTransferEndpoint : ITransferEndpoint, ITransferSessionEndpoint, IDisposable {
+public sealed class SftpTransferEndpoint : ITransferEndpoint, ITransferSessionEndpoint,
+    ITransferDirectoryEndpoint, ITransferTimestampEndpoint, IDisposable {
     private readonly TransferettoSftpSession _session;
     private readonly string _prefix;
     private readonly bool _ownsSession;
@@ -219,6 +220,26 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, ITransferSessionEn
         }
         TransferettoClient.RemoveSftpFile(_session, ProtocolTransferEndpointPath.Resolve(_prefix, relativePath));
         return true;
+    }
+
+    /// <inheritdoc />
+    public Task<bool> DeleteEmptyDirectoryAsync(string path, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        string remotePath = ProtocolTransferEndpointPath.Resolve(_prefix,
+            ProtocolTransferEndpointPath.NormalizeRelative(path));
+        if (!TransferettoClient.TestSftpDirectory(_session, remotePath)) { return Task.FromResult(false); }
+        TransferettoClient.RemoveSftpDirectory(_session, remotePath);
+        return Task.FromResult(true);
+    }
+
+    /// <inheritdoc />
+    public Task SetLastModifiedUtcAsync(string path, DateTimeOffset timestamp,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        string remotePath = ProtocolTransferEndpointPath.Resolve(_prefix,
+            ProtocolTransferEndpointPath.NormalizeRelative(path));
+        TransferettoClient.SetSftpTimestamp(_session, remotePath, null, timestamp.UtcDateTime, useUtc: true);
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />

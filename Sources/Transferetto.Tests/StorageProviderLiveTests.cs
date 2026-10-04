@@ -149,6 +149,45 @@ public sealed class StorageProviderLiveTests {
                         WriteOptions = new TransferWriteOptions { Mode = TransferWriteMode.SkipIfExists } });
                 Assert.Equal(TransferReceiptOutcome.Skipped, skipped.Outcome);
                 Assert.False(skipped.ServerSideCopy);
+                string checkpoint = Path.Combine(Path.GetTempPath(), "transferetto-nativebatch-"
+                    + Guid.NewGuid().ToString("N") + ".json");
+                try {
+                    TransferBatchItem batchItem = new(source, "input.txt", destination, "batch-output.txt") {
+                        Options = new TransferCopyOptions { PreferServerSideCopy = true,
+                            WriteOptions = new TransferWriteOptions { Mode = TransferWriteMode.Overwrite } }
+                    };
+                    TransferBatchOptions batchOptions = new() { CheckpointPath = checkpoint };
+                    TransferBatchResult first = await TransferEngine.CopyBatchAsync(new[] { batchItem }, batchOptions);
+                    Assert.True(first.IsSuccess);
+                    Assert.Equal(TransferBatchItemOutcome.Copied, first.Items[0].Outcome);
+                    Assert.True(first.Items[0].Receipt!.ServerSideCopy);
+                    TransferBatchResult resumed = await TransferEngine.CopyBatchAsync(new[] { batchItem }, batchOptions);
+                    Assert.Equal(TransferBatchItemOutcome.Resumed, resumed.Items[0].Outcome);
+                } finally {
+                    if (File.Exists(checkpoint)) { File.Delete(checkpoint); }
+                }
+                TransferettoEndpointSyncResult sync = await TransferettoEndpointSync.SyncAsync(
+                    source, "", destination, "");
+                Assert.True(sync.IsSuccess, string.Join("; ", sync.Items
+                    .Where(item => item.Error != null).Select(item => item.Error!.ToString())));
+                Assert.Contains(sync.Items, item => item.Receipt?.Outcome == TransferReceiptOutcome.Copied);
+                TransferettoEndpointSyncResult secondSync = await TransferettoEndpointSync.SyncAsync(
+                    source, "", destination, "");
+                Assert.True(secondSync.IsSuccess, string.Join("; ", secondSync.Items
+                    .Where(item => item.Error != null).Select(item => item.Error!.ToString())));
+                Assert.DoesNotContain(secondSync.Items, item => item.Receipt != null);
+                await Task.Delay(TimeSpan.FromSeconds(3));
+                byte[] changed = Enumerable.Repeat((byte)'X', payload.Length).ToArray();
+                await destination.WriteAsync("input.txt", new MemoryStream(changed), changed.Length,
+                    new TransferWriteOptions { Mode = TransferWriteMode.Overwrite });
+                TransferettoEndpointSyncResult repaired = await TransferettoEndpointSync.SyncAsync(
+                    source, "", destination, "");
+                Assert.True(repaired.IsSuccess);
+                Assert.Contains(repaired.Items, item => item.Receipt?.Outcome == TransferReceiptOutcome.Copied);
+                using TransferReadHandle repairedRead = await destination.OpenReadAsync("input.txt");
+                using MemoryStream repairedBytes = new();
+                await repairedRead.Stream.CopyToAsync(repairedBytes);
+                Assert.Equal(payload, repairedBytes.ToArray());
             }
         } finally {
             ListObjectsV2Response objects = await client.ListObjectsV2Async(new ListObjectsV2Request { BucketName = bucket });

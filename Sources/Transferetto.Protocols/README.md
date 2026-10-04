@@ -8,7 +8,7 @@ Use the protocol API for protocol-specific operations such as FTP synchronizatio
 
 Local directory transfers and synchronization reject symbolic links and Windows junctions instead of following them. Remote names must be representable on the destination filesystem; Windows downloads reject backslash traversal, alternate data streams, and reserved device names. The selected local root must be controlled by the caller, since path checks cannot prevent another process from replacing directories during a transfer.
 
-Download synchronization compares paths without case on Windows by default, which keeps mirror cleanup from deleting a file through a differently cased name. Set `TransferettoSyncOptions.PathComparison` to `Ordinal` when the destination is a case-sensitive Windows directory, or to `OrdinalIgnoreCase` for another case-insensitive filesystem.
+Download synchronization compares paths without case on Windows by default, which keeps mirror cleanup from deleting a file through a differently cased name. Endpoint synchronization also uses case-insensitive comparison for a Windows filesystem destination and rejects colliding source names before writing. Set `TransferettoSyncOptions.PathComparison` to `Ordinal` when planning for a case-sensitive Windows directory, or to `OrdinalIgnoreCase` for another case-insensitive filesystem.
 
 Known-host and FTPS certificate stores serialize updates across processes and replace the store atomically. Malformed stores fail closed; repair or replace the affected store explicitly. SSH SHA-256 pins preserve the case-sensitive Base64 digest, while MD5 hexadecimal pins accept either hex case.
 

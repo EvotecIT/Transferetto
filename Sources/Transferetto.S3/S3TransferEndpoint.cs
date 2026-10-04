@@ -16,7 +16,8 @@ namespace Transferetto.S3;
 /// <summary>
 /// Exposes one Amazon S3 or S3-compatible bucket prefix as a transfer endpoint.
 /// </summary>
-public sealed partial class S3TransferEndpoint : ITransferEndpoint, ITransferRangeEndpoint, ITransferServerSideCopyEndpoint, ITransferResumableWriteEndpoint, IDisposable {
+public sealed partial class S3TransferEndpoint : ITransferEndpoint, ITransferRangeEndpoint, ITransferServerSideCopyEndpoint,
+    ITransferResumableWriteEndpoint, ITransferDirectoryEndpoint, IDisposable {
     private readonly IAmazonS3 _client;
     private readonly bool _ownsClient;
     private readonly string _bucketName;
@@ -216,6 +217,14 @@ public sealed partial class S3TransferEndpoint : ITransferEndpoint, ITransferRan
             Key = ResolveKey(path)
         }, cancellationToken).ConfigureAwait(false);
         return true;
+    }
+
+    /// <inheritdoc />
+    public Task<bool> DeleteEmptyDirectoryAsync(string path, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        _ = ResolveKey(path);
+        // S3 prefixes are virtual; deleting their planned child objects removes the directory.
+        return Task.FromResult(false);
     }
 
     /// <inheritdoc />

@@ -34,12 +34,15 @@ public static partial class TransferEngine {
                 EnsureCheckpointNotItemPath(checkpoint, item.Source, item.SourcePath);
                 EnsureCheckpointNotItemPath(checkpoint, item.Destination, item.DestinationPath);
             }
-            // A case-folded local path names the same destination file on Windows.
-            string path = item.Destination.Scheme == "file" &&
+            // Resolve local aliases before scheduling concurrent writes to one file.
+            string path = item.Destination is FileSystemTransferEndpoint local
+                ? local.ResolveForResume(item.DestinationPath)
+                : item.DestinationPath;
+            path = item.Destination.Scheme == "file" &&
                           System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
                               System.Runtime.InteropServices.OSPlatform.Windows)
-                ? item.DestinationPath.ToUpperInvariant()
-                : item.DestinationPath;
+                ? path.ToUpperInvariant()
+                : path;
             string identity = item.Destination.DisplayName + "\n" + path;
             if (!destinations.Add(identity)) {
                 throw new ArgumentException("A batch cannot schedule the same destination path more than once.", nameof(items));

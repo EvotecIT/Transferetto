@@ -126,6 +126,46 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
     }
 
     [Fact]
+    public async Task BatchCheckpointDoesNotReuseAChangedDigestOrWriteMode() {
+        string sourceRoot = Path.Combine(_root, "policy-source");
+        string destinationRoot = Path.Combine(_root, "policy-destination");
+        Directory.CreateDirectory(sourceRoot);
+        Directory.CreateDirectory(destinationRoot);
+        File.WriteAllText(Path.Combine(sourceRoot, "item.txt"), "content");
+        FileSystemTransferEndpoint source = new(sourceRoot);
+        FileSystemTransferEndpoint destination = new(destinationRoot);
+        TransferBatchItem request = new(source, "item.txt", destination, "item.txt") {
+            Options = new TransferCopyOptions { WriteOptions = new TransferWriteOptions { Mode = TransferWriteMode.Overwrite } }
+        };
+        TransferBatchOptions batch = new() { CheckpointPath = Path.Combine(_root, "policy.json") };
+        Assert.Equal(TransferBatchItemOutcome.Copied,
+            (await TransferEngine.CopyBatchAsync(new[] { request }, batch)).Items[0].Outcome);
+
+        request.Options = new TransferCopyOptions { ExpectedSha256 = new string('0', 64),
+            WriteOptions = new TransferWriteOptions { Mode = TransferWriteMode.Overwrite } };
+        Assert.Equal(TransferBatchItemOutcome.Failed,
+            (await TransferEngine.CopyBatchAsync(new[] { request }, batch)).Items[0].Outcome);
+        Assert.Equal("content", File.ReadAllText(Path.Combine(destinationRoot, "item.txt")));
+
+        request.Options = new TransferCopyOptions {
+            WriteOptions = new TransferWriteOptions { Mode = TransferWriteMode.SkipIfExists } };
+        Assert.Equal(TransferBatchItemOutcome.Skipped,
+            (await TransferEngine.CopyBatchAsync(new[] { request }, batch)).Items[0].Outcome);
+    }
+
+    [Fact]
+    public async Task BatchRejectsWindowsSeparatorAliasesBeforeScheduling() {
+        if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                System.Runtime.InteropServices.OSPlatform.Windows)) { return; }
+        FileSystemTransferEndpoint endpoint = new(_root);
+        TransferBatchItem[] requests = {
+            new(endpoint, "source-a", endpoint, @"sub\item.txt"),
+            new(endpoint, "source-b", endpoint, "sub/item.txt")
+        };
+        await Assert.ThrowsAsync<ArgumentException>(() => TransferEngine.CopyBatchAsync(requests));
+    }
+
+    [Fact]
     public async Task ResumableFileCopyKeepsOldTargetAndContinuesVerifiedChunks() {
         string sourceRoot = Path.Combine(_root, "range-source");
         string destinationRoot = Path.Combine(_root, "range-destination");

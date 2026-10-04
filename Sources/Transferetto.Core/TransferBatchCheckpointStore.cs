@@ -29,7 +29,7 @@ internal sealed class TransferBatchCheckpointStore {
         if (input.Length > MaxCheckpointBytes) { throw new InvalidDataException("The transfer checkpoint is too large."); }
         State state = (State?)new DataContractJsonSerializer(typeof(State)).ReadObject(input)
             ?? throw new InvalidDataException("The transfer checkpoint is empty.");
-        if (state.Format != 1 || state.Items == null) { throw new InvalidDataException("Unsupported transfer checkpoint format."); }
+        if (state.Format != 2 || state.Items == null) { throw new InvalidDataException("Unsupported transfer checkpoint format."); }
         _entries = state.Items.ToDictionary(item => item.Index);
     }
 
@@ -51,7 +51,6 @@ internal sealed class TransferBatchCheckpointStore {
 
     internal async Task RecordAsync(int index, TransferBatchItem item, TransferReceipt receipt,
         CancellationToken cancellationToken) {
-        if (receipt.Sha256 == null) { return; }
         TransferItem source = await item.Source.GetItemAsync(item.SourcePath, cancellationToken).ConfigureAwait(false)
             ?? throw new IOException("The completed source item disappeared before checkpointing.");
         TransferItem destination = await item.Destination.GetItemAsync(item.DestinationPath, cancellationToken).ConfigureAwait(false)
@@ -62,13 +61,15 @@ internal sealed class TransferBatchCheckpointStore {
             || (receipt.DestinationETag != null && !string.Equals(receipt.DestinationETag, destination.ETag, StringComparison.Ordinal))) {
             throw new IOException("An item changed before its transfer checkpoint could be saved.");
         }
-        if (source.ETag == null && source.VersionId == null
+        string digest = receipt.Sha256 ?? await HashAsync(item.Source, item.SourcePath, source.Length, cancellationToken)
+            .ConfigureAwait(false);
+        if (receipt.Sha256 != null && source.ETag == null && source.VersionId == null
             && !string.Equals(await HashAsync(item.Source, item.SourcePath, source.Length, cancellationToken).ConfigureAwait(false),
-                receipt.Sha256, StringComparison.Ordinal)) {
+                digest, StringComparison.Ordinal)) {
             throw new IOException("The source changed before its transfer checkpoint could be saved.");
         }
         if (!string.Equals(await HashAsync(item.Destination, item.DestinationPath, destination.Length, cancellationToken)
-            .ConfigureAwait(false), receipt.Sha256, StringComparison.Ordinal)) {
+            .ConfigureAwait(false), digest, StringComparison.Ordinal)) {
             throw new IOException("The destination changed before its transfer checkpoint could be saved.");
         }
         Entry entry = new() {
@@ -77,7 +78,8 @@ internal sealed class TransferBatchCheckpointStore {
             SourcePath = item.SourcePath,
             DestinationEndpoint = item.Destination.DisplayName,
             DestinationPath = item.DestinationPath,
-            Sha256 = receipt.Sha256,
+            Sha256 = digest,
+            PolicyFingerprint = PolicyFingerprint(item.Options),
             SourceLength = source.Length,
             SourceModified = Stamp(source),
             SourceETag = source.ETag,
@@ -99,7 +101,7 @@ internal sealed class TransferBatchCheckpointStore {
             using (FileStream output = new(staged, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
                 TransferFileSystem.PreserveStagingPermissions(staged, _path);
                 new DataContractJsonSerializer(typeof(State)).WriteObject(output,
-                    new State { Format = 1, Items = _entries.Values.OrderBy(item => item.Index).ToList() });
+                    new State { Format = 2, Items = _entries.Values.OrderBy(item => item.Index).ToList() });
                 output.Flush(flushToDisk: true);
                 if (output.Length > MaxCheckpointBytes) { throw new InvalidDataException("The transfer checkpoint is too large."); }
             }
@@ -113,7 +115,25 @@ internal sealed class TransferBatchCheckpointStore {
         string.Equals(entry.SourceEndpoint, item.Source.DisplayName, StringComparison.Ordinal)
         && string.Equals(entry.SourcePath, item.SourcePath, StringComparison.Ordinal)
         && string.Equals(entry.DestinationEndpoint, item.Destination.DisplayName, StringComparison.Ordinal)
-        && string.Equals(entry.DestinationPath, item.DestinationPath, StringComparison.Ordinal);
+        && string.Equals(entry.DestinationPath, item.DestinationPath, StringComparison.Ordinal)
+        && string.Equals(entry.PolicyFingerprint, PolicyFingerprint(item.Options), StringComparison.Ordinal);
+
+    private static string PolicyFingerprint(TransferCopyOptions? options) {
+        TransferWriteOptions write = options?.WriteOptions ?? new TransferWriteOptions();
+        using MemoryStream content = new();
+        using (BinaryWriter writer = new(content, System.Text.Encoding.UTF8, leaveOpen: true)) {
+            writer.Write((options?.ExpectedSha256 ?? string.Empty).ToLowerInvariant());
+            writer.Write((int)write.Mode);
+            writer.Write(write.ContentType ?? string.Empty);
+            writer.Write(write.Metadata.Count);
+            foreach (KeyValuePair<string, string> pair in write.Metadata.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)) {
+                writer.Write(pair.Key.ToLowerInvariant());
+                writer.Write(pair.Value ?? string.Empty);
+            }
+        }
+        using SHA256 sha = SHA256.Create();
+        return BitConverter.ToString(sha.ComputeHash(content.ToArray())).Replace("-", string.Empty).ToLowerInvariant();
+    }
 
     private static bool MatchesItem(TransferItem? item, long? length, string? modified, string? eTag,
         string? version) => item != null
@@ -169,5 +189,6 @@ internal sealed class TransferBatchCheckpointStore {
         [DataMember(Order = 12)] public string? DestinationModified { get; set; }
         [DataMember(Order = 13)] public string? DestinationETag { get; set; }
         [DataMember(Order = 14)] public string? DestinationVersion { get; set; }
+        [DataMember(Order = 15)] public string? PolicyFingerprint { get; set; }
     }
 }

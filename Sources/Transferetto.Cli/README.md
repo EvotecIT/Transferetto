@@ -19,7 +19,7 @@ transferetto copy file:///data/in report.csv s3://reports/archive report.csv --v
 transferetto resume file:///data/in large.bin s3://reports/archive large.bin /data/state/large.checkpoint.json --verify
 ```
 
-Use `sync ... --dry-run` to inspect an update or mirror plan. `--mirror` deletes destination files absent from the source; an empty source also requires `--allow-empty-source`. Endpoint sync operates on files and leaves empty directories alone.
+Use `sync ... --dry-run` to inspect an update or mirror plan. `--mirror` deletes destination files absent from the source and removes planned empty physical directories; an empty source also requires `--allow-empty-source`. File listings do not represent directories that were already empty. On Windows, sync rejects source names that would map to the same local destination path.
 
 Endpoint URIs select a provider and optional prefix: `file:///absolute/root`, `s3://bucket/prefix`, `azureblob://container/prefix`, `sftp://host/prefix`, `ftp://host/prefix`, or `ftps://host/prefix`. Item paths are separate arguments relative to that endpoint. The CLI rejects credentials and query strings in URIs. Supply credentials and trust settings through environment variables:
 

@@ -17,7 +17,8 @@ namespace Transferetto.Core;
 /// process that can mutate the directory tree concurrently. A privileged process must not use a root writable
 /// by less-trusted identities.
 /// </remarks>
-public sealed class FileSystemTransferEndpoint : ITransferEndpoint, ITransferRangeEndpoint {
+public sealed class FileSystemTransferEndpoint : ITransferEndpoint, ITransferRangeEndpoint,
+    ITransferDirectoryEndpoint, ITransferTimestampEndpoint {
     private readonly string _rootPath;
     private readonly StringComparison _pathComparison;
 
@@ -207,6 +208,24 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint, ITransferRan
         }
         File.Delete(fullPath);
         return Task.FromResult(true);
+    }
+
+    /// <inheritdoc />
+    public Task<bool> DeleteEmptyDirectoryAsync(string path, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        string fullPath = ResolvePath(path);
+        if (!Directory.Exists(fullPath)) { return Task.FromResult(false); }
+        Directory.Delete(fullPath, recursive: false);
+        return Task.FromResult(true);
+    }
+
+    /// <inheritdoc />
+    public Task SetLastModifiedUtcAsync(string path, DateTimeOffset timestamp,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        string fullPath = ResolvePath(path);
+        File.SetLastWriteTimeUtc(fullPath, timestamp.UtcDateTime);
+        return Task.CompletedTask;
     }
 
     private TransferItem CreateItem(
