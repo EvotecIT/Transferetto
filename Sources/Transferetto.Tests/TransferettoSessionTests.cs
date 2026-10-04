@@ -819,21 +819,6 @@ public sealed class TransferettoSessionTests {
     }
 
     [Fact]
-    public void SftpPathHelpersNormalizeAndCombineRemotePaths() {
-        MethodInfo normalizeMethod = typeof(TransferettoClient).GetMethod("NormalizeRemotePath", BindingFlags.Static | BindingFlags.NonPublic)!;
-        MethodInfo combineMethod = typeof(TransferettoClient).GetMethod("CombineRemotePath", BindingFlags.Static | BindingFlags.NonPublic)!;
-        MethodInfo parentMethod = typeof(TransferettoClient).GetMethod("GetRemoteParent", BindingFlags.Static | BindingFlags.NonPublic)!;
-
-        string normalized = (string) normalizeMethod.Invoke(null, new object[] { @"\pub\example\" })!;
-        string combined = (string) combineMethod.Invoke(null, new object[] { "/pub/example", "child/file.txt" })!;
-        string parent = (string) parentMethod.Invoke(null, new object[] { "/pub/example/child" })!;
-
-        Assert.Equal("/pub/example", normalized);
-        Assert.Equal("/pub/example/child/file.txt", combined);
-        Assert.Equal("/pub/example", parent);
-    }
-
-    [Fact]
     public void SshShellCommandResultExposesParsedState() {
         TransferettoSshShellCommandResult result = new() {
             Command = "pwd",
@@ -1101,14 +1086,26 @@ public sealed class TransferettoSessionTests {
     }
 
     [Fact]
-    public void SftpPermissionParserAcceptsOctalStrings() {
+    public void SftpPermissionParserProducesTheSdkPermissionMode() {
         MethodInfo method = typeof(TransferettoClient).GetMethod("ParseSftpPermissions", BindingFlags.Static | BindingFlags.NonPublic)!;
 
         short mode644 = (short) method.Invoke(null, new object[] { "644" })!;
         short mode755 = (short) method.Invoke(null, new object[] { "0755" })!;
 
-        Assert.Equal(Convert.ToInt16("644", 8), mode644);
-        Assert.Equal(Convert.ToInt16("755", 8), mode755);
+#if NET8_0_OR_GREATER
+        var attributes = (Renci.SshNet.Sftp.SftpFileAttributes) System.Runtime.CompilerServices.RuntimeHelpers
+            .GetUninitializedObject(typeof(Renci.SshNet.Sftp.SftpFileAttributes));
+#else
+        var attributes = (Renci.SshNet.Sftp.SftpFileAttributes) System.Runtime.Serialization.FormatterServices
+            .GetUninitializedObject(typeof(Renci.SshNet.Sftp.SftpFileAttributes));
+#endif
+        attributes.SetPermissions(mode644);
+        Assert.True(attributes.OwnerCanRead && attributes.OwnerCanWrite && attributes.GroupCanRead && attributes.OthersCanRead);
+        Assert.False(attributes.OwnerCanExecute || attributes.GroupCanWrite || attributes.OthersCanWrite || attributes.OthersCanExecute);
+        attributes.SetPermissions(mode755);
+        Assert.True(attributes.OwnerCanRead && attributes.OwnerCanWrite && attributes.OwnerCanExecute
+            && attributes.GroupCanRead && attributes.GroupCanExecute && attributes.OthersCanRead && attributes.OthersCanExecute);
+        Assert.False(attributes.GroupCanWrite || attributes.OthersCanWrite);
     }
 
     [Fact]

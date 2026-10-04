@@ -1525,6 +1525,7 @@ public static partial class TransferettoClient {
     private static string ReadAvailableSshShellOutput(TransferettoSshShellSession session, TransferettoSshShellReadOptions? options) {
         string pendingOutput = session.ConsumePendingReadOutput();
         if (!string.IsNullOrEmpty(pendingOutput)) {
+            EnsureSshCaptureLimit(pendingOutput.Length, options);
             return pendingOutput;
         }
 
@@ -1534,6 +1535,7 @@ public static partial class TransferettoClient {
 
         string output = session.ShellStream.Read();
         ReportSshShellChunk(session, output, options);
+        EnsureSshCaptureLimit(output.Length, options);
         return output;
     }
 
@@ -1546,11 +1548,15 @@ public static partial class TransferettoClient {
             return false;
         }
 
-        if (options?.MaxCapturedCharacters is int maximum && (maximum < 0 || builder.Length > maximum - output.Length)) {
-            throw new IOException("SSH output exceeded the configured capture limit. Use OutputProgress to stream output or increase the limit.");
-        }
+        EnsureSshCaptureLimit((long)builder.Length + output.Length, options);
         builder.Append(output);
         return true;
+    }
+
+    private static void EnsureSshCaptureLimit(long capturedCharacters, TransferettoSshShellReadOptions? options) {
+        if (options?.MaxCapturedCharacters is int maximum && (maximum < 0 || capturedCharacters > maximum)) {
+            throw new IOException("SSH output exceeded the configured capture limit. Use OutputProgress to stream output or increase the limit.");
+        }
     }
 
     private static void ReportSshShellChunk(

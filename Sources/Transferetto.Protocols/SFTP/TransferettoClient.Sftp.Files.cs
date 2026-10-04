@@ -42,6 +42,9 @@ public static partial class TransferettoClient {
         long bytesTransferred = 0;
         using FileStream fileStream = new(localPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
         string temporaryPath = ProtocolTransferEndpointPath.CreateTemporaryPath(remotePath);
+        Renci.SshNet.Sftp.SftpFileAttributes? existing = allowOverride
+            ? await SftpTransferStreamOperations.GetExistingAttributesAsync(session.Client, remotePath, resolvedOptions.CancellationToken).ConfigureAwait(false)
+            : null;
         try {
             using TransferettoProgressStream progressContent = new(fileStream, transferredBytes => {
             bytesTransferred = ReportTransferProgress(
@@ -56,8 +59,10 @@ public static partial class TransferettoClient {
                 bytesTransferred);
             });
             // Own the remote handle so cancellation also closes it before removing staging.
-            using (Stream remoteStream = await session.Client.OpenAsync(temporaryPath, FileMode.CreateNew, FileAccess.Write,
+            using (Stream remoteStream = await SftpTransferStreamOperations.OpenAsync(session.Client, temporaryPath, FileMode.CreateNew, FileAccess.Write,
                 resolvedOptions.CancellationToken).ConfigureAwait(false)) {
+                await SftpTransferStreamOperations.PreserveReplacementAttributesAsync(session.Client, temporaryPath, existing,
+                    resolvedOptions.CancellationToken).ConfigureAwait(false);
                 await TransferContent.CopyToAsync(progressContent, remoteStream, totalBytes, resolvedOptions.CancellationToken).ConfigureAwait(false);
                 await remoteStream.FlushAsync(resolvedOptions.CancellationToken).ConfigureAwait(false);
             }
@@ -65,8 +70,7 @@ public static partial class TransferettoClient {
             ProtocolTransferCommit.Commit(new SftpTransferCommitOperations(session), temporaryPath, remotePath, remotePath,
                 allowOverride ? Transferetto.Core.TransferWriteMode.Overwrite : Transferetto.Core.TransferWriteMode.FailIfExists, "SFTP");
         } catch {
-            try { if (session.Client.Exists(temporaryPath)) { session.Client.DeleteFile(temporaryPath); } }
-            catch { /* Preserve the upload or commit failure. */ }
+            await SftpTransferStreamOperations.RemoveTemporaryFileAsync(session, temporaryPath).ConfigureAwait(false);
             throw;
         }
         if (bytesTransferred < totalBytes) {
@@ -149,8 +153,9 @@ public static partial class TransferettoClient {
                     totalBytes,
                     bytesTransferred);
             });
-            await session.Client.DownloadFileAsync(remotePath, progressContent, downloadProgress: null,
+            using Stream remoteStream = await SftpTransferStreamOperations.OpenAsync(session.Client, remotePath, FileMode.Open, FileAccess.Read,
                 resolvedOptions.CancellationToken).ConfigureAwait(false);
+            await TransferContent.CopyToAsync(remoteStream, progressContent, totalBytes, resolvedOptions.CancellationToken).ConfigureAwait(false);
         }, resolvedOptions.CancellationToken).ConfigureAwait(false);
         if (bytesTransferred < totalBytes) {
             bytesTransferred = ReportTransferProgress(
@@ -190,6 +195,7 @@ public static partial class TransferettoClient {
         try {
             using (FileStream fileStream = new(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920,
                 FileOptions.Asynchronous | FileOptions.SequentialScan)) {
+                TransferFileSystem.PreserveStagingPermissions(temporaryPath, localPath);
                 await writer(fileStream).ConfigureAwait(false);
                 await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
             }

@@ -23,11 +23,16 @@ public sealed class TransferettoTrustSafetyTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void MalformedExistingStoreFailsClosedWithoutChangingItsBytes(bool ssh) {
+    [InlineData(false, "server\tinvalid-port\tincomplete\n")]
+    [InlineData(true, "server\tinvalid-port\tincomplete\n")]
+    [InlineData(false, "\n")]
+    [InlineData(true, "\n")]
+    [InlineData(false, "  \n\t\n")]
+    [InlineData(true, "  \n\t\n")]
+    [InlineData(false, "# store comment\n")]
+    [InlineData(true, "# store comment\n")]
+    public void MalformedExistingStoreFailsClosedWithoutChangingItsBytes(bool ssh, string malformed) {
         WithStore(path => {
-            const string malformed = "server\tinvalid-port\tincomplete\n";
             File.WriteAllText(path, malformed);
             TargetInvocationException error = Assert.Throws<TargetInvocationException>(() => Trust(path, "server", ssh));
             Assert.IsType<InvalidDataException>(error.InnerException);

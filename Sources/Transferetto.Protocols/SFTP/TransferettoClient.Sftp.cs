@@ -137,7 +137,7 @@ public static partial class TransferettoClient {
             Action = "SetPermissions",
             Status = true,
             Path = path,
-            Message = Convert.ToString(mode, 8).PadLeft(3, '0')
+            Message = mode.ToString("D3", System.Globalization.CultureInfo.InvariantCulture)
         };
     }
     /// <summary>
@@ -684,6 +684,7 @@ public static partial class TransferettoClient {
 
         try {
             using (FileStream fileStream = new(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
+                TransferFileSystem.PreserveStagingPermissions(temporaryPath, localPath);
                 writer(fileStream);
                 fileStream.Flush();
             }
@@ -731,7 +732,8 @@ public static partial class TransferettoClient {
             throw new ArgumentOutOfRangeException(nameof(permissions), permissions, "Permissions must be a three-digit octal string such as 644 or 755.");
         }
 
-        return Convert.ToInt16(normalized, 8);
+        // SSH.NET accepts octal digits expressed as a decimal number (755), not bit value 493.
+        return short.Parse(normalized, System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private static void ValidatePermissionDigit(int value, string paramName) {
@@ -856,7 +858,7 @@ public static partial class TransferettoClient {
     }
 
     private static string NormalizeRemotePath(string path) {
-        string normalized = path.Replace('\\', '/').Trim();
+        string normalized = path;
         if (normalized.Length > 1) {
             normalized = normalized.TrimEnd('/');
         }
@@ -866,7 +868,10 @@ public static partial class TransferettoClient {
 
     private static string CombineRemotePath(string basePath, string childPath) {
         string normalizedBasePath = NormalizeRemotePath(basePath);
-        string normalizedChildPath = NormalizeRemotePath(childPath).TrimStart('/');
+        if (string.IsNullOrEmpty(childPath) || childPath == "." || childPath == ".." || childPath.IndexOf('/') >= 0) {
+            throw new ArgumentException("A remote child name must be a single literal path component.", nameof(childPath));
+        }
+        string normalizedChildPath = childPath;
         if (normalizedBasePath == "/") {
             return "/" + normalizedChildPath;
         }

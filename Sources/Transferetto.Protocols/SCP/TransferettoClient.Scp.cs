@@ -330,37 +330,14 @@ public static partial class TransferettoClient {
         long totalBytes = 0;
         long lastReportedBytes = 0;
         DateTime startedUtc = DateTime.UtcNow;
-        EventHandler<ScpDownloadEventArgs>? progress = options is null
-            ? null
-            : (_, args) => {
-                string key = args.Filename ?? string.Empty;
-                transferredByFile[key] = NormalizeTransferredBytes(args.Downloaded);
-                totalByFile[key] = NormalizeTransferredBytes(args.Size);
-                bytesTransferred = SumTransferredBytes(transferredByFile);
-                totalBytes = SumTransferredBytes(totalByFile);
-                lastReportedBytes = ReportScpTransferProgress(
-                    options,
-                    "DownloadDirectory",
-                    TransferettoTransferDirection.Download,
-                    localPath,
-                    args.Filename ?? remotePath,
-                    bytesTransferred,
-                    totalBytes,
-                    lastReportedBytes);
-            };
-
-        try {
-            if (progress is not null) {
-                session.Client.Downloading += progress;
-            }
-
-            session.Client.Download(remotePath, directoryInfo);
-        } finally {
-            if (progress is not null) {
-                session.Client.Downloading -= progress;
-            }
-        }
-
+        ReceiveScpDirectoryAsync(session, remotePath, localPath, (path, transferred, length) => {
+            transferredByFile[path] = transferred;
+            totalByFile[path] = length;
+            bytesTransferred = SumTransferredBytes(transferredByFile);
+            totalBytes = SumTransferredBytes(totalByFile);
+            lastReportedBytes = ReportScpTransferProgress(options, "DownloadDirectory", TransferettoTransferDirection.Download,
+                localPath, path, bytesTransferred, totalBytes, lastReportedBytes);
+        }, options?.CancellationToken ?? default).GetAwaiter().GetResult();
         lastReportedBytes = ReportScpTransferProgress(
             options,
             "DownloadDirectory",

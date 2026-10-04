@@ -2,6 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+#if !NET8_0_OR_GREATER
+using System.Reflection;
+using System.Runtime.ExceptionServices;
+#endif
 using System.Threading;
 
 namespace Transferetto.Core;
@@ -10,6 +14,31 @@ namespace Transferetto.Core;
 /// <remarks>The caller must control the root and its ancestors. Checks reject links at and beneath the selected
 /// root, but do not provide an OS sandbox against concurrent directory mutation by another process.</remarks>
 public static class TransferFileSystem {
+#if !NET8_0_OR_GREATER
+    private static readonly MethodInfo? GetUnixMode = typeof(File).GetMethod("GetUnixFileMode", new[] { typeof(string) });
+    private static readonly MethodInfo? SetUnixMode = GetUnixMode == null ? null
+        : typeof(File).GetMethod("SetUnixFileMode", new[] { typeof(string), GetUnixMode.ReturnType });
+#endif
+    /// <summary>Preserves the destination's Unix permission bits on a staged replacement before content is written.</summary>
+    public static void PreserveStagingPermissions(string stagedPath, string destinationPath) {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || !File.Exists(destinationPath)) { return; }
+#if NET8_0_OR_GREATER
+        File.SetUnixFileMode(stagedPath, File.GetUnixFileMode(destinationPath));
+#else
+        // The netstandard assembly also runs on modern Unix runtimes. Resolve their file-mode
+        // APIs once without taking a dependency on a runtime-specific enum in the public contract.
+        if (GetUnixMode == null || SetUnixMode == null) {
+            throw new PlatformNotSupportedException("Safe file replacement on Unix requires a runtime with Unix file-mode APIs.");
+        }
+        try {
+            SetUnixMode.Invoke(null, new[] { (object)stagedPath, GetUnixMode.Invoke(null, new object[] { destinationPath })! });
+        } catch (TargetInvocationException exception) when (exception.InnerException != null) {
+            ExceptionDispatchInfo.Capture(exception.InnerException).Throw();
+            throw;
+        }
+#endif
+    }
+
     private static StringComparison PathComparison => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
         ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 

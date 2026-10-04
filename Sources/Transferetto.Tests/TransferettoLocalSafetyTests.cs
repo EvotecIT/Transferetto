@@ -6,6 +6,15 @@ namespace Transferetto.Tests;
 
 public sealed class TransferettoLocalSafetyTests {
     [Theory]
+    [InlineData("..\\escape.txt", "/selected/..\\escape.txt")]
+    [InlineData(" .. ", "/selected/ .. ")]
+    [InlineData(" leading and trailing ", "/selected/ leading and trailing ")]
+    public void RemoteChildNamesRemainLiteralComponents(string name, string expected) {
+        Assert.Equal(expected, typeof(TransferettoClient).GetMethod("CombineRemotePath", BindingFlags.Static | BindingFlags.NonPublic)!
+            .Invoke(null, new object[] { "/selected", name }));
+    }
+
+    [Theory]
     [InlineData("../outside.txt")]
     [InlineData("folder/../../outside.txt")]
     [InlineData("/outside.txt")]
@@ -54,6 +63,29 @@ public sealed class TransferettoLocalSafetyTests {
     }
 
 #if NET8_0_OR_GREATER
+    [Theory]
+    [InlineData(384)]
+    [InlineData(493)]
+    public async Task UnixOverwritePreservesAccessBeforeWritingAndAfterCommit(int permissionBits) {
+        if (OperatingSystem.IsWindows()) { return; }
+        string root = Path.Combine(Path.GetTempPath(), "Transferetto.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string target = Path.Combine(root, "target");
+            File.WriteAllText(target, "original");
+            File.SetUnixFileMode(target, (UnixFileMode)permissionBits);
+            using MemoryStream content = new(new byte[] { 1, 2, 3 });
+            await new FileSystemTransferEndpoint(root).WriteAsync("target", content, 3,
+                new TransferWriteOptions { Mode = TransferWriteMode.Overwrite });
+            Assert.Equal((UnixFileMode)permissionBits, File.GetUnixFileMode(target));
+            Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(target));
+            string staged = Path.Combine(root, "staged");
+            File.WriteAllText(staged, string.Empty);
+            TransferFileSystem.PreserveStagingPermissions(staged, target);
+            Assert.Equal((UnixFileMode)permissionBits, File.GetUnixFileMode(staged));
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
     [Fact]
     public void LinkedDirectoryManifestFailsBeforeExposingOutsideFiles() {
         WithDirectory(root => {
