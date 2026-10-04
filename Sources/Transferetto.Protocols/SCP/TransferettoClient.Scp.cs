@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Renci.SshNet;
 using Renci.SshNet.Common;
+using Transferetto.Core;
 
 namespace Transferetto;
 /// <summary>
@@ -20,6 +21,7 @@ public static partial class TransferettoClient {
         ValidateSshProxyOptions(options);
 
         ScpClient client = CreateScpClient(options);
+        using TransferDiagnostics.OperationScope diagnostic = TransferDiagnostics.StartConnection("scp");
         TransferettoSshHostKeyInfo? hostKeyInfo = null;
         client.HostKeyReceived += (_, args) => {
             hostKeyInfo = EvaluateHostKeyTrust(options, args);
@@ -29,11 +31,15 @@ public static partial class TransferettoClient {
         try {
             ApplyScpClientOptions(client, options);
             client.Connect();
-            return new TransferettoScpSession(client) {
+            TransferettoScpSession session = new(client) {
                 HostKeyInfo = hostKeyInfo
             };
-        } catch {
-            client.Dispose();
+            diagnostic.Complete();
+            return session;
+        } catch (Exception exception) {
+            diagnostic.Fail(exception);
+            try { client.Dispose(); }
+            catch (Exception cleanup) { TransferDiagnostics.RecordCleanupFailure("scp", cleanup); }
             throw;
         }
     }
@@ -44,7 +50,8 @@ public static partial class TransferettoClient {
     public static void DisconnectScp(TransferettoScpSession session) {
         EnsureNotNull(session, nameof(session));
         if (session.Client.IsConnected) {
-            session.Client.Disconnect();
+            try { session.Client.Disconnect(); }
+            catch (Exception exception) { TransferDiagnostics.RecordCleanupFailure("scp", exception); throw; }
         }
     }
     /// <summary>

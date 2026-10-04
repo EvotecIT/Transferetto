@@ -24,6 +24,7 @@ public static partial class TransferettoClient {
         ValidateSshProxyOptions(options);
 
         SftpClient client = CreateSftpClient(options);
+        using TransferDiagnostics.OperationScope diagnostic = TransferDiagnostics.StartConnection("sftp");
         TransferettoSshHostKeyInfo? hostKeyInfo = null;
         client.HostKeyReceived += (_, args) => {
             hostKeyInfo = EvaluateHostKeyTrust(options, args);
@@ -33,11 +34,15 @@ public static partial class TransferettoClient {
         try {
             ApplySftpClientOptions(client, options);
             client.Connect();
-            return new TransferettoSftpSession(client) {
+            TransferettoSftpSession session = new(client) {
                 HostKeyInfo = hostKeyInfo
             };
-        } catch {
-            client.Dispose();
+            diagnostic.Complete();
+            return session;
+        } catch (Exception exception) {
+            diagnostic.Fail(exception);
+            try { client.Dispose(); }
+            catch (Exception cleanup) { TransferDiagnostics.RecordCleanupFailure("sftp", cleanup); }
             throw;
         }
     }
@@ -48,7 +53,8 @@ public static partial class TransferettoClient {
     public static void DisconnectSftp(TransferettoSftpSession session) {
         EnsureNotNull(session, nameof(session));
         if (session.Client.IsConnected) {
-            session.Client.Disconnect();
+            try { session.Client.Disconnect(); }
+            catch (Exception exception) { TransferDiagnostics.RecordCleanupFailure("sftp", exception); throw; }
         }
     }
     /// <summary>

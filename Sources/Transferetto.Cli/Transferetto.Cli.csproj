@@ -3,11 +3,24 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>Transferetto.Cli</AssemblyName>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>transferetto</ToolCommandName>
+    <IsPackable>true</IsPackable>
+    <PackageId>Transferetto.Cli</PackageId>
+    <VersionPrefix>2.0.1</VersionPrefix>
+    <Description>Command-line file and object transfers through Transferetto endpoints.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/EvotecIT/Transferetto</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/EvotecIT/Transferetto</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>transfer;ftp;sftp;s3;azure;cli</PackageTags>
     <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Transferetto.Protocols\Transferetto.Protocols.csproj" />
+    <ProjectReference Include="..\Transferetto\Transferetto.csproj" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>

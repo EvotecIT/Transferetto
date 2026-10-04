@@ -10,6 +10,7 @@ using Azure.Storage;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
+using Azure.Storage.Sas;
 using Transferetto.Core;
 
 namespace Transferetto.AzureBlob;
@@ -17,7 +18,9 @@ namespace Transferetto.AzureBlob;
 /// <summary>
 /// Exposes one Azure Blob container prefix as a transfer endpoint.
 /// </summary>
-public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
+public sealed partial class AzureBlobTransferEndpoint : ITransferEndpoint, ITransferRangeEndpoint,
+    ITransferServerSideCopyEndpoint, ITransferResumableWriteEndpoint, ITransferDirectoryEndpoint,
+    ITransferPathIdentityEndpoint {
     private readonly BlobContainerClient _container;
     private readonly string _prefix;
 
@@ -101,7 +104,9 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
         TransferEndpointCapabilities.Write |
         TransferEndpointCapabilities.Delete |
         TransferEndpointCapabilities.Metadata |
-        TransferEndpointCapabilities.Versioning;
+        TransferEndpointCapabilities.Versioning |
+        TransferEndpointCapabilities.ConcurrentOperations |
+        TransferEndpointCapabilities.RangeRead;
 
     /// <inheritdoc />
     public async Task<TransferItem?> GetItemAsync(string path, CancellationToken cancellationToken = default) {
@@ -156,6 +161,24 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
             CreateOpenReadOptions(properties.Value.ETag),
             cancellationToken).ConfigureAwait(false);
         return new TransferReadHandle(ToItem(path, properties.Value), stream);
+    }
+
+    /// <inheritdoc />
+    public async Task<TransferReadHandle> OpenReadRangeAsync(string path, long offset, long length,
+        TransferItem expectedItem, CancellationToken cancellationToken = default) {
+        if (offset < 0 || length <= 0 || expectedItem?.Length is not long sourceLength
+            || offset > sourceLength - length) { throw new ArgumentOutOfRangeException(nameof(offset)); }
+        if (expectedItem.ETag == null) { throw new NotSupportedException("Azure ranged reads require an entity tag."); }
+        BlobClient blob = _container.GetBlobClient(ResolveName(path));
+        Response<BlobDownloadStreamingResult> response = await blob.DownloadStreamingAsync(new BlobDownloadOptions {
+            Range = new HttpRange(offset, length),
+            Conditions = new BlobRequestConditions { IfMatch = new ETag($"\"{expectedItem.ETag}\"") }
+        }, cancellationToken).ConfigureAwait(false);
+        if (response.GetRawResponse().Status != 206) {
+            response.Value.Dispose();
+            throw new IOException("The Azure Blob service did not honor the requested source range.");
+        }
+        return new TransferReadHandle(expectedItem, TransferContent.LimitRead(response.Value.Content, length));
     }
 
     /// <inheritdoc />
@@ -222,6 +245,73 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
             .DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         return response.Value;
+    }
+
+    /// <inheritdoc />
+    public Task<bool> DeleteEmptyDirectoryAsync(string path, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        _ = ResolveName(path);
+        // Blob prefixes are virtual; deleting their planned child blobs removes the directory.
+        return Task.FromResult(false);
+    }
+
+    /// <inheritdoc />
+    public string GetPathIdentity(string path) => ResolveName(path);
+
+    /// <inheritdoc />
+    public async Task<TransferWriteResult?> TryCopyServerSideAsync(ITransferEndpoint source, string sourcePath,
+        TransferItem sourceItem, string destinationPath, TransferWriteOptions writeOptions,
+        CancellationToken cancellationToken = default) {
+        if (source is not AzureBlobTransferEndpoint sourceEndpoint || sourceItem.Length is not long length
+            || length < 0 || length > 256L * 1024 * 1024 || sourceItem.ETag == null
+            || !string.Equals(writeOptions.ContentType, sourceItem.ContentType, StringComparison.Ordinal)
+            || writeOptions.Metadata.Any(pair => !sourceItem.Metadata.TryGetValue(pair.Key, out string? value)
+                || !string.Equals(value, pair.Value, StringComparison.Ordinal))) {
+            return null;
+        }
+        BlobClient sourceBlob = sourceEndpoint._container.GetBlobClient(sourceEndpoint.ResolveName(sourcePath));
+        Uri sourceUri = sourceBlob.Uri;
+        if (sourceBlob.CanGenerateSasUri) {
+            sourceUri = sourceBlob.GenerateSasUri(BlobSasPermissions.Read, DateTimeOffset.UtcNow.AddMinutes(15));
+        } else if (sourceUri.Query.IndexOf("sig=", StringComparison.OrdinalIgnoreCase) < 0) {
+            return null;
+        }
+        TransferItem? existing = null;
+        if (writeOptions.Mode != TransferWriteMode.Overwrite) {
+            existing = await GetItemAsync(destinationPath, cancellationToken).ConfigureAwait(false);
+            if (existing != null && writeOptions.Mode == TransferWriteMode.SkipIfExists) {
+                return new TransferWriteResult(existing, wasWritten: false);
+            }
+            if (existing != null) { throw new IOException($"The destination blob already exists: {destinationPath}"); }
+        }
+        BlobClient destinationBlob = _container.GetBlobClient(ResolveName(destinationPath));
+        BlobCopyFromUriOptions copyOptions = new() {
+            SourceConditions = new BlobRequestConditions { IfMatch = new ETag($"\"{sourceItem.ETag}\"") },
+            DestinationConditions = writeOptions.Mode == TransferWriteMode.Overwrite
+                ? null : new BlobRequestConditions { IfNoneMatch = ETag.All }
+        };
+        try {
+            Response<BlobCopyInfo> response = await destinationBlob.SyncCopyFromUriAsync(
+                sourceUri, copyOptions, cancellationToken).ConfigureAwait(false);
+            return new TransferWriteResult(new TransferItem {
+                Path = destinationPath,
+                Length = length,
+                LastModifiedUtc = response.Value.LastModified,
+                ETag = response.Value.ETag.ToString().Trim('"'),
+                ContentType = sourceItem.ContentType,
+                Metadata = sourceItem.Metadata
+            }, wasWritten: true);
+        } catch (RequestFailedException exception) when ((exception.Status == 409 || exception.Status == 412)
+            && writeOptions.Mode == TransferWriteMode.SkipIfExists) {
+            existing = await GetItemAsync(destinationPath, cancellationToken).ConfigureAwait(false);
+            if (existing != null) { return new TransferWriteResult(existing, wasWritten: false); }
+            throw;
+        } catch (RequestFailedException exception) when ((exception.Status == 409 || exception.Status == 412)
+            && writeOptions.Mode == TransferWriteMode.FailIfExists) {
+            existing = await GetItemAsync(destinationPath, cancellationToken).ConfigureAwait(false);
+            if (existing == null) { throw; }
+            throw new IOException($"The destination blob already exists: {destinationPath}", exception);
+        }
     }
 
     private TransferItem ToItem(BlobItem item) => new() {

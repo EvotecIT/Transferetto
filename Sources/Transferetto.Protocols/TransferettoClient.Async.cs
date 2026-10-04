@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentFTP;
 using FluentFTP.Rules;
+using Transferetto.Core;
 
 namespace Transferetto;
 
@@ -29,7 +30,7 @@ public static partial class TransferettoClient {
         return RunTransferAsync(
             resolvedOptions => UploadFtpFiles(session, remotePath, localPaths, localFiles, remoteExists, verifyOptions, errorHandling, createRemoteDirectory, resolvedOptions),
             options,
-            cancellationToken);
+            cancellationToken, "ftp", "upload-files");
     }
 
     /// <summary>
@@ -46,7 +47,7 @@ public static partial class TransferettoClient {
         return RunTransferAsync(
             resolvedOptions => DownloadFtpFile(session, localPath, remotePath, localExists, verifyOptions, resolvedOptions),
             options,
-            cancellationToken);
+            cancellationToken, "ftp", "download-file");
     }
 
     /// <summary>
@@ -64,7 +65,7 @@ public static partial class TransferettoClient {
         return RunTransferAsync(
             resolvedOptions => DownloadFtpFiles(session, localPath, remotePaths, localExists, verifyOptions, errorHandling, resolvedOptions),
             options,
-            cancellationToken);
+            cancellationToken, "ftp", "download-files");
     }
 
     /// <summary>
@@ -83,7 +84,7 @@ public static partial class TransferettoClient {
         return RunTransferAsync(
             resolvedOptions => UploadFtpDirectory(session, localPath, remotePath, folderSyncMode, remoteExists, verifyOptions, rules, resolvedOptions),
             options,
-            cancellationToken);
+            cancellationToken, "ftp", "upload-directory");
     }
 
     /// <summary>
@@ -102,7 +103,7 @@ public static partial class TransferettoClient {
         return RunTransferAsync(
             resolvedOptions => DownloadFtpDirectory(session, localPath, remotePath, folderSyncMode, localExists, verifyOptions, rules, resolvedOptions),
             options,
-            cancellationToken);
+            cancellationToken, "ftp", "download-directory");
     }
 
     /// <summary>
@@ -121,7 +122,7 @@ public static partial class TransferettoClient {
         return RunTransferAsync(
             resolvedOptions => StartFxpFileTransfer(sourceSession, sourcePath, destinationSession, destinationPath, createRemoteDirectory, remoteExists, verifyOptions, resolvedOptions),
             options,
-            cancellationToken);
+            cancellationToken, "fxp", "copy-file");
     }
 
     /// <summary>
@@ -141,7 +142,7 @@ public static partial class TransferettoClient {
         return RunTransferAsync(
             resolvedOptions => StartFxpDirectoryTransfer(sourceSession, sourcePath, destinationSession, destinationPath, folderSyncMode, remoteExists, verifyOptions, rules, resolvedOptions),
             options,
-            cancellationToken);
+            cancellationToken, "fxp", "copy-directory");
     }
 
     /// <summary>
@@ -157,7 +158,7 @@ public static partial class TransferettoClient {
         return RunNativeTransferAsync(
             resolvedOptions => UploadSftpFileCoreAsync(session, localPath, remotePath, allowOverride, resolvedOptions),
             options,
-            cancellationToken);
+            cancellationToken, "sftp", "upload-file");
     }
 
     /// <summary>
@@ -172,7 +173,7 @@ public static partial class TransferettoClient {
         return RunNativeTransferAsync(
             resolvedOptions => DownloadSftpFileCoreAsync(session, remotePath, localPath, resolvedOptions),
             options,
-            cancellationToken);
+            cancellationToken, "sftp", "download-file");
     }
 
     /// <summary>
@@ -188,7 +189,7 @@ public static partial class TransferettoClient {
         return RunTransferAsync(
             resolvedOptions => UploadSftpDirectory(session, localPath, remotePath, allowOverride, resolvedOptions),
             options,
-            cancellationToken);
+            cancellationToken, "sftp", "upload-directory");
     }
 
     /// <summary>
@@ -204,7 +205,7 @@ public static partial class TransferettoClient {
         return RunTransferAsync(
             resolvedOptions => DownloadSftpDirectory(session, remotePath, localPath, allowOverride, resolvedOptions),
             options,
-            cancellationToken);
+            cancellationToken, "sftp", "download-directory");
     }
 
     /// <summary>
@@ -219,7 +220,7 @@ public static partial class TransferettoClient {
         return RunTransferAsync(
             resolvedOptions => UploadScpFile(session, localPath, remotePath, resolvedOptions),
             options,
-            cancellationToken);
+            cancellationToken, "scp", "upload-file");
     }
 
     /// <summary>
@@ -234,7 +235,7 @@ public static partial class TransferettoClient {
         return RunTransferAsync(
             resolvedOptions => DownloadScpFile(session, remotePath, localPath, resolvedOptions),
             options,
-            cancellationToken);
+            cancellationToken, "scp", "download-file");
     }
 
     /// <summary>
@@ -249,7 +250,7 @@ public static partial class TransferettoClient {
         return RunTransferAsync(
             resolvedOptions => UploadScpDirectory(session, localPath, remotePath, resolvedOptions),
             options,
-            cancellationToken);
+            cancellationToken, "scp", "upload-directory");
     }
 
     /// <summary>
@@ -264,31 +265,57 @@ public static partial class TransferettoClient {
         return RunTransferAsync(
             resolvedOptions => DownloadScpDirectory(session, remotePath, localPath, resolvedOptions),
             options,
-            cancellationToken);
+            cancellationToken, "scp", "download-directory");
     }
 
     private static async Task<T> RunTransferAsync<T>(
         Func<TransferettoTransferOptions?, T> operation,
         TransferettoTransferOptions? options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, string scheme, string action) {
         CancellationTokenSource? linkedCancellationSource = null;
-
+        using TransferDiagnostics.OperationScope diagnostic = TransferDiagnostics.StartProtocolOperation(scheme, action);
         try {
             TransferettoTransferOptions? resolvedOptions = ResolveAsyncTransferOptions(options, cancellationToken, out linkedCancellationSource);
             CancellationToken effectiveCancellationToken = resolvedOptions?.CancellationToken ?? cancellationToken;
-            return await Task.Run(() => operation(resolvedOptions), effectiveCancellationToken).ConfigureAwait(false);
+            T result = await Task.Run(() => operation(resolvedOptions), effectiveCancellationToken).ConfigureAwait(false);
+            diagnostic.Complete(TransferredBytes(result));
+            return result;
+        } catch (Exception exception) {
+            diagnostic.Fail(exception);
+            throw;
         } finally {
             linkedCancellationSource?.Dispose();
         }
     }
 
     private static async Task<T> RunNativeTransferAsync<T>(
-        Func<TransferettoTransferOptions?, Task<T>> operation, TransferettoTransferOptions? options, CancellationToken cancellationToken) {
+        Func<TransferettoTransferOptions?, Task<T>> operation, TransferettoTransferOptions? options,
+        CancellationToken cancellationToken, string scheme, string action) {
         CancellationTokenSource? linkedCancellationSource = null;
+        using TransferDiagnostics.OperationScope diagnostic = TransferDiagnostics.StartProtocolOperation(scheme, action);
         try {
             TransferettoTransferOptions? resolvedOptions = ResolveAsyncTransferOptions(options, cancellationToken, out linkedCancellationSource);
-            return await operation(resolvedOptions).ConfigureAwait(false);
+            T result = await operation(resolvedOptions).ConfigureAwait(false);
+            diagnostic.Complete(TransferredBytes(result));
+            return result;
+        } catch (Exception exception) {
+            diagnostic.Fail(exception);
+            throw;
         } finally { linkedCancellationSource?.Dispose(); }
+    }
+
+    private static long TransferredBytes<T>(T result) {
+        if (result is TransferettoTransferResult single) { return Math.Max(0, single.BytesTransferred ?? 0); }
+        if (result is IReadOnlyList<TransferettoTransferResult> many) {
+            long total = 0;
+            foreach (TransferettoTransferResult item in many) {
+                if (item.BytesTransferred is long bytes && bytes > 0) {
+                    total = bytes > long.MaxValue - total ? long.MaxValue : total + bytes;
+                }
+            }
+            return total;
+        }
+        return 0;
     }
 
     private static TransferettoTransferOptions? ResolveAsyncTransferOptions(

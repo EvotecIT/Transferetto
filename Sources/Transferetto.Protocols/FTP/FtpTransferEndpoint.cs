@@ -18,7 +18,8 @@ namespace Transferetto;
 /// <see cref="TransferWriteMode.SkipIfExists"/> or <see cref="TransferWriteMode.FailIfExists"/> fail closed;
 /// use <see cref="TransferWriteMode.Overwrite"/> or coordinate writers externally.
 /// </remarks>
-public sealed class FtpTransferEndpoint : ITransferEndpoint, IDisposable {
+public sealed class FtpTransferEndpoint : ITransferEndpoint, ITransferSessionEndpoint,
+    ITransferDirectoryEndpoint, ITransferTimestampEndpoint, ITransferPathIdentityEndpoint, IDisposable {
     private readonly TransferettoFtpSession _session;
     private readonly string _prefix;
     private readonly bool _ownsSession;
@@ -54,11 +55,18 @@ public sealed class FtpTransferEndpoint : ITransferEndpoint, IDisposable {
     public string Scheme => _session.Client.Config.EncryptionMode == FtpEncryptionMode.None ? "ftp" : "ftps";
 
     /// <inheritdoc />
+    public object SessionKey => _session.Client;
+
+    /// <inheritdoc />
     public string DisplayName => new UriBuilder(
         Scheme,
         _session.Host,
         _session.Port,
         string.IsNullOrEmpty(_prefix) ? "/" : "/" + _prefix.TrimStart('/')).Uri.AbsoluteUri;
+
+    /// <inheritdoc />
+    public string GetPathIdentity(string path) => ProtocolTransferEndpointPath.Resolve(_prefix,
+        ProtocolTransferEndpointPath.NormalizeRelative(path));
 
     /// <inheritdoc />
     public TransferEndpointCapabilities Capabilities =>
@@ -217,6 +225,32 @@ public sealed class FtpTransferEndpoint : ITransferEndpoint, IDisposable {
         }
         TransferettoClient.RemoveFtpFile(_session, ProtocolTransferEndpointPath.Resolve(_prefix, relativePath));
         return true;
+    }
+
+    /// <inheritdoc />
+    public Task SetLastModifiedUtcAsync(string path, DateTimeOffset timestamp,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        string remotePath = ProtocolTransferEndpointPath.Resolve(_prefix,
+            ProtocolTransferEndpointPath.NormalizeRelative(path));
+        TransferettoClient.SetFtpModifiedTime(_session, remotePath, timestamp.UtcDateTime);
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public Task<bool> DeleteEmptyDirectoryAsync(string path, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        string remotePath = ProtocolTransferEndpointPath.Resolve(_prefix,
+            ProtocolTransferEndpointPath.NormalizeRelative(path));
+        if (remotePath.IndexOfAny(new[] { '\r', '\n' }) >= 0) {
+            throw new ArgumentException("FTP paths cannot contain command separators.", nameof(path));
+        }
+        if (!TransferettoClient.TestFtpDirectory(_session, remotePath)) { return Task.FromResult(false); }
+        // RMD removes only an empty directory. FluentFTP's DeleteDirectory may recurse.
+        if (!_session.Client.Execute("RMD " + remotePath).Success) {
+            throw new IOException("The FTP directory was not empty or could not be removed.");
+        }
+        return Task.FromResult(true);
     }
 
     /// <inheritdoc />

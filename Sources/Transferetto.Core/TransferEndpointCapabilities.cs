@@ -22,5 +22,9 @@ public enum TransferEndpointCapabilities {
     /// <summary>Provider metadata can be stored with an item.</summary>
     Metadata = 32,
     /// <summary>The provider exposes a stable item version or entity tag.</summary>
-    Versioning = 64
+    Versioning = 64,
+    /// <summary>The endpoint supports independent operations running concurrently.</summary>
+    ConcurrentOperations = 128,
+    /// <summary>Previously inspected items can be opened as identity-checked byte ranges.</summary>
+    RangeRead = 256
 }

@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,7 +8,7 @@ namespace Transferetto.Core;
 /// <summary>
 /// Streams content between any two compatible transfer endpoints.
 /// </summary>
-public static class TransferEngine {
+public static partial class TransferEngine {
     /// <summary>
     /// Copies one item between endpoints while calculating a provider-independent SHA-256 receipt.
     /// </summary>
@@ -34,8 +33,42 @@ public static class TransferEngine {
         }
 
         TransferCopyOptions resolvedOptions = options ?? new TransferCopyOptions();
+        string? expectedSha256 = NormalizeExpectedHash(resolvedOptions.ExpectedSha256);
+        if (resolvedOptions.VerifyDestination && (destination.Capabilities & TransferEndpointCapabilities.Read) == 0) {
+            throw new NotSupportedException("Destination verification requires a readable destination endpoint.");
+        }
         DateTimeOffset startedAtUtc = DateTimeOffset.UtcNow;
         Guid correlationId = Guid.NewGuid();
+        using TransferDiagnostics.Operation operation = new(source, destination, correlationId);
+        try {
+        using TransferEndpointLease lease = await TransferEndpointLease.AcquireAsync(source, destination, cancellationToken).ConfigureAwait(false);
+
+        if (resolvedOptions.PreferServerSideCopy && expectedSha256 == null && !resolvedOptions.VerifyDestination
+            && destination is ITransferServerSideCopyEndpoint nativeDestination) {
+            TransferItem? inspected = await source.GetItemAsync(sourcePath, cancellationToken).ConfigureAwait(false);
+            if (inspected == null) { throw new FileNotFoundException("The source item does not exist.", sourcePath); }
+            TransferWriteOptions nativeOptions = CloneWriteOptions(resolvedOptions.WriteOptions, inspected, destination.Capabilities);
+            TransferWriteResult? nativeResult = await nativeDestination.TryCopyServerSideAsync(source, sourcePath,
+                inspected, destinationPath, nativeOptions, cancellationToken).ConfigureAwait(false);
+            if (nativeResult != null) {
+                TransferReceipt nativeReceipt = new() {
+                    CorrelationId = correlationId,
+                    SourceEndpoint = source.DisplayName,
+                    SourcePath = sourcePath,
+                    DestinationEndpoint = destination.DisplayName,
+                    DestinationPath = destinationPath,
+                    Outcome = nativeResult.WasWritten ? TransferReceiptOutcome.Copied : TransferReceiptOutcome.Skipped,
+                    BytesTransferred = nativeResult.WasWritten ? inspected.Length ?? 0 : 0,
+                    ServerSideCopy = nativeResult.WasWritten,
+                    SourceETag = inspected.ETag,
+                    DestinationETag = nativeResult.Item.ETag,
+                    StartedAtUtc = startedAtUtc,
+                    CompletedAtUtc = DateTimeOffset.UtcNow
+                };
+                operation.Complete(nativeReceipt);
+                return nativeReceipt;
+            }
+        }
 
         using TransferReadHandle readHandle = await source.OpenReadAsync(sourcePath, cancellationToken).ConfigureAwait(false);
         long? sourceLength = NormalizeLength(readHandle.Item.Length);
@@ -45,12 +78,14 @@ public static class TransferEngine {
             destinationPath,
             sourceLength,
             resolvedOptions.Progress,
-            resolvedOptions.ProgressIntervalBytes);
+            resolvedOptions.ProgressIntervalBytes,
+            expectedSha256);
 
         TransferWriteOptions writeOptions = CloneWriteOptions(
             resolvedOptions.WriteOptions,
             readHandle.Item,
             destination.Capabilities);
+        if (sourceLength == 0) { trackedStream.Complete(); }
         TransferWriteResult writeResult = await destination.WriteAsync(
             destinationPath,
             trackedStream,
@@ -65,7 +100,14 @@ public static class TransferEngine {
                     $"The destination consumed {trackedStream.BytesRead} bytes but the source length is {sourceLength.Value}.");
             }
         }
-        return new TransferReceipt {
+        bool destinationVerified = writeResult.WasWritten && resolvedOptions.VerifyDestination;
+        if (destinationVerified) {
+            using TransferReadHandle verification = await destination.OpenReadAsync(destinationPath, cancellationToken).ConfigureAwait(false);
+            using ProgressHashingReadStream verifyStream = new(verification.Stream, sourcePath, destinationPath,
+                trackedStream.BytesRead, null, 65536, trackedStream.Sha256);
+            await TransferContent.CopyToAsync(verifyStream, Stream.Null, trackedStream.BytesRead, cancellationToken).ConfigureAwait(false);
+        }
+        TransferReceipt receipt = new() {
             CorrelationId = correlationId,
             SourceEndpoint = source.DisplayName,
             SourcePath = sourcePath,
@@ -74,11 +116,27 @@ public static class TransferEngine {
             Outcome = writeResult.WasWritten ? TransferReceiptOutcome.Copied : TransferReceiptOutcome.Skipped,
             BytesTransferred = trackedStream.BytesRead,
             Sha256 = writeResult.WasWritten ? trackedStream.Sha256 : null,
+            DestinationVerified = destinationVerified,
             SourceETag = readHandle.Item.ETag,
             DestinationETag = writeResult.Item.ETag,
             StartedAtUtc = startedAtUtc,
             CompletedAtUtc = DateTimeOffset.UtcNow
         };
+        operation.Complete(receipt);
+        return receipt;
+        } catch (Exception exception) { operation.Fail(exception); throw; }
+    }
+
+    private static string? NormalizeExpectedHash(string? digest) {
+        if (digest == null) { return null; }
+        if (digest.Length != 64) { throw new ArgumentException("ExpectedSha256 must contain 64 hexadecimal characters.", nameof(digest)); }
+        foreach (char character in digest) {
+            if (!((character >= '0' && character <= '9') || (character >= 'a' && character <= 'f')
+                || (character >= 'A' && character <= 'F'))) {
+                throw new ArgumentException("ExpectedSha256 must contain 64 hexadecimal characters.", nameof(digest));
+            }
+        }
+        return digest.ToLowerInvariant();
     }
 
     private static long? NormalizeLength(long? length) => length >= 0 ? length : null;
@@ -110,150 +168,4 @@ public static class TransferEngine {
         return clone;
     }
 
-    private sealed class ProgressHashingReadStream : Stream {
-        private readonly Stream _inner;
-        private readonly string _sourcePath;
-        private readonly string _destinationPath;
-        private readonly long? _length;
-        private readonly IProgress<TransferProgress>? _progress;
-        private readonly long _progressInterval;
-#if NET8_0_OR_GREATER
-        private readonly IncrementalHash _sha256 = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-#else
-        private readonly SHA256 _sha256 = SHA256.Create();
-#endif
-        private long _lastProgress;
-        private bool _completed;
-
-        internal ProgressHashingReadStream(
-            Stream inner,
-            string sourcePath,
-            string destinationPath,
-            long? length,
-            IProgress<TransferProgress>? progress,
-            long progressInterval) {
-            _inner = inner;
-            _sourcePath = sourcePath;
-            _destinationPath = destinationPath;
-            _length = length;
-            _progress = progress;
-            _progressInterval = Math.Max(1, progressInterval);
-        }
-
-        internal long BytesRead { get; private set; }
-        internal string Sha256 { get; private set; } = string.Empty;
-
-        public override bool CanRead => _inner.CanRead;
-        public override bool CanSeek => false;
-        public override bool CanWrite => false;
-        public override long Length => _length ?? throw new NotSupportedException();
-        public override long Position {
-            get => BytesRead;
-            set => throw new NotSupportedException();
-        }
-
-        public override int Read(byte[] buffer, int offset, int count) {
-            int read = _inner.Read(buffer, offset, count);
-            Track(buffer, offset, read);
-            return read;
-        }
-
-        public override async Task<int> ReadAsync(
-            byte[] buffer,
-            int offset,
-            int count,
-            CancellationToken cancellationToken) {
-            int read = await _inner.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
-            Track(buffer, offset, read);
-            return read;
-        }
-
-#if NET8_0_OR_GREATER
-        public override int Read(Span<byte> buffer) {
-            int read = _inner.Read(buffer);
-            Track(buffer.Slice(0, read), read);
-            return read;
-        }
-
-        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) {
-            int read = await _inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-            Track(buffer.Span.Slice(0, read), read);
-            return read;
-        }
-
-        private void Track(ReadOnlySpan<byte> content, int read) {
-            if (!ValidateRead(read)) { return; }
-            _sha256.AppendData(content);
-            ReportProgress(force: false);
-        }
-#endif
-
-        internal void Complete() {
-            if (_completed) {
-                return;
-            }
-#if NET8_0_OR_GREATER
-            Sha256 = Convert.ToHexString(_sha256.GetHashAndReset()).ToLowerInvariant();
-#else
-            _sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-            Sha256 = BitConverter.ToString(_sha256.Hash!).Replace("-", string.Empty).ToLowerInvariant();
-#endif
-            _completed = true;
-            ReportProgress(force: true);
-        }
-
-        private void Track(byte[] buffer, int offset, int read) {
-            if (!ValidateRead(read)) { return; }
-#if NET8_0_OR_GREATER
-            _sha256.AppendData(buffer, offset, read);
-#else
-            _sha256.TransformBlock(buffer, offset, read, null, 0);
-#endif
-            ReportProgress(force: false);
-        }
-
-        private bool ValidateRead(int read) {
-            if (read <= 0) {
-                if (_length.HasValue && BytesRead != _length.Value) {
-                    throw new EndOfStreamException(
-                        $"The source produced {BytesRead} bytes but reported a length of {_length.Value}.");
-                }
-                Complete();
-                return false;
-            }
-            long nextBytesRead = checked(BytesRead + read);
-            if (_length.HasValue && nextBytesRead > _length.Value) {
-                throw new EndOfStreamException(
-                    $"The source produced more than its reported length of {_length.Value} bytes.");
-            }
-            BytesRead = nextBytesRead;
-            return true;
-        }
-
-        private void ReportProgress(bool force) {
-            if (_progress == null || (!force && BytesRead - _lastProgress < _progressInterval)) {
-                return;
-            }
-            _lastProgress = BytesRead;
-            _progress.Report(new TransferProgress {
-                SourcePath = _sourcePath,
-                DestinationPath = _destinationPath,
-                BytesTransferred = BytesRead,
-                TotalBytes = _length
-            });
-        }
-
-        protected override void Dispose(bool disposing) {
-            if (disposing) {
-                Complete();
-                _sha256.Dispose();
-            }
-            base.Dispose(disposing);
-        }
-
-        public override void Flush() => throw new NotSupportedException();
-        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-        public override void SetLength(long value) => throw new NotSupportedException();
-        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-    }
 }
