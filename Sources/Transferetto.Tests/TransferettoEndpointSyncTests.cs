@@ -138,6 +138,38 @@ public sealed class TransferettoEndpointSyncTests : IDisposable {
         Assert.Equal("keep", File.ReadAllText(child));
     }
 
+    [Fact]
+    public async Task MirrorWithoutDirectoryOperationsStillDeletesExtraFiles() {
+        string sourceRoot = Path.Combine(_root, "source");
+        string destinationRoot = Path.Combine(_root, "destination");
+        Directory.CreateDirectory(sourceRoot);
+        Directory.CreateDirectory(Path.Combine(destinationRoot, "old"));
+        File.WriteAllText(Path.Combine(sourceRoot, "keep.txt"), "keep");
+        string extra = Path.Combine(destinationRoot, "old", "child.txt");
+        File.WriteAllText(extra, "extra");
+
+        TransferettoEndpointSyncResult result = await TransferettoEndpointSync.SyncAsync(
+            new FileSystemTransferEndpoint(sourceRoot), "",
+            new NoDirectoryEndpoint(new FileSystemTransferEndpoint(destinationRoot)), "",
+            new TransferettoSyncOptions { Mode = TransferettoSyncMode.Mirror });
+
+        Assert.True(result.IsSuccess);
+        Assert.False(File.Exists(extra));
+        Assert.True(Directory.Exists(Path.Combine(destinationRoot, "old")));
+        Assert.Equal("keep", File.ReadAllText(Path.Combine(destinationRoot, "keep.txt")));
+    }
+
+    [Fact]
+    public async Task ExplicitOrdinalAllowsCaseDistinctWindowsSourcePathsInPlan() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) { return; }
+        string destinationRoot = Path.Combine(_root, "destination");
+        Directory.CreateDirectory(destinationRoot);
+        IReadOnlyList<TransferettoSyncPlanItem> plan = await TransferettoEndpointSync.PlanAsync(
+            new ListingEndpoint("A.txt", "a.txt"), "", new FileSystemTransferEndpoint(destinationRoot), "",
+            new TransferettoSyncOptions { PathComparison = TransferettoSyncPathComparison.Ordinal });
+        Assert.Equal(2, plan.Count(item => item.Action == TransferettoSyncAction.UploadFile));
+    }
+
     private sealed class NoDirectoryEndpoint : ITransferEndpoint {
         private readonly ITransferEndpoint _inner;
         internal NoDirectoryEndpoint(ITransferEndpoint inner) { _inner = inner; }

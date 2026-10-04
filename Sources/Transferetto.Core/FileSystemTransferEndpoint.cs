@@ -18,7 +18,7 @@ namespace Transferetto.Core;
 /// by less-trusted identities.
 /// </remarks>
 public sealed class FileSystemTransferEndpoint : ITransferEndpoint, ITransferRangeEndpoint,
-    ITransferDirectoryEndpoint, ITransferTimestampEndpoint {
+    ITransferDirectoryEndpoint, ITransferTimestampEndpoint, ITransferPathIdentityEndpoint {
     private readonly string _rootPath;
     private readonly StringComparison _pathComparison;
 
@@ -49,6 +49,9 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint, ITransferRan
     public string DisplayName => new Uri(EnsureTrailingSeparator(_rootPath)).AbsoluteUri;
 
     internal string ResolveForResume(string path) => ResolvePath(path);
+
+    /// <inheritdoc />
+    public string GetPathIdentity(string path) => ResolvePath(path);
 
     /// <inheritdoc />
     public TransferEndpointCapabilities Capabilities =>

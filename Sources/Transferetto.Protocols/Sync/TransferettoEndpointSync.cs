@@ -39,9 +39,9 @@ public static class TransferettoEndpointSync {
         if (resolvedOptions.Mode == TransferettoSyncMode.Mirror && sourceItems.Count == 0 && !allowEmptySourceMirror) {
             throw new InvalidOperationException("An empty source listing cannot initiate a mirror without explicit opt-in.");
         }
-        if (!resolvedOptions.DryRun && plan.Any(item => IsDeleteDirectory(item.Action))
+        if (!resolvedOptions.DryRun && plan.Any(item => IsFileCopy(item.Action) && item.Destination?.IsDirectory == true)
             && destination is not ITransferDirectoryEndpoint) {
-            throw new NotSupportedException("Mirror directory removal requires an endpoint that can delete empty directories.");
+            throw new NotSupportedException("Replacing a destination directory requires an endpoint that can delete it when empty.");
         }
 
         string sourceRoot = NormalizePrefix(sourcePrefix);
@@ -67,8 +67,10 @@ public static class TransferettoEndpointSync {
                         Mode = resolvedOptions.OverwriteExisting ? TransferWriteMode.Overwrite : TransferWriteMode.FailIfExists
                     };
                     if (resolvedOptions.PreserveTimestamps && destination is not ITransferTimestampEndpoint
-                        && (destination.Capabilities & TransferEndpointCapabilities.Metadata) != 0) {
-                        write.Metadata[SyncSourceIdentityKey] = SyncSourceIdentity(recorded);
+                        && (destination.Capabilities & TransferEndpointCapabilities.Metadata) != 0
+                        && !current!.Metadata.Keys.Any(key => string.Equals(key, SyncSourceIdentityKey,
+                            StringComparison.OrdinalIgnoreCase))) {
+                        write.Metadata[SyncSourceIdentityKey] = SyncSourceIdentity(source, recorded);
                     }
                     TransferReceipt receipt = await TransferEngine.CopyAsync(source, sourcePath,
                         destination, Combine(destinationRoot, relative), new TransferCopyOptions {
@@ -136,11 +138,12 @@ public static class TransferettoEndpointSync {
             && destination is not ITransferTimestampEndpoint
             && (destination.Capabilities & TransferEndpointCapabilities.Metadata) != 0) {
             destinationListing = await ApplySyncSourceIdentitiesAsync(sourceListing, sourceRoot,
-                destinationListing, destinationRoot, destination, cancellationToken).ConfigureAwait(false);
+                destinationListing, destinationRoot, source, destination, cancellationToken).ConfigureAwait(false);
         }
         var sourceManifest = BuildManifest(sourceListing, sourceRoot);
         var destinationManifest = BuildManifest(destinationListing, destinationRoot);
-        if (destination.Scheme == "file" && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+        if (destination.Scheme == "file" && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            && resolved.PathComparison != TransferettoSyncPathComparison.Ordinal) {
             HashSet<string> mappedPaths = new(StringComparer.OrdinalIgnoreCase);
             foreach (TransferettoSyncEntry entry in sourceManifest.Entries) {
                 if (!mappedPaths.Add(entry.RelativePath)) {
@@ -213,10 +216,15 @@ public static class TransferettoEndpointSync {
     private static bool IsDeleteDirectory(TransferettoSyncAction action) =>
         action == TransferettoSyncAction.DeleteLocalDirectory || action == TransferettoSyncAction.DeleteRemoteDirectory;
 
+    private static bool IsFileCopy(TransferettoSyncAction action) =>
+        action == TransferettoSyncAction.UploadFile || action == TransferettoSyncAction.DownloadFile;
+
     private const string SyncSourceIdentityKey = "transferetto_sync_source";
 
-    private static string SyncSourceIdentity(TransferItem item) {
+    private static string SyncSourceIdentity(ITransferEndpoint source, TransferItem item) {
         string value = string.Join("\n", new[] {
+            source.DisplayName,
+            item.Path,
             item.Length?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
             item.LastModifiedUtc?.ToString("O", CultureInfo.InvariantCulture) ?? string.Empty,
             item.ETag ?? string.Empty,
@@ -230,7 +238,7 @@ public static class TransferettoEndpointSync {
     private static async Task<IReadOnlyList<TransferItem>> ApplySyncSourceIdentitiesAsync(
         IReadOnlyList<TransferItem> sourceListing, string sourceRoot,
         IReadOnlyList<TransferItem> destinationListing, string destinationRoot,
-        ITransferEndpoint destination, CancellationToken cancellationToken) {
+        ITransferEndpoint sourceEndpoint, ITransferEndpoint destination, CancellationToken cancellationToken) {
         Dictionary<string, TransferItem> sources = new(StringComparer.Ordinal);
         foreach (TransferItem item in sourceListing) {
             if (TryRelative(sourceRoot, item.Path, out string? relative)) { sources[relative] = item; }
@@ -247,7 +255,7 @@ public static class TransferettoEndpointSync {
             }
             TransferItem? inspected = await destination.GetItemAsync(item.Path, cancellationToken).ConfigureAwait(false);
             if (inspected != null && inspected.Metadata.TryGetValue(SyncSourceIdentityKey, out string? stamp)
-                && string.Equals(stamp, SyncSourceIdentity(source), StringComparison.Ordinal)) {
+                && string.Equals(stamp, SyncSourceIdentity(sourceEndpoint, source), StringComparison.Ordinal)) {
                 adjusted.Add(new TransferItem {
                     Path = item.Path, Length = item.Length, LastModifiedUtc = source.LastModifiedUtc,
                     ETag = item.ETag, VersionId = item.VersionId,

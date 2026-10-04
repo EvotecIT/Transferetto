@@ -35,8 +35,8 @@ public static partial class TransferEngine {
                 EnsureCheckpointNotItemPath(checkpoint, item.Destination, item.DestinationPath);
             }
             // Resolve local aliases before scheduling concurrent writes to one file.
-            string path = item.Destination is FileSystemTransferEndpoint local
-                ? local.ResolveForResume(item.DestinationPath)
+            string path = item.Destination is ITransferPathIdentityEndpoint named
+                ? named.GetPathIdentity(item.DestinationPath)
                 : item.DestinationPath;
             path = item.Destination.Scheme == "file" &&
                           System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(

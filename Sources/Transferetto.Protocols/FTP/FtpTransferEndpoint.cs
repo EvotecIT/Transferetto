@@ -19,7 +19,7 @@ namespace Transferetto;
 /// use <see cref="TransferWriteMode.Overwrite"/> or coordinate writers externally.
 /// </remarks>
 public sealed class FtpTransferEndpoint : ITransferEndpoint, ITransferSessionEndpoint,
-    ITransferDirectoryEndpoint, ITransferTimestampEndpoint, IDisposable {
+    ITransferDirectoryEndpoint, ITransferTimestampEndpoint, ITransferPathIdentityEndpoint, IDisposable {
     private readonly TransferettoFtpSession _session;
     private readonly string _prefix;
     private readonly bool _ownsSession;
@@ -63,6 +63,10 @@ public sealed class FtpTransferEndpoint : ITransferEndpoint, ITransferSessionEnd
         _session.Host,
         _session.Port,
         string.IsNullOrEmpty(_prefix) ? "/" : "/" + _prefix.TrimStart('/')).Uri.AbsoluteUri;
+
+    /// <inheritdoc />
+    public string GetPathIdentity(string path) => ProtocolTransferEndpointPath.Resolve(_prefix,
+        ProtocolTransferEndpointPath.NormalizeRelative(path));
 
     /// <inheritdoc />
     public TransferEndpointCapabilities Capabilities =>

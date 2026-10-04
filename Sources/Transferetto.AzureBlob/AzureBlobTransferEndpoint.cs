@@ -19,7 +19,8 @@ namespace Transferetto.AzureBlob;
 /// Exposes one Azure Blob container prefix as a transfer endpoint.
 /// </summary>
 public sealed partial class AzureBlobTransferEndpoint : ITransferEndpoint, ITransferRangeEndpoint,
-    ITransferServerSideCopyEndpoint, ITransferResumableWriteEndpoint, ITransferDirectoryEndpoint {
+    ITransferServerSideCopyEndpoint, ITransferResumableWriteEndpoint, ITransferDirectoryEndpoint,
+    ITransferPathIdentityEndpoint {
     private readonly BlobContainerClient _container;
     private readonly string _prefix;
 
@@ -253,6 +254,9 @@ public sealed partial class AzureBlobTransferEndpoint : ITransferEndpoint, ITran
         // Blob prefixes are virtual; deleting their planned child blobs removes the directory.
         return Task.FromResult(false);
     }
+
+    /// <inheritdoc />
+    public string GetPathIdentity(string path) => ResolveName(path);
 
     /// <inheritdoc />
     public async Task<TransferWriteResult?> TryCopyServerSideAsync(ITransferEndpoint source, string sourcePath,

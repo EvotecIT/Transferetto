@@ -100,6 +100,16 @@ public sealed class StorageProviderLiveTests {
         string suffix = Guid.NewGuid().ToString("N");
         string bucket = "transferetto-" + suffix;
         string container = "transferetto-" + suffix;
+        string switchRoot = Path.Combine(Path.GetTempPath(), "transferetto-sync-sources-" + suffix);
+        string firstRoot = Path.Combine(switchRoot, "first");
+        string secondRoot = Path.Combine(switchRoot, "second");
+        Directory.CreateDirectory(firstRoot);
+        Directory.CreateDirectory(secondRoot);
+        File.WriteAllText(Path.Combine(firstRoot, "item.txt"), "one");
+        File.WriteAllText(Path.Combine(secondRoot, "item.txt"), "two");
+        DateTime fixedTime = DateTime.UtcNow.AddDays(-5);
+        File.SetLastWriteTimeUtc(Path.Combine(firstRoot, "item.txt"), fixedTime);
+        File.SetLastWriteTimeUtc(Path.Combine(secondRoot, "item.txt"), fixedTime);
         AmazonS3Config config = new() {
             ServiceURL = Environment.GetEnvironmentVariable("TRANSFERETTO_S3_ENDPOINT")!,
             AuthenticationRegion = "us-east-1", ForcePathStyle = true,
@@ -188,6 +198,30 @@ public sealed class StorageProviderLiveTests {
                 using MemoryStream repairedBytes = new();
                 await repairedRead.Stream.CopyToAsync(repairedBytes);
                 Assert.Equal(payload, repairedBytes.ToArray());
+                TransferBatchItem[] aliases = {
+                    new(source, "input.txt", destination, @"alias\item.txt"),
+                    new(source, "input.txt", destination, "alias/item.txt")
+                };
+                await Assert.ThrowsAsync<ArgumentException>(() => TransferEngine.CopyBatchAsync(aliases));
+
+                FileSystemTransferEndpoint firstSource = new(firstRoot);
+                FileSystemTransferEndpoint secondSource = new(secondRoot);
+                Assert.True((await TransferettoEndpointSync.SyncAsync(firstSource, "", destination, "switch")).IsSuccess);
+                TransferettoEndpointSyncResult switched = await TransferettoEndpointSync.SyncAsync(
+                    secondSource, "", destination, "switch");
+                Assert.True(switched.IsSuccess);
+                Assert.Contains(switched.Items, item => item.Receipt?.Outcome == TransferReceiptOutcome.Copied);
+                using TransferReadHandle switchedRead = await destination.OpenReadAsync("switch/item.txt");
+                using MemoryStream switchedBytes = new();
+                await switchedRead.Stream.CopyToAsync(switchedBytes);
+                Assert.Equal("two", Encoding.UTF8.GetString(switchedBytes.ToArray()));
+
+                TransferWriteOptions userMetadata = new() { Mode = TransferWriteMode.Overwrite };
+                userMetadata.Metadata["transferetto_sync_source"] = "user-value";
+                await source.WriteAsync("metadata.txt", new MemoryStream(payload), payload.Length, userMetadata);
+                Assert.True((await TransferettoEndpointSync.SyncAsync(source, "", destination, "metadata")).IsSuccess);
+                TransferItem metadataCopy = (await destination.GetItemAsync("metadata/metadata.txt"))!;
+                Assert.Equal("user-value", metadataCopy.Metadata["transferetto_sync_source"]);
             }
         } finally {
             ListObjectsV2Response objects = await client.ListObjectsV2Async(new ListObjectsV2Request { BucketName = bucket });
@@ -196,6 +230,7 @@ public sealed class StorageProviderLiveTests {
             }
             await client.DeleteBucketAsync(new DeleteBucketRequest { BucketName = bucket });
             await blobClient.DeleteIfExistsAsync();
+            if (Directory.Exists(switchRoot)) { Directory.Delete(switchRoot, recursive: true); }
         }
     }
 

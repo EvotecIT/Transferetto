@@ -15,7 +15,7 @@ namespace Transferetto;
 /// privileged session when the remote server can expose symbolic links beneath that prefix.
 /// </remarks>
 public sealed class SftpTransferEndpoint : ITransferEndpoint, ITransferSessionEndpoint,
-    ITransferDirectoryEndpoint, ITransferTimestampEndpoint, IDisposable {
+    ITransferDirectoryEndpoint, ITransferTimestampEndpoint, ITransferPathIdentityEndpoint, IDisposable {
     private readonly TransferettoSftpSession _session;
     private readonly string _prefix;
     private readonly bool _ownsSession;
@@ -59,6 +59,10 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, ITransferSessionEn
         _session.Host,
         _session.Port,
         string.IsNullOrEmpty(_prefix) ? "/" : "/" + _prefix.TrimStart('/')).Uri.AbsoluteUri;
+
+    /// <inheritdoc />
+    public string GetPathIdentity(string path) => ProtocolTransferEndpointPath.Resolve(_prefix,
+        ProtocolTransferEndpointPath.NormalizeRelative(path));
 
     /// <inheritdoc />
     public TransferEndpointCapabilities Capabilities =>
