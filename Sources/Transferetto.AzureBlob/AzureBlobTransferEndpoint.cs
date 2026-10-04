@@ -101,7 +101,8 @@ public sealed class AzureBlobTransferEndpoint : ITransferEndpoint {
         TransferEndpointCapabilities.Write |
         TransferEndpointCapabilities.Delete |
         TransferEndpointCapabilities.Metadata |
-        TransferEndpointCapabilities.Versioning;
+        TransferEndpointCapabilities.Versioning |
+        TransferEndpointCapabilities.ConcurrentOperations;
 
     /// <inheritdoc />
     public async Task<TransferItem?> GetItemAsync(string path, CancellationToken cancellationToken = default) {

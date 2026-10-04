@@ -58,7 +58,8 @@ public sealed class S3TransferEndpoint : ITransferEndpoint, IDisposable {
         TransferEndpointCapabilities.Write |
         TransferEndpointCapabilities.Delete |
         TransferEndpointCapabilities.Metadata |
-        TransferEndpointCapabilities.Versioning;
+        TransferEndpointCapabilities.Versioning |
+        TransferEndpointCapabilities.ConcurrentOperations;
 
     /// <inheritdoc />
     public async Task<TransferItem?> GetItemAsync(string path, CancellationToken cancellationToken = default) {

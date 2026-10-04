@@ -18,7 +18,7 @@ namespace Transferetto;
 /// <see cref="TransferWriteMode.SkipIfExists"/> or <see cref="TransferWriteMode.FailIfExists"/> fail closed;
 /// use <see cref="TransferWriteMode.Overwrite"/> or coordinate writers externally.
 /// </remarks>
-public sealed class FtpTransferEndpoint : ITransferEndpoint, IDisposable {
+public sealed class FtpTransferEndpoint : ITransferEndpoint, ITransferSessionEndpoint, IDisposable {
     private readonly TransferettoFtpSession _session;
     private readonly string _prefix;
     private readonly bool _ownsSession;
@@ -52,6 +52,9 @@ public sealed class FtpTransferEndpoint : ITransferEndpoint, IDisposable {
 
     /// <inheritdoc />
     public string Scheme => _session.Client.Config.EncryptionMode == FtpEncryptionMode.None ? "ftp" : "ftps";
+
+    /// <inheritdoc />
+    public object SessionKey => _session.Client;
 
     /// <inheritdoc />
     public string DisplayName => new UriBuilder(

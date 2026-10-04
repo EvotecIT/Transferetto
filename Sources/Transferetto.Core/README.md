@@ -24,4 +24,8 @@ Provider-specific metadata remains visible on inspected items. Automatic cross-p
 
 `FileSystemTransferEndpoint` is intended for a root controlled by the caller's security context. It rejects symbolic links and reparse points observed while resolving a path, but it is not an operating-system sandbox against another process that can concurrently replace path components. Do not use a privileged process with a root writable by less-trusted identities.
 
+Use `TransferCopyOptions.ExpectedSha256` to require a digest match before a destination commits staged content. Set `VerifyDestination` to read the committed item back; a failed readback reports an error after the write. `TransferEngine.CopyBatchAsync` runs a bounded number of copies and returns each item in input order, including failures and items that did not start after fail-fast cancellation. Endpoints sharing an FTP or SFTP session are coordinated by session identity; streamed FTP copies require separate source and destination connections.
+
+Subscribe to the `Transferetto.Core` `ActivitySource` or `Meter` exposed by `TransferDiagnostics` for outcome, byte count, and duration. Default telemetry includes schemes and error type; it does not include paths, endpoint URLs, credentials, or metadata.
+
 File replacements preserve the destination's Unix permission bits before writing staged content. On Unix, the netstandard2.0 assembly requires a runtime with `File.GetUnixFileMode` and `File.SetUnixFileMode` for replacements; older runtimes reject the operation rather than broadening access. Windows replacements use the filesystem's atomic replacement operation.

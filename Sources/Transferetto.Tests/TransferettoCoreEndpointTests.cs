@@ -14,6 +14,94 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
         Directory.CreateDirectory(_root);
     }
 
+    [Theory]
+    [InlineData(7)]
+    [InlineData(-1)]
+    public async Task ExpectedHashMismatchPreservesExistingDestinationBeforeCommit(long length) {
+        string target = Path.Combine(_root, "target");
+        File.WriteAllText(target, "original");
+        await Assert.ThrowsAsync<InvalidDataException>(() => TransferEngine.CopyAsync(
+            new MetadataSourceEndpoint(Encoding.UTF8.GetBytes("payload"), reportedLength: length), "source",
+            new FileSystemTransferEndpoint(_root), "target", new TransferCopyOptions {
+                ExpectedSha256 = new string('0', 64), WriteOptions = new TransferWriteOptions { Mode = TransferWriteMode.Overwrite }
+            }));
+        Assert.Equal("original", File.ReadAllText(target));
+        Assert.Single(Directory.GetFiles(_root));
+    }
+
+    [Fact]
+    public async Task ExpectedHashAndDestinationReadbackProduceAVerifiedReceipt() {
+        byte[] payload = Encoding.UTF8.GetBytes("verified");
+        TransferReceipt receipt = await TransferEngine.CopyAsync(new MetadataSourceEndpoint(payload), "source",
+            new FileSystemTransferEndpoint(_root), "target", new TransferCopyOptions {
+                ExpectedSha256 = CalculateSha256(payload).ToUpperInvariant(), VerifyDestination = true
+            });
+        Assert.True(receipt.DestinationVerified);
+        Assert.Equal(CalculateSha256(payload), receipt.Sha256);
+        Assert.Equal(payload, File.ReadAllBytes(Path.Combine(_root, "target")));
+    }
+
+    [Fact]
+    public async Task BatchReturnsOrderedSuccessAndFailureWithoutLosingCompletedCopies() {
+        string sourceRoot = Path.Combine(_root, "sources");
+        Directory.CreateDirectory(sourceRoot);
+        File.WriteAllText(Path.Combine(sourceRoot, "first"), "one");
+        File.WriteAllText(Path.Combine(sourceRoot, "third"), "three");
+        FileSystemTransferEndpoint source = new(sourceRoot);
+        FileSystemTransferEndpoint destination = new(Path.Combine(_root, "destinations"));
+        TransferBatchItem[] items = {
+            new(source, "first", destination, "first"),
+            new(source, "missing", destination, "missing"),
+            new(source, "third", destination, "third")
+        };
+        TransferBatchResult result = await TransferEngine.CopyBatchAsync(items,
+            new TransferBatchOptions { MaxConcurrency = 2 });
+        Assert.False(result.IsSuccess);
+        Assert.Equal(new[] { TransferBatchItemOutcome.Copied, TransferBatchItemOutcome.Failed,
+            TransferBatchItemOutcome.Copied }, result.Items.Select(item => item.Outcome));
+        Assert.Equal(8, result.BytesTransferred);
+        Assert.Equal("one", File.ReadAllText(Path.Combine(_root, "destinations", "first")));
+        Assert.Equal("three", File.ReadAllText(Path.Combine(_root, "destinations", "third")));
+    }
+
+    [Fact]
+    public async Task BatchFailFastLeavesLaterItemsUnstarted() {
+        FileSystemTransferEndpoint source = new(Path.Combine(_root, "source"));
+        FileSystemTransferEndpoint destination = new(Path.Combine(_root, "destination"));
+        TransferBatchItem[] items = {
+            new(source, "missing", destination, "first"),
+            new(source, "also-missing", destination, "second")
+        };
+        TransferBatchResult result = await TransferEngine.CopyBatchAsync(items,
+            new TransferBatchOptions { MaxConcurrency = 1, FailFast = true });
+        Assert.False(result.IsSuccess);
+        Assert.Equal(TransferBatchItemOutcome.Failed, result.Items[0].Outcome);
+        Assert.Equal(TransferBatchItemOutcome.NotStarted, result.Items[1].Outcome);
+    }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public async Task DiagnosticSpanExposesOutcomeWithoutPathsOrEndpointUrls() {
+        System.Diagnostics.Activity? completed = null;
+        using var listener = new System.Diagnostics.ActivityListener {
+            ShouldListenTo = source => source.Name == TransferDiagnostics.Name,
+            Sample = (ref System.Diagnostics.ActivityCreationOptions<System.Diagnostics.ActivityContext> _) =>
+                System.Diagnostics.ActivitySamplingResult.AllDataAndRecorded,
+            ActivityStopped = activity => completed = activity
+        };
+        System.Diagnostics.ActivitySource.AddActivityListener(listener);
+        await TransferEngine.CopyAsync(new MetadataSourceEndpoint(new byte[] { 1 }), "private-source-path",
+            new FileSystemTransferEndpoint(_root), "private-destination-path");
+        Assert.NotNull(completed);
+        string tags = string.Join(";", completed!.Tags.Select(tag => tag.Key + "=" + tag.Value));
+        Assert.Contains("transfer.outcome=copied", tags);
+        Assert.Contains("transfer.source.scheme=source", tags);
+        Assert.DoesNotContain("private-source-path", tags);
+        Assert.DoesNotContain("private-destination-path", tags);
+        Assert.DoesNotContain("source://test", tags);
+    }
+#endif
+
     [Fact]
     public async Task ReadTrackingStream_ReportsConsumedBytesAndLeavesSourceOpen() {
         byte[] content = Encoding.UTF8.GetBytes("actual-upload-content");

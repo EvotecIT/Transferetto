@@ -14,7 +14,7 @@ namespace Transferetto;
 /// The configured prefix is a namespace boundary, not a security sandbox. Do not pass untrusted paths to a
 /// privileged session when the remote server can expose symbolic links beneath that prefix.
 /// </remarks>
-public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
+public sealed class SftpTransferEndpoint : ITransferEndpoint, ITransferSessionEndpoint, IDisposable {
     private readonly TransferettoSftpSession _session;
     private readonly string _prefix;
     private readonly bool _ownsSession;
@@ -48,6 +48,9 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
 
     /// <inheritdoc />
     public string Scheme => "sftp";
+
+    /// <inheritdoc />
+    public object SessionKey => _session.Client;
 
     /// <inheritdoc />
     public string DisplayName => new UriBuilder(

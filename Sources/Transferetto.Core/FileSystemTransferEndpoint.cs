@@ -53,7 +53,8 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
         TransferEndpointCapabilities.List |
         TransferEndpointCapabilities.Read |
         TransferEndpointCapabilities.Write |
-        TransferEndpointCapabilities.Delete;
+        TransferEndpointCapabilities.Delete |
+        TransferEndpointCapabilities.ConcurrentOperations;
 
     /// <inheritdoc />
     public Task<TransferItem?> GetItemAsync(string path, CancellationToken cancellationToken = default) {
