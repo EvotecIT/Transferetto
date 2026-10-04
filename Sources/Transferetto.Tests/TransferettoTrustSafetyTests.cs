@@ -31,6 +31,10 @@ public sealed class TransferettoTrustSafetyTests {
     [InlineData(true, "  \n\t\n")]
     [InlineData(false, "# store comment\n")]
     [InlineData(true, "# store comment\n")]
+    [InlineData(false, "  # store comment\n")]
+    [InlineData(true, "  # store comment\n")]
+    [InlineData(false, "\t# store comment\n")]
+    [InlineData(true, "\t# store comment\n")]
     public void MalformedExistingStoreFailsClosedWithoutChangingItsBytes(bool ssh, string malformed) {
         WithStore(path => {
             File.WriteAllText(path, malformed);

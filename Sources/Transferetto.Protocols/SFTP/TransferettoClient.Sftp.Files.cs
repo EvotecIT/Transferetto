@@ -42,6 +42,7 @@ public static partial class TransferettoClient {
         long bytesTransferred = 0;
         using FileStream fileStream = new(localPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
         string temporaryPath = ProtocolTransferEndpointPath.CreateTemporaryPath(remotePath);
+        string cleanupPath = SftpTransferStreamOperations.AnchorCleanupPath(session.Client, temporaryPath);
         Renci.SshNet.Sftp.SftpFileAttributes? existing = allowOverride
             ? await SftpTransferStreamOperations.GetExistingAttributesAsync(session.Client, remotePath, resolvedOptions.CancellationToken).ConfigureAwait(false)
             : null;
@@ -70,7 +71,7 @@ public static partial class TransferettoClient {
             ProtocolTransferCommit.Commit(new SftpTransferCommitOperations(session), temporaryPath, remotePath, remotePath,
                 allowOverride ? Transferetto.Core.TransferWriteMode.Overwrite : Transferetto.Core.TransferWriteMode.FailIfExists, "SFTP");
         } catch {
-            await SftpTransferStreamOperations.RemoveTemporaryFileAsync(session, temporaryPath).ConfigureAwait(false);
+            await SftpTransferStreamOperations.RemoveTemporaryFileAsync(session, cleanupPath).ConfigureAwait(false);
             throw;
         }
         if (bytesTransferred < totalBytes) {

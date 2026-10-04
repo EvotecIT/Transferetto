@@ -42,7 +42,7 @@ internal static class TransferettoTrustStore {
 
     internal static string[] Read(string path) {
         string[] lines = File.ReadAllLines(path);
-        if (!lines.Any(line => !string.IsNullOrWhiteSpace(line) && !line.StartsWith("#", StringComparison.Ordinal))) {
+        if (!lines.Any(line => !string.IsNullOrWhiteSpace(line) && !line.TrimStart().StartsWith("#", StringComparison.Ordinal))) {
             throw new InvalidDataException("An existing trust store has no identity records. Restore it or remove it explicitly to reset trust.");
         }
         return lines;

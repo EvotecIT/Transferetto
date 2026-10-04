@@ -10,6 +10,12 @@ namespace Transferetto;
 
 /// <summary>Owns SFTP stream creation and replacement permissions before content is written.</summary>
 internal static class SftpTransferStreamOperations {
+    internal static string AnchorCleanupPath(SftpClient client, string path) {
+        if (path.StartsWith("/", StringComparison.Ordinal)) { return path; }
+        string workingDirectory = client.WorkingDirectory;
+        return workingDirectory.TrimEnd('/') + "/" + path;
+    }
+
     internal static async Task RemoveTemporaryFileAsync(TransferettoSftpSession session, string path) {
         using CancellationTokenSource cleanup = new(TimeSpan.FromSeconds(10));
         try {
