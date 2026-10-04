@@ -18,7 +18,7 @@ public static partial class TransferettoClient {
         return RunTransferAsync(
             resolvedTransferOptions => SyncFtpDirectory(session, localPath, remotePath, syncOptions, resolvedTransferOptions),
             transferOptions,
-            cancellationToken);
+            cancellationToken, "ftp", "sync-directory");
     }
 
     /// <summary>
@@ -34,6 +34,6 @@ public static partial class TransferettoClient {
         return RunTransferAsync(
             resolvedTransferOptions => SyncSftpDirectory(session, localPath, remotePath, syncOptions, resolvedTransferOptions),
             transferOptions,
-            cancellationToken);
+            cancellationToken, "sftp", "sync-directory");
     }
 }

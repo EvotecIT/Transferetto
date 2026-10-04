@@ -10,6 +10,8 @@ namespace Transferetto.Core;
 /// Provides provider-neutral helpers for safely streaming transfer content.
 /// </summary>
 public static class TransferContent {
+    /// <summary>Limits a readable stream to a selected byte count and owns the underlying stream.</summary>
+    public static Stream LimitRead(Stream content, long length) => new BoundedReadStream(content, length);
     /// <summary>
     /// Copies content and verifies its advertised length before returning to the caller.
     /// </summary>

@@ -12,6 +12,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using FluentFTP;
 using FluentFTP.Proxy.SyncProxy;
+using Transferetto.Core;
 
 namespace Transferetto;
 /// <summary>
@@ -29,6 +30,8 @@ public static partial class TransferettoClient {
 
         FtpClient client = CreateFtpClient(options);
         TransferettoFtpCertificateInfo? certificateInfo = null;
+        string scheme = options.EncryptionMode?.Any(mode => mode != FtpEncryptionMode.None) == true ? "ftps" : "ftp";
+        using TransferDiagnostics.OperationScope diagnostic = TransferDiagnostics.StartConnection(scheme);
 
         try {
             ConfigureFtpClient(client, options);
@@ -47,11 +50,15 @@ public static partial class TransferettoClient {
                 client.Connect();
             }
 
-            return new TransferettoFtpSession(client, autoDetectedProfile) {
+            TransferettoFtpSession session = new(client, autoDetectedProfile) {
                 CertificateInfo = certificateInfo
             };
-        } catch {
-            client.Dispose();
+            diagnostic.Complete();
+            return session;
+        } catch (Exception exception) {
+            diagnostic.Fail(exception);
+            try { client.Dispose(); }
+            catch (Exception cleanup) { TransferDiagnostics.RecordCleanupFailure(scheme, cleanup); }
             throw;
         }
     }
@@ -63,7 +70,8 @@ public static partial class TransferettoClient {
         EnsureNotNull(session, nameof(session));
 
         if (session.Client.IsConnected) {
-            session.Client.Disconnect();
+            try { session.Client.Disconnect(); }
+            catch (Exception exception) { TransferDiagnostics.RecordCleanupFailure("ftp", exception); throw; }
         }
     }
     /// <summary>

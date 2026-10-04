@@ -16,7 +16,7 @@ namespace Transferetto.S3;
 /// <summary>
 /// Exposes one Amazon S3 or S3-compatible bucket prefix as a transfer endpoint.
 /// </summary>
-public sealed class S3TransferEndpoint : ITransferEndpoint, IDisposable {
+public sealed partial class S3TransferEndpoint : ITransferEndpoint, ITransferRangeEndpoint, ITransferServerSideCopyEndpoint, ITransferResumableWriteEndpoint, IDisposable {
     private readonly IAmazonS3 _client;
     private readonly bool _ownsClient;
     private readonly string _bucketName;
@@ -59,7 +59,8 @@ public sealed class S3TransferEndpoint : ITransferEndpoint, IDisposable {
         TransferEndpointCapabilities.Delete |
         TransferEndpointCapabilities.Metadata |
         TransferEndpointCapabilities.Versioning |
-        TransferEndpointCapabilities.ConcurrentOperations;
+        TransferEndpointCapabilities.ConcurrentOperations |
+        TransferEndpointCapabilities.RangeRead;
 
     /// <inheritdoc />
     public async Task<TransferItem?> GetItemAsync(string path, CancellationToken cancellationToken = default) {
@@ -121,6 +122,29 @@ public sealed class S3TransferEndpoint : ITransferEndpoint, IDisposable {
             Metadata = ReadMetadata(response.Metadata)
         };
         return new TransferReadHandle(item, new ResponseOwnedStream(response.ResponseStream, response));
+    }
+
+    /// <inheritdoc />
+    public async Task<TransferReadHandle> OpenReadRangeAsync(string path, long offset, long length,
+        TransferItem expectedItem, CancellationToken cancellationToken = default) {
+        if (offset < 0 || length <= 0 || expectedItem?.Length is not long sourceLength
+            || offset > sourceLength - length) { throw new ArgumentOutOfRangeException(nameof(offset)); }
+        if (expectedItem.ETag == null && expectedItem.VersionId == null) {
+            throw new NotSupportedException("S3 ranged reads require an entity tag or object version.");
+        }
+        GetObjectResponse response = await _client.GetObjectAsync(new GetObjectRequest {
+            BucketName = _bucketName,
+            Key = ResolveKey(path),
+            VersionId = expectedItem.VersionId,
+            EtagToMatch = expectedItem.ETag == null ? null : $"\"{expectedItem.ETag}\"",
+            ByteRange = new ByteRange(offset, checked(offset + length - 1))
+        }, cancellationToken).ConfigureAwait(false);
+        if (response.HttpStatusCode != HttpStatusCode.PartialContent) {
+            response.Dispose();
+            throw new IOException("The S3 service did not honor the requested source range.");
+        }
+        return new TransferReadHandle(expectedItem,
+            TransferContent.LimitRead(new ResponseOwnedStream(response.ResponseStream, response), length));
     }
 
     /// <inheritdoc />
@@ -192,6 +216,69 @@ public sealed class S3TransferEndpoint : ITransferEndpoint, IDisposable {
             Key = ResolveKey(path)
         }, cancellationToken).ConfigureAwait(false);
         return true;
+    }
+
+    /// <inheritdoc />
+    public async Task<TransferWriteResult?> TryCopyServerSideAsync(ITransferEndpoint source, string sourcePath,
+        TransferItem sourceItem, string destinationPath, TransferWriteOptions writeOptions,
+        CancellationToken cancellationToken = default) {
+        if (source is not S3TransferEndpoint sourceEndpoint || !SharesService(sourceEndpoint)
+            || sourceItem.Length is not long length || length < 0 || length > 5L * 1024 * 1024 * 1024
+            || (sourceItem.ETag == null && sourceItem.VersionId == null)
+            || !string.Equals(writeOptions.ContentType, sourceItem.ContentType, StringComparison.Ordinal)
+            || writeOptions.Metadata.Any(pair => !sourceItem.Metadata.TryGetValue(pair.Key, out string? value)
+                || !string.Equals(value, pair.Value, StringComparison.Ordinal))) {
+            return null;
+        }
+        TransferItem? existing = null;
+        if (writeOptions.Mode != TransferWriteMode.Overwrite) {
+            existing = await GetItemAsync(destinationPath, cancellationToken).ConfigureAwait(false);
+            if (existing != null && writeOptions.Mode == TransferWriteMode.SkipIfExists) {
+                return new TransferWriteResult(existing, wasWritten: false);
+            }
+            if (existing != null) { throw new IOException($"The destination object already exists: {destinationPath}"); }
+        }
+        CopyObjectRequest request = new() {
+            SourceBucket = sourceEndpoint._bucketName,
+            SourceKey = sourceEndpoint.ResolveKey(sourcePath),
+            SourceVersionId = sourceItem.VersionId,
+            DestinationBucket = _bucketName,
+            DestinationKey = ResolveKey(destinationPath),
+            ETagToMatch = sourceItem.ETag == null ? null : $"\"{sourceItem.ETag}\"",
+            IfNoneMatch = writeOptions.Mode == TransferWriteMode.Overwrite ? null : "*"
+        };
+        try {
+            CopyObjectResponse response = await _client.CopyObjectAsync(request, cancellationToken).ConfigureAwait(false);
+            return new TransferWriteResult(new TransferItem {
+                Path = destinationPath,
+                Length = length,
+                LastModifiedUtc = DateTimeOffset.TryParse(response.LastModified,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AssumeUniversal, out DateTimeOffset modified)
+                    ? modified : null,
+                ETag = TrimETag(response.ETag),
+                VersionId = response.VersionId,
+                ContentType = sourceItem.ContentType,
+                Metadata = sourceItem.Metadata
+            }, wasWritten: true);
+        } catch (AmazonS3Exception exception) when (exception.StatusCode == HttpStatusCode.PreconditionFailed
+            && writeOptions.Mode == TransferWriteMode.SkipIfExists) {
+            existing = await GetItemAsync(destinationPath, cancellationToken).ConfigureAwait(false);
+            if (existing != null) { return new TransferWriteResult(existing, wasWritten: false); }
+            throw;
+        } catch (AmazonS3Exception exception) when (exception.StatusCode == HttpStatusCode.PreconditionFailed
+            && writeOptions.Mode == TransferWriteMode.FailIfExists) {
+            throw new IOException($"The destination object already exists: {destinationPath}", exception);
+        }
+    }
+
+    private bool SharesService(S3TransferEndpoint source) {
+        if (ReferenceEquals(_client, source._client)) { return true; }
+        Amazon.Runtime.IClientConfig left = _client.Config;
+        Amazon.Runtime.IClientConfig right = source._client.Config;
+        return string.Equals(left.ServiceURL, right.ServiceURL, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.RegionEndpoint?.SystemName, right.RegionEndpoint?.SystemName, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(left.AuthenticationRegion, right.AuthenticationRegion, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <inheritdoc />

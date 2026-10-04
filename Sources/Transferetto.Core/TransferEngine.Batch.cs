@@ -29,6 +29,11 @@ public static partial class TransferEngine {
         using CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         HashSet<string> destinations = new(StringComparer.Ordinal);
         foreach (TransferBatchItem item in requests) {
+            if (resolved.CheckpointPath != null) {
+                string checkpoint = System.IO.Path.GetFullPath(resolved.CheckpointPath);
+                EnsureCheckpointNotItemPath(checkpoint, item.Source, item.SourcePath);
+                EnsureCheckpointNotItemPath(checkpoint, item.Destination, item.DestinationPath);
+            }
             // A case-folded local path names the same destination file on Windows.
             string path = item.Destination.Scheme == "file" &&
                           System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
@@ -40,6 +45,8 @@ public static partial class TransferEngine {
                 throw new ArgumentException("A batch cannot schedule the same destination path more than once.", nameof(items));
             }
         }
+        TransferBatchCheckpointStore? checkpoints = resolved.CheckpointPath == null ? null
+            : new TransferBatchCheckpointStore(resolved.CheckpointPath);
         void Report(int index, long current, bool done) {
             lock (progressSync) {
                 long delta = Math.Max(0, current - observed[index]);
@@ -64,6 +71,7 @@ public static partial class TransferEngine {
                     WriteOptions = itemOptions.WriteOptions,
                     ExpectedSha256 = itemOptions.ExpectedSha256,
                     VerifyDestination = itemOptions.VerifyDestination,
+                    PreferServerSideCopy = itemOptions.PreferServerSideCopy,
                     ProgressIntervalBytes = itemOptions.ProgressIntervalBytes,
                     Progress = new InlineProgress<TransferProgress>(value => {
                         try { original?.Report(value); }
@@ -75,10 +83,17 @@ public static partial class TransferEngine {
                 Exception? error = null;
                 TransferBatchItemOutcome outcome;
                 try {
-                    receipt = await CopyAsync(item.Source, item.SourcePath, item.Destination, item.DestinationPath,
-                        effective, linked.Token).ConfigureAwait(false);
-                    outcome = receipt.Outcome == TransferReceiptOutcome.Copied
-                        ? TransferBatchItemOutcome.Copied : TransferBatchItemOutcome.Skipped;
+                    if (checkpoints != null && await checkpoints.TryResumeAsync(index, item, linked.Token).ConfigureAwait(false)) {
+                        outcome = TransferBatchItemOutcome.Resumed;
+                    } else {
+                        receipt = await CopyAsync(item.Source, item.SourcePath, item.Destination, item.DestinationPath,
+                            effective, linked.Token).ConfigureAwait(false);
+                        outcome = receipt.Outcome == TransferReceiptOutcome.Copied
+                            ? TransferBatchItemOutcome.Copied : TransferBatchItemOutcome.Skipped;
+                        if (receipt.Outcome == TransferReceiptOutcome.Copied && checkpoints != null) {
+                            await checkpoints.RecordAsync(index, item, receipt, linked.Token).ConfigureAwait(false);
+                        }
+                    }
                 } catch (OperationCanceledException exception) when (linked.IsCancellationRequested) {
                     error = exception;
                     outcome = TransferBatchItemOutcome.Canceled;
@@ -103,7 +118,8 @@ public static partial class TransferEngine {
         }
         return new TransferBatchResult { Items = results, BytesTransferred = totalBytes,
             IsCanceled = cancellationToken.IsCancellationRequested,
-            IsSuccess = results.All(result => result.Outcome == TransferBatchItemOutcome.Copied || result.Outcome == TransferBatchItemOutcome.Skipped) };
+            IsSuccess = results.All(result => result.Outcome == TransferBatchItemOutcome.Copied
+                || result.Outcome == TransferBatchItemOutcome.Skipped || result.Outcome == TransferBatchItemOutcome.Resumed) };
     }
 
     private sealed class InlineProgress<T> : IProgress<T> {

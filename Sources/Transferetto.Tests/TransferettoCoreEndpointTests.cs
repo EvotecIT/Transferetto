@@ -79,6 +79,96 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
         Assert.Equal(TransferBatchItemOutcome.NotStarted, result.Items[1].Outcome);
     }
 
+    [Fact]
+    public async Task CheckpointsCannotOverwriteLocalTransferItems() {
+        string sourcePath = Path.Combine(_root, "source.bin");
+        string destinationPath = Path.Combine(_root, "destination.bin");
+        File.WriteAllText(sourcePath, "source-content");
+        File.WriteAllText(destinationPath, "old-destination");
+        FileSystemTransferEndpoint endpoint = new(_root);
+        TransferBatchItem[] batch = { new(endpoint, "source.bin", endpoint, "destination.bin") };
+        foreach (string checkpoint in new[] { sourcePath, destinationPath }) {
+            await Assert.ThrowsAsync<ArgumentException>(() => TransferEngine.CopyBatchAsync(batch,
+                new TransferBatchOptions { CheckpointPath = checkpoint }));
+            await Assert.ThrowsAsync<ArgumentException>(() => TransferEngine.CopyResumableToFileAsync(
+                endpoint, "source.bin", endpoint, "destination.bin",
+                new TransferResumeOptions { CheckpointPath = checkpoint, ChunkBytes = 65536 }));
+        }
+        Assert.Equal("source-content", File.ReadAllText(sourcePath));
+        Assert.Equal("old-destination", File.ReadAllText(destinationPath));
+    }
+
+    [Fact]
+    public async Task BatchCheckpointReusesOnlyMatchingSourceAndDestinationContent() {
+        string sourceRoot = Path.Combine(_root, "checkpoint-source");
+        string destinationRoot = Path.Combine(_root, "checkpoint-destination");
+        Directory.CreateDirectory(sourceRoot);
+        Directory.CreateDirectory(destinationRoot);
+        string sourcePath = Path.Combine(sourceRoot, "item.txt");
+        string destinationPath = Path.Combine(destinationRoot, "item.txt");
+        File.WriteAllText(sourcePath, "alpha");
+        DateTime sourceModified = File.GetLastWriteTimeUtc(sourcePath);
+        TransferBatchItem request = new(new FileSystemTransferEndpoint(sourceRoot), "item.txt",
+            new FileSystemTransferEndpoint(destinationRoot), "item.txt") {
+            Options = new TransferCopyOptions { WriteOptions = new TransferWriteOptions { Mode = TransferWriteMode.Overwrite } }
+        };
+        TransferBatchOptions options = new() { CheckpointPath = Path.Combine(_root, "completed.json") };
+
+        Assert.Equal(TransferBatchItemOutcome.Copied, (await TransferEngine.CopyBatchAsync(new[] { request }, options)).Items[0].Outcome);
+        Assert.Equal(TransferBatchItemOutcome.Resumed, (await TransferEngine.CopyBatchAsync(new[] { request }, options)).Items[0].Outcome);
+        File.WriteAllText(destinationPath, "wrong");
+        Assert.Equal(TransferBatchItemOutcome.Copied, (await TransferEngine.CopyBatchAsync(new[] { request }, options)).Items[0].Outcome);
+        Assert.Equal("alpha", File.ReadAllText(destinationPath));
+        File.WriteAllText(sourcePath, "bravo");
+        File.SetLastWriteTimeUtc(sourcePath, sourceModified);
+        Assert.Equal(TransferBatchItemOutcome.Copied, (await TransferEngine.CopyBatchAsync(new[] { request }, options)).Items[0].Outcome);
+        Assert.Equal("bravo", File.ReadAllText(destinationPath));
+    }
+
+    [Fact]
+    public async Task ResumableFileCopyKeepsOldTargetAndContinuesVerifiedChunks() {
+        string sourceRoot = Path.Combine(_root, "range-source");
+        string destinationRoot = Path.Combine(_root, "range-destination");
+        Directory.CreateDirectory(sourceRoot);
+        Directory.CreateDirectory(destinationRoot);
+        byte[] payload = Enumerable.Range(0, 200000).Select(index => (byte)(index % 251)).ToArray();
+        File.WriteAllBytes(Path.Combine(sourceRoot, "large.bin"), payload);
+        string target = Path.Combine(destinationRoot, "large.bin");
+        File.WriteAllText(target, "old content");
+        FileSystemTransferEndpoint source = new(sourceRoot);
+        FileSystemTransferEndpoint destination = new(destinationRoot);
+        string checkpoint = Path.Combine(_root, "range-checkpoint.json");
+        using CancellationTokenSource cancel = new();
+        TransferResumeOptions options = new() {
+            CheckpointPath = checkpoint,
+            ChunkBytes = 65536,
+            CopyOptions = new TransferCopyOptions {
+                WriteOptions = new TransferWriteOptions { Mode = TransferWriteMode.Overwrite },
+                Progress = new ActionProgress<TransferProgress>(_ => cancel.Cancel())
+            }
+        };
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => TransferEngine.CopyResumableToFileAsync(
+            source, "large.bin", destination, "large.bin", options, cancel.Token));
+        Assert.Equal("old content", File.ReadAllText(target));
+        Assert.True(File.Exists(checkpoint));
+        Assert.Single(Directory.GetFiles(destinationRoot, "large.bin.transferetto-resume-*.part"));
+
+        options.CopyOptions.Progress = null;
+        TransferReceipt receipt = await TransferEngine.CopyResumableToFileAsync(
+            source, "large.bin", destination, "large.bin", options);
+        Assert.Equal(payload, File.ReadAllBytes(target));
+        Assert.Equal(CalculateSha256(payload), receipt.Sha256);
+        Assert.False(File.Exists(checkpoint));
+        Assert.Empty(Directory.GetFiles(destinationRoot, "*.part"));
+    }
+
+    private sealed class ActionProgress<T> : IProgress<T> {
+        private readonly Action<T> _callback;
+        internal ActionProgress(Action<T> callback) { _callback = callback; }
+        public void Report(T value) => _callback(value);
+    }
+
 #if NET8_0_OR_GREATER
     [Fact]
     public async Task DiagnosticSpanExposesOutcomeWithoutPathsOrEndpointUrls() {
@@ -99,6 +189,29 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
         Assert.DoesNotContain("private-source-path", tags);
         Assert.DoesNotContain("private-destination-path", tags);
         Assert.DoesNotContain("source://test", tags);
+    }
+
+    [Fact]
+    public void ConnectionDiagnosticRecordsOnlySchemeAndFailureType() {
+        System.Diagnostics.Activity? completed = null;
+        using var listener = new System.Diagnostics.ActivityListener {
+            ShouldListenTo = source => source.Name == TransferDiagnostics.Name,
+            Sample = (ref System.Diagnostics.ActivityCreationOptions<System.Diagnostics.ActivityContext> _) =>
+                System.Diagnostics.ActivitySamplingResult.AllDataAndRecorded,
+            ActivityStopped = activity => completed = activity
+        };
+        System.Diagnostics.ActivitySource.AddActivityListener(listener);
+        using (TransferDiagnostics.OperationScope operation = TransferDiagnostics.StartConnection("sftp")) {
+            operation.Fail(new IOException("secret-host.example password=do-not-log"));
+        }
+        Assert.NotNull(completed);
+        Assert.Equal("transfer.connection", completed!.OperationName);
+        string tags = string.Join(";", completed.Tags.Select(tag => tag.Key + "=" + tag.Value));
+        Assert.Contains("transfer.scheme=sftp", tags);
+        Assert.Contains("transfer.outcome=failed", tags);
+        Assert.Contains("error.type=System.IO.IOException", tags);
+        Assert.DoesNotContain("secret-host", tags);
+        Assert.DoesNotContain("do-not-log", tags);
     }
 #endif
 

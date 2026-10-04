@@ -17,7 +17,7 @@ namespace Transferetto.Core;
 /// process that can mutate the directory tree concurrently. A privileged process must not use a root writable
 /// by less-trusted identities.
 /// </remarks>
-public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
+public sealed class FileSystemTransferEndpoint : ITransferEndpoint, ITransferRangeEndpoint {
     private readonly string _rootPath;
     private readonly StringComparison _pathComparison;
 
@@ -47,6 +47,8 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
     /// <inheritdoc />
     public string DisplayName => new Uri(EnsureTrailingSeparator(_rootPath)).AbsoluteUri;
 
+    internal string ResolveForResume(string path) => ResolvePath(path);
+
     /// <inheritdoc />
     public TransferEndpointCapabilities Capabilities =>
         TransferEndpointCapabilities.Inspect |
@@ -54,7 +56,8 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
         TransferEndpointCapabilities.Read |
         TransferEndpointCapabilities.Write |
         TransferEndpointCapabilities.Delete |
-        TransferEndpointCapabilities.ConcurrentOperations;
+        TransferEndpointCapabilities.ConcurrentOperations |
+        TransferEndpointCapabilities.RangeRead;
 
     /// <inheritdoc />
     public Task<TransferItem?> GetItemAsync(string path, CancellationToken cancellationToken = default) {
@@ -105,6 +108,25 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
             81920,
             FileOptions.Asynchronous | FileOptions.SequentialScan);
         return Task.FromResult(new TransferReadHandle(CreateItem(fullPath), stream));
+    }
+
+    /// <inheritdoc />
+    public Task<TransferReadHandle> OpenReadRangeAsync(string path, long offset, long length,
+        TransferItem expectedItem, CancellationToken cancellationToken = default) {
+        if (offset < 0 || length <= 0 || expectedItem?.Length is not long sourceLength
+            || offset > sourceLength - length) { throw new ArgumentOutOfRangeException(nameof(offset)); }
+        cancellationToken.ThrowIfCancellationRequested();
+        string fullPath = ResolvePath(path);
+        TransferItem current = CreateItem(fullPath);
+        if (current.Length != expectedItem.Length || current.LastModifiedUtc != expectedItem.LastModifiedUtc) {
+            throw new IOException("The source file changed before a ranged read.");
+        }
+        FileStream stream = new(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920,
+            FileOptions.Asynchronous | FileOptions.SequentialScan);
+        try {
+            stream.Seek(offset, SeekOrigin.Begin);
+            return Task.FromResult(new TransferReadHandle(current, new BoundedReadStream(stream, length)));
+        } catch { stream.Dispose(); throw; }
     }
 
     /// <inheritdoc />

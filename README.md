@@ -24,6 +24,8 @@ Use the PowerShell module for automation and administration, or reference the fo
 | Filesystems | A provider-neutral endpoint for local paths and mounted storage in .NET |
 | Transfer controls | Explicit overwrite behavior, dry-run synchronization, cancellation, progress, metadata handling, and structured results |
 | Integrity | Streaming SHA-256 receipts for provider-neutral endpoint copies |
+| Large workflows | Bounded batches, restartable copies with checkpoints, and file synchronization across endpoints |
+| Command line | A .NET tool for copy, resume, inspect, list, and sync |
 | Security | FTPS certificate chain, pinning, TOFU, and known-certificate policies; SSH host-key pinning, TOFU, and known-hosts policies |
 
 ## Install
@@ -44,6 +46,13 @@ dotnet add package Transferetto.Protocols
 dotnet add package Transferetto.Core
 dotnet add package Transferetto.S3
 dotnet add package Transferetto.AzureBlob
+```
+
+Install the command-line tool separately when you want an executable instead of a library reference:
+
+```shell
+dotnet tool install --global Transferetto.Cli
+transferetto --help
 ```
 
 `Transferetto` is the convenience package and depends on all supported providers. `Transferetto.Protocols` owns the FTP, FTPS, SFTP, SCP, FXP, and SSH APIs. Every provider uses `Transferetto.Core`, which can also be referenced directly for the endpoint contract and filesystem transfers.
@@ -236,6 +245,12 @@ TransferReceipt receipt = await TransferEngine.CopyAsync(
 
 Use `FileSystemTransferEndpoint` for a local or mounted-filesystem side of the copy. `Transferetto.Protocols` provides `FtpTransferEndpoint` and `SftpTransferEndpoint`; `Transferetto.S3` and `Transferetto.AzureBlob` provide the object-storage endpoints.
 
+For repeated copies, `TransferEngine.CopyBatchAsync` limits concurrent work and returns an ordered result for every requested item. Set `TransferBatchOptions.CheckpointPath` to skip a previously completed item only after the engine checks its source identity and destination SHA-256. `TransferEngine.CopyResumableAsync` checkpoints a single ranged copy into a local file or staged S3/Azure upload. Its checkpoint belongs in a private directory; resume rejects a changed source and verifies staged content before commit.
+
+Set `PreferServerSideCopy` when copying within the same S3 service or Azure Blob account and a provider-side copy is more useful than a streaming digest. The engine falls back to streaming when the provider cannot honor the request. An expected SHA-256 digest or destination readback also selects streaming so the receipt can prove content integrity.
+
+`TransferettoEndpointSync.PlanAsync` previews a file sync between any two listing endpoints. `SyncAsync` can update or mirror; mirror deletes destination files absent from the source and requires explicit opt-in when the source listing is empty. Empty directories are outside the endpoint file contract.
+
 In PowerShell, wrap an existing protocol session before using the provider-neutral transfer commands:
 
 ```powershell
@@ -257,6 +272,7 @@ Copy-TransferItem -SourceEndpoint $ftpEndpoint -SourcePath 'report.csv' `
 | [`Transferetto.Protocols`](https://www.nuget.org/packages/Transferetto.Protocols) | FTP, FTPS, SFTP, SCP, FXP, SSH, synchronization, streams, and protocol endpoint adapters |
 | [`Transferetto.S3`](https://www.nuget.org/packages/Transferetto.S3) | Amazon S3 and S3-compatible object-storage provider |
 | [`Transferetto.AzureBlob`](https://www.nuget.org/packages/Transferetto.AzureBlob) | Azure Blob Storage provider |
+| [`Transferetto.Cli`](https://www.nuget.org/packages/Transferetto.Cli) | .NET tool for endpoint copy, resume, listing, inspection, and sync |
 | [`Transferetto`](https://www.powershellgallery.com/packages/Transferetto) on PowerShell Gallery | One PowerShell command surface over the protocol and storage assemblies |
 
 The umbrella and provider packages include focused package READMEs, while this repository README documents the complete toolkit.

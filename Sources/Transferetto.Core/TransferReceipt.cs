@@ -33,6 +33,9 @@ public sealed class TransferReceipt {
     /// <summary>Gets whether a readback of the committed destination matched the transferred content.</summary>
     public bool DestinationVerified { get; init; }
 
+    /// <summary>Gets whether a provider completed the copy without relaying content through this process.</summary>
+    public bool ServerSideCopy { get; init; }
+
     /// <summary>Gets the provider entity tag observed at the source.</summary>
     public string? SourceETag { get; init; }
 

@@ -43,6 +43,33 @@ public static partial class TransferEngine {
         try {
         using TransferEndpointLease lease = await TransferEndpointLease.AcquireAsync(source, destination, cancellationToken).ConfigureAwait(false);
 
+        if (resolvedOptions.PreferServerSideCopy && expectedSha256 == null && !resolvedOptions.VerifyDestination
+            && destination is ITransferServerSideCopyEndpoint nativeDestination) {
+            TransferItem? inspected = await source.GetItemAsync(sourcePath, cancellationToken).ConfigureAwait(false);
+            if (inspected == null) { throw new FileNotFoundException("The source item does not exist.", sourcePath); }
+            TransferWriteOptions nativeOptions = CloneWriteOptions(resolvedOptions.WriteOptions, inspected, destination.Capabilities);
+            TransferWriteResult? nativeResult = await nativeDestination.TryCopyServerSideAsync(source, sourcePath,
+                inspected, destinationPath, nativeOptions, cancellationToken).ConfigureAwait(false);
+            if (nativeResult != null) {
+                TransferReceipt nativeReceipt = new() {
+                    CorrelationId = correlationId,
+                    SourceEndpoint = source.DisplayName,
+                    SourcePath = sourcePath,
+                    DestinationEndpoint = destination.DisplayName,
+                    DestinationPath = destinationPath,
+                    Outcome = nativeResult.WasWritten ? TransferReceiptOutcome.Copied : TransferReceiptOutcome.Skipped,
+                    BytesTransferred = nativeResult.WasWritten ? inspected.Length ?? 0 : 0,
+                    ServerSideCopy = nativeResult.WasWritten,
+                    SourceETag = inspected.ETag,
+                    DestinationETag = nativeResult.Item.ETag,
+                    StartedAtUtc = startedAtUtc,
+                    CompletedAtUtc = DateTimeOffset.UtcNow
+                };
+                operation.Complete(nativeReceipt);
+                return nativeReceipt;
+            }
+        }
+
         using TransferReadHandle readHandle = await source.OpenReadAsync(sourcePath, cancellationToken).ConfigureAwait(false);
         long? sourceLength = NormalizeLength(readHandle.Item.Length);
         using ProgressHashingReadStream trackedStream = new(

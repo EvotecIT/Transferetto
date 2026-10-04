@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Renci.SshNet;
 using Renci.SshNet.Common;
+using Transferetto.Core;
 
 namespace Transferetto;
 /// <summary>
@@ -27,6 +28,7 @@ public static partial class TransferettoClient {
         ValidateSshProxyOptions(options);
 
         SshClient client = CreateSshClient(options);
+        using TransferDiagnostics.OperationScope diagnostic = TransferDiagnostics.StartConnection("ssh");
         TransferettoSshHostKeyInfo? hostKeyInfo = null;
         client.HostKeyReceived += (_, args) => {
             hostKeyInfo = EvaluateHostKeyTrust(options, args);
@@ -36,11 +38,15 @@ public static partial class TransferettoClient {
         try {
             ApplySshClientOptions(client, options);
             client.Connect();
-            return new TransferettoSshSession(client) {
+            TransferettoSshSession session = new(client) {
                 HostKeyInfo = hostKeyInfo
             };
-        } catch {
-            client.Dispose();
+            diagnostic.Complete();
+            return session;
+        } catch (Exception exception) {
+            diagnostic.Fail(exception);
+            try { client.Dispose(); }
+            catch (Exception cleanup) { TransferDiagnostics.RecordCleanupFailure("ssh", cleanup); }
             throw;
         }
     }
@@ -82,7 +88,8 @@ public static partial class TransferettoClient {
     public static void DisconnectSsh(TransferettoSshSession session) {
         EnsureNotNull(session, nameof(session));
         if (session.Client.IsConnected) {
-            session.Client.Disconnect();
+            try { session.Client.Disconnect(); }
+            catch (Exception exception) { TransferDiagnostics.RecordCleanupFailure("ssh", exception); throw; }
         }
     }
     /// <summary>

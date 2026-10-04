@@ -16,6 +16,8 @@ The default AWS credential chain is used when explicit credentials are not suppl
 
 Uploads with an unknown length or content beyond the 5 GiB single-request limit use multipart upload. Failed or cancelled uploads are aborted, and no-overwrite modes are enforced again when the multipart upload is completed.
 
+For a restartable transfer, call `TransferEngine.CopyResumableAsync` with a durable checkpoint path. It keeps a multipart upload after cancellation, checks staged part tokens on restart, and verifies the source again before completion. Remove an abandoned S3 multipart upload through the provider API when the checkpoint is no longer needed. `TransferCopyOptions.PreferServerSideCopy` uses S3 object copy for eligible same-service transfers; it returns no streaming SHA-256 digest.
+
 Metadata returned by S3 is preserved even when its names are provider-specific. Transferetto automatically carries only portable metadata names into another provider; metadata supplied explicitly for a destination remains validated.
 
 The provider performs object data-plane operations only. Bucket creation, access policy, lifecycle, replication, and account administration stay with infrastructure tooling.

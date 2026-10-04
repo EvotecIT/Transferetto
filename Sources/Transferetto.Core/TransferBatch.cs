@@ -33,6 +33,10 @@ public sealed class TransferBatchOptions {
     public bool FailFast { get; set; }
     /// <summary>Gets or sets an optional aggregate progress observer.</summary>
     public IProgress<TransferBatchProgress>? Progress { get; set; }
+    /// <summary>Gets or sets a caller-controlled JSON checkpoint file for restartable completed items.</summary>
+    /// <remarks>Keep this file in a directory writable only by the automation identity. On restart, a saved
+    /// result is reused only after source identity and destination content are checked.</remarks>
+    public string? CheckpointPath { get; set; }
 }
 
 /// <summary>Describes aggregate progress across a transfer batch.</summary>
@@ -51,6 +55,8 @@ public enum TransferBatchItemOutcome {
     Copied,
     /// <summary>The destination policy skipped the item.</summary>
     Skipped,
+    /// <summary>A prior completed copy was validated from its checkpoint and needed no new write.</summary>
+    Resumed,
     /// <summary>The item failed.</summary>
     Failed,
     /// <summary>The item was canceled before completion.</summary>
