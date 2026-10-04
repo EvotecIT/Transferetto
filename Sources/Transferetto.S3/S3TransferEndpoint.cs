@@ -89,7 +89,7 @@ public sealed class S3TransferEndpoint : ITransferEndpoint, IDisposable {
                 ContinuationToken = continuationToken
             }, cancellationToken).ConfigureAwait(false);
 
-            items.AddRange(response.S3Objects.Select(item => new TransferItem {
+            items.AddRange((response.S3Objects ?? new List<S3Object>()).Select(item => new TransferItem {
                 Path = ToRelativeKey(item.Key),
                 Length = item.Size,
                 LastModifiedUtc = item.LastModified,
@@ -284,11 +284,15 @@ public sealed class S3TransferEndpoint : ITransferEndpoint, IDisposable {
             length = 0;
         }
 
-        using TransferReadTrackingStream trackedContent = new(content, leaveOpen: true);
+        // Validate a bounded single PUT before it can replace the destination. Larger and
+        // unknown-length streams use multipart staging, validated before completion.
+        using MemoryStream stagedContent = new();
+        await TransferContent.CopyToAsync(content, stagedContent, length, cancellationToken).ConfigureAwait(false);
+        stagedContent.Position = 0;
         PutObjectRequest request = new() {
             BucketName = _bucketName,
             Key = key,
-            InputStream = trackedContent,
+            InputStream = stagedContent,
             AutoCloseStream = false,
             ContentType = options.ContentType,
             IfNoneMatch = options.Mode == TransferWriteMode.Overwrite ? null : "*"
@@ -296,11 +300,9 @@ public sealed class S3TransferEndpoint : ITransferEndpoint, IDisposable {
         foreach (KeyValuePair<string, string> pair in metadata) {
             request.Metadata[pair.Key] = pair.Value;
         }
-        if (length.HasValue) {
-            request.Headers.ContentLength = length.Value;
-        }
+        request.Headers.ContentLength = stagedContent.Length;
         PutObjectResponse response = await _client.PutObjectAsync(request, cancellationToken).ConfigureAwait(false);
-        return new S3ObjectWriteResult(response.ETag, response.VersionId, trackedContent.BytesRead);
+        return new S3ObjectWriteResult(response.ETag, response.VersionId, stagedContent.Length);
     }
 
     private string ResolveKey(string path, bool allowEmpty = false) {

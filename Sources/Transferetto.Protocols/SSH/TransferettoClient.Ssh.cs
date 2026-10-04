@@ -251,7 +251,7 @@ public static partial class TransferettoClient {
         EnsureNotNull(session, nameof(session));
         EnsureNotNullOrWhiteSpace(pattern, nameof(pattern));
 
-        Regex regex = new(pattern, RegexOptions.Multiline);
+        Regex regex = new(pattern, RegexOptions.Multiline, TimeSpan.FromSeconds(1));
         return ReadSshShellUntilRegexMatchAsync(session, regex, timeout, lookback, options, cancellationToken);
     }
     /// <summary>
@@ -301,6 +301,9 @@ public static partial class TransferettoClient {
 
         while (true) {
             effectiveCancellationToken.ThrowIfCancellationRequested();
+            if (timeout.HasValue && timeout.Value >= TimeSpan.Zero && overallStopwatch.Elapsed >= timeout.Value) {
+                return builder.ToString();
+            }
 
             if (TryAppendAvailableSshShellOutput(session, builder, options)) {
                 receivedAnyData = true;
@@ -550,7 +553,7 @@ public static partial class TransferettoClient {
             throw new InvalidOperationException("No SSH shell prompt pattern was configured.");
         }
 
-        Regex regex = new(resolvedPattern, RegexOptions.Multiline);
+        Regex regex = new(resolvedPattern, RegexOptions.Multiline, TimeSpan.FromSeconds(1));
         return ReadSshShellUntilRegexMatchAsync(session, regex, timeout, lookback, options, cancellationToken);
     }
     /// <summary>
@@ -582,21 +585,23 @@ public static partial class TransferettoClient {
         CancellationToken effectiveCancellationToken = ResolveSshShellReadCancellationToken(options, cancellationToken, linkedCancellationSource);
         TimeSpan pollInterval = ResolveShellPollInterval(options);
         Stopwatch stopwatch = Stopwatch.StartNew();
-        Regex? stopRegex = !string.IsNullOrWhiteSpace(stopPattern) ? new Regex(stopPattern, RegexOptions.Multiline) : null;
+        Regex? stopRegex = !string.IsNullOrWhiteSpace(stopPattern) ? new Regex(stopPattern, RegexOptions.Multiline, TimeSpan.FromSeconds(1)) : null;
         StringBuilder builder = new();
 
         while (true) {
             effectiveCancellationToken.ThrowIfCancellationRequested();
+            if (timeout.HasValue && timeout.Value >= TimeSpan.Zero && stopwatch.Elapsed >= timeout.Value) {
+                return builder.ToString();
+            }
 
             if (TryAppendAvailableSshShellOutput(session, builder, options)) {
                 if (stopRegex is null) {
                     continue;
                 }
 
-                string current = builder.ToString();
-                string search = ApplyLookback(current, lookback);
+                string search = GetShellSearchText(builder, lookback);
                 if (stopRegex.IsMatch(search)) {
-                    return current;
+                    return builder.ToString();
                 }
 
                 continue;
@@ -762,7 +767,7 @@ public static partial class TransferettoClient {
         WriteSshShell(session, command, appendLine: true);
         WriteSshShell(session, $"printf '{marker}:%s\\n' $?", appendLine: true);
 
-        Regex markerRegex = new($"(?m)^{Regex.Escape(marker)}:(-?\\d+)\\r?$", RegexOptions.Multiline);
+        Regex markerRegex = new($"(?m)^{Regex.Escape(marker)}:(-?\\d+)\\r?$", RegexOptions.Multiline, TimeSpan.FromSeconds(1));
         string output = await ReadSshShellUntilRegexMatchAsync(session, markerRegex, timeout, lookback, options, cancellationToken).ConfigureAwait(false);
         Match markerMatch = markerRegex.Match(output);
         int? exitCode = null;
@@ -780,7 +785,7 @@ public static partial class TransferettoClient {
             : session.PromptPattern;
 
         if (!string.IsNullOrWhiteSpace(resolvedPromptPattern)) {
-            Regex promptRegex = new(resolvedPromptPattern, RegexOptions.Multiline);
+            Regex promptRegex = new(resolvedPromptPattern, RegexOptions.Multiline, TimeSpan.FromSeconds(1));
             string trailingAfterMarker = markerMatch.Success
                 ? output.Substring(markerMatch.Index + markerMatch.Length)
                 : string.Empty;
@@ -826,11 +831,11 @@ public static partial class TransferettoClient {
         string passwordPromptToken = "__TRANSFERETTO_SUDO__" + Guid.NewGuid().ToString("N");
         string commandText = BuildSshShellSudoCommand(recipe.Command!, marker, passwordPromptToken);
         string? resolvedPromptPattern = ResolveSshShellRecipePromptPattern(recipe, session);
-        Regex markerRegex = new($"(?m)^{Regex.Escape(marker)}:(-?\\d+)\\r?$", RegexOptions.Multiline);
+        Regex markerRegex = new($"(?m)^{Regex.Escape(marker)}:(-?\\d+)\\r?$", RegexOptions.Multiline, TimeSpan.FromSeconds(1));
         string passwordPromptPattern = !string.IsNullOrWhiteSpace(recipe.PasswordPromptPattern)
             ? recipe.PasswordPromptPattern!
             : BuildDefaultSudoPasswordPromptPattern(passwordPromptToken);
-        Regex initialRegex = new($"(?m)({passwordPromptPattern})|^{Regex.Escape(marker)}:(-?\\d+)\\r?$", RegexOptions.Multiline);
+        Regex initialRegex = new($"(?m)({passwordPromptPattern})|^{Regex.Escape(marker)}:(-?\\d+)\\r?$", RegexOptions.Multiline, TimeSpan.FromSeconds(1));
 
         WriteSshShell(session, commandText, appendLine: true);
         string output = await ReadSshShellUntilRegexMatchAsync(session, initialRegex, recipe.Timeout, recipe.Lookback, options, cancellationToken).ConfigureAwait(false);
@@ -841,7 +846,7 @@ public static partial class TransferettoClient {
             }
 
             WriteSshShell(session, recipe.Password, appendLine: true, recordTranscript: false);
-            Regex completionRegex = new($"(?m)({passwordPromptPattern})|^{Regex.Escape(marker)}:(-?\\d+)\\r?$", RegexOptions.Multiline);
+            Regex completionRegex = new($"(?m)({passwordPromptPattern})|^{Regex.Escape(marker)}:(-?\\d+)\\r?$", RegexOptions.Multiline, TimeSpan.FromSeconds(1));
             string trailingOutput = await ReadSshShellUntilRegexMatchAsync(session, completionRegex, recipe.Timeout, recipe.Lookback, options, cancellationToken).ConfigureAwait(false);
             output += trailingOutput;
 
@@ -857,7 +862,7 @@ public static partial class TransferettoClient {
         }
 
         string cleanedOutput = markerRegex.Replace(output, string.Empty);
-        cleanedOutput = Regex.Replace(cleanedOutput, passwordPromptPattern, string.Empty, RegexOptions.Multiline).TrimEnd();
+        cleanedOutput = Regex.Replace(cleanedOutput, passwordPromptPattern, string.Empty, RegexOptions.Multiline, TimeSpan.FromSeconds(1)).TrimEnd();
         cleanedOutput = TrimLeadingCommandEcho(cleanedOutput, commandText);
         cleanedOutput = await AppendTrailingPromptOutputAsync(session, cleanedOutput, output, markerMatch, resolvedPromptPattern, recipe.Timeout, recipe.Lookback, options, cancellationToken).ConfigureAwait(false);
 
@@ -1041,7 +1046,7 @@ public static partial class TransferettoClient {
             return cleanedOutput;
         }
 
-        Regex promptRegex = new(promptPattern, RegexOptions.Multiline);
+        Regex promptRegex = new(promptPattern, RegexOptions.Multiline, TimeSpan.FromSeconds(1));
         string trailingAfterMarker = markerMatch.Success
             ? rawOutput.Substring(markerMatch.Index + markerMatch.Length)
             : string.Empty;
@@ -1107,16 +1112,16 @@ public static partial class TransferettoClient {
         string search = ApplyLookback(output, step.Lookback);
         if (step.Follow) {
             string? stopPattern = ResolveSshShellExpectStopPattern(step, session);
-            return string.IsNullOrWhiteSpace(stopPattern) || new Regex(stopPattern, RegexOptions.Multiline).IsMatch(search);
+            return string.IsNullOrWhiteSpace(stopPattern) || new Regex(stopPattern, RegexOptions.Multiline, TimeSpan.FromSeconds(1)).IsMatch(search);
         }
 
         string? promptPattern = ResolveSshShellPromptPattern(step.PromptPattern, step.PromptPreset) ?? session.PromptPattern;
         if (step.ExpectPrompt || !string.IsNullOrWhiteSpace(promptPattern)) {
-            return !string.IsNullOrWhiteSpace(promptPattern) && new Regex(promptPattern, RegexOptions.Multiline).IsMatch(search);
+            return !string.IsNullOrWhiteSpace(promptPattern) && new Regex(promptPattern, RegexOptions.Multiline, TimeSpan.FromSeconds(1)).IsMatch(search);
         }
 
         if (!string.IsNullOrWhiteSpace(step.RegexPattern)) {
-            return new Regex(step.RegexPattern, RegexOptions.Multiline).IsMatch(search);
+            return new Regex(step.RegexPattern, RegexOptions.Multiline, TimeSpan.FromSeconds(1)).IsMatch(search);
         }
 
         if (!string.IsNullOrWhiteSpace(step.ExpectText)) {
@@ -1314,6 +1319,7 @@ public static partial class TransferettoClient {
 
         return new TransferettoSshShellReadOptions {
             PollInterval = options.PollInterval,
+            MaxCapturedCharacters = options.MaxCapturedCharacters,
             OutputProgress = options.OutputProgress
         };
     }
@@ -1420,12 +1426,14 @@ public static partial class TransferettoClient {
 
         while (true) {
             effectiveCancellationToken.ThrowIfCancellationRequested();
+            if (timeout.HasValue && timeout.Value >= TimeSpan.Zero && stopwatch.Elapsed >= timeout.Value) {
+                return builder.ToString();
+            }
 
             if (TryAppendAvailableSshShellOutput(session, builder, options)) {
-                string current = builder.ToString();
-                string search = ApplyLookback(current, lookback);
+                string search = GetShellSearchText(builder, lookback);
                 if (regex.IsMatch(search)) {
-                    return current;
+                    return builder.ToString();
                 }
 
                 continue;
@@ -1454,12 +1462,14 @@ public static partial class TransferettoClient {
 
         while (true) {
             effectiveCancellationToken.ThrowIfCancellationRequested();
+            if (timeout.HasValue && timeout.Value >= TimeSpan.Zero && stopwatch.Elapsed >= timeout.Value) {
+                return builder.ToString();
+            }
 
             if (TryAppendAvailableSshShellOutput(session, builder, options)) {
-                string current = builder.ToString();
-                string search = ApplyLookback(current, lookback);
+                string search = GetShellSearchText(builder, lookback);
                 if (search.IndexOf(expectedText, StringComparison.Ordinal) >= 0) {
-                    return current;
+                    return builder.ToString();
                 }
 
                 continue;
@@ -1486,6 +1496,9 @@ public static partial class TransferettoClient {
 
         while (true) {
             effectiveCancellationToken.ThrowIfCancellationRequested();
+            if (timeout.HasValue && timeout.Value >= TimeSpan.Zero && stopwatch.Elapsed >= timeout.Value) {
+                return builder.ToString();
+            }
 
             if (TryAppendAvailableSshShellOutput(session, builder, options)) {
                 string current = builder.ToString();
@@ -1512,6 +1525,7 @@ public static partial class TransferettoClient {
     private static string ReadAvailableSshShellOutput(TransferettoSshShellSession session, TransferettoSshShellReadOptions? options) {
         string pendingOutput = session.ConsumePendingReadOutput();
         if (!string.IsNullOrEmpty(pendingOutput)) {
+            EnsureSshCaptureLimit(pendingOutput.Length, options);
             return pendingOutput;
         }
 
@@ -1521,6 +1535,7 @@ public static partial class TransferettoClient {
 
         string output = session.ShellStream.Read();
         ReportSshShellChunk(session, output, options);
+        EnsureSshCaptureLimit(output.Length, options);
         return output;
     }
 
@@ -1533,8 +1548,15 @@ public static partial class TransferettoClient {
             return false;
         }
 
+        EnsureSshCaptureLimit((long)builder.Length + output.Length, options);
         builder.Append(output);
         return true;
+    }
+
+    private static void EnsureSshCaptureLimit(long capturedCharacters, TransferettoSshShellReadOptions? options) {
+        if (options?.MaxCapturedCharacters is int maximum && (maximum < 0 || capturedCharacters > maximum)) {
+            throw new IOException("SSH output exceeded the configured capture limit. Use OutputProgress to stream output or increase the limit.");
+        }
     }
 
     private static void ReportSshShellChunk(
@@ -1722,228 +1744,6 @@ public static partial class TransferettoClient {
         };
     }
 
-    private static string NormalizeFingerprint(string? fingerprint) {
-        string normalized = (fingerprint ?? string.Empty).Trim();
-
-        if (normalized.StartsWith("SHA256:", StringComparison.OrdinalIgnoreCase)) {
-            normalized = normalized.Substring("SHA256:".Length);
-        } else if (normalized.StartsWith("SHA256", StringComparison.OrdinalIgnoreCase)) {
-            normalized = normalized.Substring("SHA256".Length);
-        } else if (normalized.StartsWith("MD5:", StringComparison.OrdinalIgnoreCase)) {
-            normalized = normalized.Substring("MD5:".Length);
-        } else if (normalized.StartsWith("MD5", StringComparison.OrdinalIgnoreCase)) {
-            normalized = normalized.Substring("MD5".Length);
-        }
-
-        return normalized
-            .Replace(":", string.Empty)
-            .Replace("-", string.Empty)
-            .Replace("=", string.Empty)
-            .Trim()
-            .ToLowerInvariant();
-    }
-
-    private static TransferettoSshHostKeyInfo EvaluateHostKeyTrust(TransferettoSshConnectionOptions options, HostKeyEventArgs args) {
-        TransferettoSshHostKeyInfo hostKeyInfo = CreateHostKeyInfo(args);
-
-        if (options.AcceptAnyHostKey) {
-            hostKeyInfo.CanTrust = true;
-            hostKeyInfo.TrustSource = TransferettoSshHostKeyTrustSource.AcceptAny;
-            return hostKeyInfo;
-        }
-
-        string[] expectedFingerprints = options.ExpectedHostKeyFingerprints?
-            .Where(static value => !string.IsNullOrWhiteSpace(value))
-            .Select(NormalizeFingerprint)
-            .Where(static value => !string.IsNullOrWhiteSpace(value))
-            .Distinct(StringComparer.Ordinal)
-            .ToArray() ?? Array.Empty<string>();
-
-        if (expectedFingerprints.Length > 0) {
-            hostKeyInfo.CanTrust = FingerprintMatches(expectedFingerprints, hostKeyInfo);
-            hostKeyInfo.TrustSource = hostKeyInfo.CanTrust
-                ? TransferettoSshHostKeyTrustSource.ExpectedFingerprint
-                : TransferettoSshHostKeyTrustSource.None;
-            return hostKeyInfo;
-        }
-
-        switch (options.HostKeyPolicy) {
-            case TransferettoSshHostKeyPolicy.Loose:
-                hostKeyInfo.CanTrust = true;
-                hostKeyInfo.TrustSource = TransferettoSshHostKeyTrustSource.Loose;
-                return hostKeyInfo;
-            case TransferettoSshHostKeyPolicy.KnownHosts:
-                return EvaluateKnownHostsTrust(options, hostKeyInfo, false);
-            case TransferettoSshHostKeyPolicy.TrustOnFirstUse:
-            default:
-                return EvaluateKnownHostsTrust(options, hostKeyInfo, true);
-        }
-    }
-
-    private static TransferettoSshHostKeyInfo EvaluateKnownHostsTrust(
-        TransferettoSshConnectionOptions options,
-        TransferettoSshHostKeyInfo hostKeyInfo,
-        bool trustOnFirstUse) {
-        string knownHostsPath = ResolveKnownHostsPath(options);
-        hostKeyInfo.KnownHostsPath = knownHostsPath;
-
-        List<TransferettoSshKnownHostEntry> entries = LoadKnownHosts(knownHostsPath);
-        TransferettoSshKnownHostEntry[] matchingEntries = entries
-            .Where(entry => string.Equals(entry.Host, options.Server, StringComparison.OrdinalIgnoreCase) && entry.Port == (options.Port ?? 22))
-            .ToArray();
-
-        if (matchingEntries.Length == 0) {
-            if (!trustOnFirstUse) {
-                hostKeyInfo.CanTrust = false;
-                hostKeyInfo.TrustSource = TransferettoSshHostKeyTrustSource.None;
-                return hostKeyInfo;
-            }
-
-            entries.Add(CreateKnownHostEntry(options, hostKeyInfo));
-            SaveKnownHosts(knownHostsPath, entries);
-            hostKeyInfo.CanTrust = true;
-            hostKeyInfo.TrustSource = TransferettoSshHostKeyTrustSource.TrustOnFirstUse;
-            hostKeyInfo.WasPersisted = true;
-            return hostKeyInfo;
-        }
-
-        TransferettoSshKnownHostEntry? trustedEntry = matchingEntries.FirstOrDefault(entry => KnownHostMatches(entry, hostKeyInfo));
-        bool isTrusted = trustedEntry is not null;
-        if (trustedEntry is not null) {
-            trustedEntry.LastSeenUtc = DateTime.UtcNow.ToString("O");
-            SaveKnownHosts(knownHostsPath, entries);
-        }
-
-        hostKeyInfo.CanTrust = isTrusted;
-        hostKeyInfo.TrustSource = isTrusted
-            ? TransferettoSshHostKeyTrustSource.KnownHosts
-            : TransferettoSshHostKeyTrustSource.None;
-        return hostKeyInfo;
-    }
-
-    private static TransferettoSshHostKeyInfo CreateHostKeyInfo(HostKeyEventArgs args) {
-        return new TransferettoSshHostKeyInfo {
-            HostKeyName = args.HostKeyName,
-            KeyLength = args.KeyLength,
-            FingerPrintMD5 = args.FingerPrintMD5,
-            FingerPrintSHA256 = args.FingerPrintSHA256
-        };
-    }
-
-    private static bool FingerprintMatches(IEnumerable<string> expectedFingerprints, TransferettoSshHostKeyInfo hostKeyInfo) {
-        string normalizedMd5 = NormalizeFingerprint(hostKeyInfo.FingerPrintMD5);
-        string normalizedSha256 = NormalizeFingerprint(hostKeyInfo.FingerPrintSHA256);
-
-        return expectedFingerprints.Any(expected => expected == normalizedMd5 || expected == normalizedSha256);
-    }
-
-    private static bool KnownHostMatches(TransferettoSshKnownHostEntry entry, TransferettoSshHostKeyInfo hostKeyInfo) {
-        if (!string.Equals(entry.HostKeyName, hostKeyInfo.HostKeyName, StringComparison.Ordinal)) {
-            return false;
-        }
-
-        return FingerprintMatches(
-            new[] {
-                NormalizeFingerprint(entry.FingerPrintMD5),
-                NormalizeFingerprint(entry.FingerPrintSHA256)
-            }.Where(static value => !string.IsNullOrWhiteSpace(value)),
-            hostKeyInfo);
-    }
-
-    private static string ResolveKnownHostsPath(TransferettoSshConnectionOptions options) {
-        if (!string.IsNullOrWhiteSpace(options.KnownHostsPath)) {
-            return options.KnownHostsPath!;
-        }
-
-        string root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        if (string.IsNullOrWhiteSpace(root)) {
-            root = AppDomain.CurrentDomain.BaseDirectory;
-        }
-
-        return Path.Combine(root, "Transferetto", "ssh-known-hosts.tsv");
-    }
-
-    private static List<TransferettoSshKnownHostEntry> LoadKnownHosts(string path) {
-        if (!File.Exists(path)) {
-            return new List<TransferettoSshKnownHostEntry>();
-        }
-
-        List<TransferettoSshKnownHostEntry> entries = new();
-        foreach (string rawLine in File.ReadAllLines(path)) {
-            string line = rawLine.Trim();
-            if (line.Length == 0 || line.StartsWith("#", StringComparison.Ordinal)) {
-                continue;
-            }
-
-            string[] parts = line.Split('\t');
-            if (parts.Length < 8) {
-                continue;
-            }
-
-            if (!int.TryParse(parts[1], out int port)) {
-                continue;
-            }
-
-            if (!int.TryParse(parts[5], out int keyLength)) {
-                keyLength = 0;
-            }
-
-            entries.Add(new TransferettoSshKnownHostEntry {
-                Host = parts[0],
-                Port = port,
-                HostKeyName = parts[2],
-                FingerPrintMD5 = parts[3],
-                FingerPrintSHA256 = parts[4],
-                KeyLength = keyLength,
-                FirstSeenUtc = parts[6],
-                LastSeenUtc = parts[7]
-            });
-        }
-
-        return entries;
-    }
-
-    private static void SaveKnownHosts(string path, IEnumerable<TransferettoSshKnownHostEntry> entries) {
-        string? directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrWhiteSpace(directory)) {
-            Directory.CreateDirectory(directory);
-        }
-
-        string[] lines = entries.Select(SerializeKnownHostEntry).ToArray();
-        File.WriteAllLines(path, lines);
-    }
-
-    private static string SerializeKnownHostEntry(TransferettoSshKnownHostEntry entry) {
-        return string.Join("\t", new[] {
-            SanitizeKnownHostValue(entry.Host),
-            entry.Port.ToString(),
-            SanitizeKnownHostValue(entry.HostKeyName),
-            SanitizeKnownHostValue(entry.FingerPrintMD5),
-            SanitizeKnownHostValue(entry.FingerPrintSHA256),
-            entry.KeyLength.ToString(),
-            SanitizeKnownHostValue(entry.FirstSeenUtc),
-            SanitizeKnownHostValue(entry.LastSeenUtc)
-        });
-    }
-
-    private static string SanitizeKnownHostValue(string? value) {
-        return (value ?? string.Empty).Replace("\t", " ").Trim();
-    }
-
-    private static TransferettoSshKnownHostEntry CreateKnownHostEntry(TransferettoSshConnectionOptions options, TransferettoSshHostKeyInfo hostKeyInfo) {
-        string now = DateTime.UtcNow.ToString("O");
-        return new TransferettoSshKnownHostEntry {
-            Host = options.Server,
-            Port = options.Port ?? 22,
-            HostKeyName = hostKeyInfo.HostKeyName,
-            FingerPrintMD5 = hostKeyInfo.FingerPrintMD5,
-            FingerPrintSHA256 = hostKeyInfo.FingerPrintSHA256,
-            KeyLength = hostKeyInfo.KeyLength,
-            FirstSeenUtc = now,
-            LastSeenUtc = now
-        };
-    }
-
     private static string ApplyLookback(string value, int lookback) {
         if (lookback <= 0 || value.Length <= lookback) {
             return value;
@@ -1951,6 +1751,9 @@ public static partial class TransferettoClient {
 
         return value.Substring(value.Length - lookback, lookback);
     }
+
+    private static string GetShellSearchText(StringBuilder builder, int lookback) => lookback > 0 && builder.Length > lookback
+        ? builder.ToString(builder.Length - lookback, lookback) : builder.ToString();
 
     private static string TrimLeadingCommandEcho(string output, string command) {
         if (string.IsNullOrEmpty(output)) {

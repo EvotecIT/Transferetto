@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,28 +32,58 @@ public static class TransferContent {
         }
 
         long? validatedLength = expectedLength >= 0 ? expectedLength : null;
-        byte[] buffer = new byte[81920];
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(81920);
         long bytesCopied = 0;
-        while (true) {
-            int read = await content.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
-            if (read == 0) {
-                break;
+        try {
+            while (true) {
+#if NET8_0_OR_GREATER
+                int read = await content.ReadAsync(buffer.AsMemory(0, 81920), cancellationToken).ConfigureAwait(false);
+#else
+                int read = await content.ReadAsync(buffer, 0, 81920, cancellationToken).ConfigureAwait(false);
+#endif
+                if (read == 0) {
+                    break;
+                }
+
+                long nextBytesCopied = checked(bytesCopied + read);
+                if (validatedLength.HasValue && nextBytesCopied > validatedLength.Value) {
+                    throw new EndOfStreamException(
+                        $"The content produced more than its expected length of {validatedLength.Value} bytes.");
+                }
+
+#if NET8_0_OR_GREATER
+                await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+#else
+                await destination.WriteAsync(buffer, 0, read, cancellationToken).ConfigureAwait(false);
+#endif
+                bytesCopied = nextBytesCopied;
             }
 
-            long nextBytesCopied = checked(bytesCopied + read);
-            if (validatedLength.HasValue && nextBytesCopied > validatedLength.Value) {
+            if (validatedLength.HasValue && bytesCopied != validatedLength.Value) {
                 throw new EndOfStreamException(
-                    $"The content produced more than its expected length of {validatedLength.Value} bytes.");
+                    $"The content produced {bytesCopied} bytes but its expected length is {validatedLength.Value}.");
             }
-
-            await destination.WriteAsync(buffer, 0, read, cancellationToken).ConfigureAwait(false);
-            bytesCopied = nextBytesCopied;
+            return bytesCopied;
+        } finally {
+            ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
         }
+    }
 
-        if (validatedLength.HasValue && bytesCopied != validatedLength.Value) {
-            throw new EndOfStreamException(
-                $"The content produced {bytesCopied} bytes but its expected length is {validatedLength.Value}.");
+    /// <summary>Fills a bounded staging block, stopping only at end of stream or when the block is full.</summary>
+    public static async Task<int> ReadBlockAsync(Stream content, byte[] buffer, int count, CancellationToken cancellationToken = default) {
+        if (content == null) { throw new ArgumentNullException(nameof(content)); }
+        if (buffer == null) { throw new ArgumentNullException(nameof(buffer)); }
+        if (count < 0 || count > buffer.Length) { throw new ArgumentOutOfRangeException(nameof(count)); }
+        int total = 0;
+        while (total < count) {
+#if NET8_0_OR_GREATER
+            int read = await content.ReadAsync(buffer.AsMemory(total, count - total), cancellationToken).ConfigureAwait(false);
+#else
+            int read = await content.ReadAsync(buffer, total, count - total, cancellationToken).ConfigureAwait(false);
+#endif
+            if (read == 0) { break; }
+            total += read;
         }
-        return bytesCopied;
+        return total;
     }
 }

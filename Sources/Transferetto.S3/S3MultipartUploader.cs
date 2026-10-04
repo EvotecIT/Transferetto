@@ -11,14 +11,14 @@ using Transferetto.Core;
 namespace Transferetto.S3;
 
 internal static class S3MultipartUploader {
-    private const long MaximumSinglePutBytes = 5L * 1024 * 1024 * 1024;
+    private const long MaximumSinglePutBytes = 64L * 1024 * 1024;
     private const long MaximumObjectBytes = 5L * 1024 * 1024 * 1024 * 1024;
     private const int MaximumParts = 10_000;
     private const int DefaultPartBytes = 64 * 1024 * 1024;
     private const int PartSizeAlignmentBytes = 1024 * 1024;
 
     internal static bool RequiresMultipartUpload(long? length) =>
-        !length.HasValue || length.Value > MaximumSinglePutBytes;
+        !length.HasValue || length.Value < 0 || length.Value > MaximumSinglePutBytes;
 
     internal static async Task<S3ObjectWriteResult?> UploadAsync(
         IAmazonS3 client,
@@ -50,7 +50,7 @@ internal static class S3MultipartUploader {
             try {
                 int partNumber = 1;
                 while (true) {
-                    int count = await ReadPartAsync(content, buffer, partSize, cancellationToken)
+                    int count = await TransferContent.ReadBlockAsync(content, buffer, partSize, cancellationToken)
                         .ConfigureAwait(false);
                     if (count == 0) {
                         break;
@@ -58,6 +58,10 @@ internal static class S3MultipartUploader {
                     if (partNumber > MaximumParts) {
                         throw new IOException(
                             $"The S3 multipart upload exceeded the {MaximumParts} part service limit.");
+                    }
+                    long nextBytesWritten = checked(bytesWritten + count);
+                    if ((length >= 0 && nextBytesWritten > length.Value) || nextBytesWritten > MaximumObjectBytes) {
+                        throw new EndOfStreamException("The content exceeds the advertised length or S3 object size limit.");
                     }
 
                     using MemoryStream partStream = new(buffer, 0, count, writable: false, publiclyVisible: true);
@@ -74,13 +78,16 @@ internal static class S3MultipartUploader {
                         PartNumber = partNumber,
                         ETag = uploaded.ETag
                     });
-                    bytesWritten += count;
+                    bytesWritten = nextBytesWritten;
                     partNumber++;
                 }
             } finally {
                 ArrayPool<byte>.Shared.Return(buffer);
             }
 
+            if (length >= 0 && bytesWritten != length.Value) {
+                throw new EndOfStreamException($"The content produced {bytesWritten} bytes but its expected length is {length.Value}.");
+            }
             if (parts.Count == 0) {
                 return null;
             }
@@ -133,22 +140,6 @@ internal static class S3MultipartUploader {
         return (int)selected;
     }
 
-    private static async Task<int> ReadPartAsync(
-        Stream content,
-        byte[] buffer,
-        int count,
-        CancellationToken cancellationToken) {
-        int total = 0;
-        while (total < count) {
-            int read = await content.ReadAsync(buffer, total, count - total, cancellationToken)
-                .ConfigureAwait(false);
-            if (read == 0) {
-                break;
-            }
-            total += read;
-        }
-        return total;
-    }
 }
 
 internal sealed class S3ObjectWriteResult {

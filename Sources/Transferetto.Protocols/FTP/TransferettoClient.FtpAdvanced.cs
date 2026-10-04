@@ -287,6 +287,7 @@ public static partial class TransferettoClient {
                     lastReportedBytes);
             };
 
+        EnsureSafeLocalDirectoryTree(localPath, options?.CancellationToken ?? default);
         List<FtpResult> results = session.Client.UploadDirectory(localPath, remotePath, folderSyncMode, remoteExists, verifyOptions, rules?.ToList(), progress);
 
         return results.Select(result => FromFtpResult("UploadDirectory", localPath, result)).ToArray();
@@ -335,6 +336,10 @@ public static partial class TransferettoClient {
                     lastReportedBytes);
             };
 
+        EnsureSafeLocalDirectoryTree(localPath, options?.CancellationToken ?? default);
+        // Validate the same remote namespace before handing recursion to FluentFTP.
+        BuildFtpRemoteSyncManifest(session, NormalizeRemotePath(remotePath), localPath);
+        options?.CancellationToken.ThrowIfCancellationRequested();
         List<FtpResult> results = session.Client.DownloadDirectory(localPath, remotePath, folderSyncMode, localExists, verifyOptions, rules?.ToList(), progress);
         return results.Select(result => FromFtpResult("DownloadDirectory", localPath, result)).ToArray();
     }

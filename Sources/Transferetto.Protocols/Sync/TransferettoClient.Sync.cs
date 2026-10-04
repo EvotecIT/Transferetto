@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using Transferetto.Core;
 
 namespace Transferetto;
 
 public static partial class TransferettoClient {
-    private static IReadOnlyList<TransferettoSyncEntry> BuildLocalSyncManifest(string localRoot, string remoteRoot) {
+    private static IReadOnlyList<TransferettoSyncEntry> BuildLocalSyncManifest(string localRoot, string remoteRoot, CancellationToken cancellationToken = default) {
         EnsureNotNullOrWhiteSpace(localRoot, nameof(localRoot));
         DirectoryInfo root = new(localRoot);
         if (!root.Exists) {
@@ -14,35 +16,23 @@ public static partial class TransferettoClient {
         }
 
         List<TransferettoSyncEntry> entries = new();
-        foreach (DirectoryInfo directory in root.GetDirectories("*", SearchOption.AllDirectories)) {
-            string relativePath = GetLocalRelativePath(root.FullName, directory.FullName);
+        foreach (FileSystemInfo item in TransferFileSystem.EnumerateEntries(root.FullName, cancellationToken: cancellationToken)) {
+            string relativePath = GetLocalRelativePath(root.FullName, item.FullName);
             entries.Add(new TransferettoSyncEntry {
                 RelativePath = relativePath,
-                LocalPath = directory.FullName,
+                LocalPath = item.FullName,
                 RemotePath = CombineSyncRemotePath(remoteRoot, relativePath),
-                IsDirectory = true,
-                LastWriteTimeUtc = directory.LastWriteTimeUtc
+                IsDirectory = item is DirectoryInfo,
+                Length = item is FileInfo file ? file.Length : null,
+                LastWriteTimeUtc = item.LastWriteTimeUtc
             });
         }
-
-        foreach (FileInfo file in root.GetFiles("*", SearchOption.AllDirectories)) {
-            string relativePath = GetLocalRelativePath(root.FullName, file.FullName);
-            entries.Add(new TransferettoSyncEntry {
-                RelativePath = relativePath,
-                LocalPath = file.FullName,
-                RemotePath = CombineSyncRemotePath(remoteRoot, relativePath),
-                IsDirectory = false,
-                Length = file.Length,
-                LastWriteTimeUtc = file.LastWriteTimeUtc
-            });
-        }
-
         return entries;
     }
 
-    private static IReadOnlyList<TransferettoSyncEntry> BuildLocalSyncManifestOrEmpty(string localRoot, string remoteRoot) {
+    private static IReadOnlyList<TransferettoSyncEntry> BuildLocalSyncManifestOrEmpty(string localRoot, string remoteRoot, CancellationToken cancellationToken = default) {
         return Directory.Exists(localRoot)
-            ? BuildLocalSyncManifest(localRoot, remoteRoot)
+            ? BuildLocalSyncManifest(localRoot, remoteRoot, cancellationToken)
             : Array.Empty<TransferettoSyncEntry>();
     }
 

@@ -142,6 +142,7 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
                 FileShare.None,
                 81920,
                 FileOptions.Asynchronous | FileOptions.SequentialScan)) {
+                TransferFileSystem.PreserveStagingPermissions(tempPath, fullPath);
                 await TransferContent.CopyToAsync(content, target, length, cancellationToken).ConfigureAwait(false);
                 await target.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
@@ -216,23 +217,10 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
     }
 
     private string ResolvePath(string path, bool allowEmpty = false) {
-        if (!allowEmpty && string.IsNullOrEmpty(path)) {
-            throw new ArgumentException("An endpoint-relative path is required.", nameof(path));
-        }
-        if (Path.IsPathRooted(path ?? string.Empty)) {
-            throw new ArgumentException("The path must be relative to the endpoint root.", nameof(path));
-        }
-
-        string candidate = Path.GetFullPath(Path.Combine(_rootPath, path ?? string.Empty));
-        string rootWithSeparator = EnsureTrailingSeparator(_rootPath);
-        if (!candidate.Equals(_rootPath, _pathComparison) &&
-            !candidate.StartsWith(rootWithSeparator, _pathComparison)) {
-            throw new ArgumentException("The path escapes the endpoint root.", nameof(path));
-        }
-        EnsureNoLinkTraversal(candidate);
-        return candidate;
+        string relative = path ?? string.Empty;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) { relative = relative.Replace('\\', '/'); }
+        return TransferFileSystem.ResolveRelativePath(_rootPath, relative, allowEmpty);
     }
-
     private IEnumerable<TransferItem> EnumerateFilesSafely(
         string directory,
         bool recursive,
@@ -259,54 +247,9 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint {
         }
     }
 
-    private void EnsureNoLinkTraversal(string candidate) {
-        if (candidate.Equals(_rootPath, _pathComparison)) {
-            return;
-        }
+    private void EnsureNoLinkTraversal(string candidate) => TransferFileSystem.EnsureNoLinkTraversal(_rootPath, candidate);
 
-        string relativePath = candidate.Substring(_rootPath.Length)
-            .TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        string current = _rootPath;
-        foreach (string segment in relativePath.Split(
-                     new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
-                     StringSplitOptions.RemoveEmptyEntries)) {
-            current = Path.Combine(current, segment);
-            if (!TryGetAttributes(current, out FileAttributes attributes)) {
-                continue;
-            }
-            if ((attributes & FileAttributes.ReparsePoint) != 0) {
-                throw new IOException(
-                    $"The endpoint does not allow symbolic links or reparse points beneath its root: {candidate}");
-            }
-        }
-    }
-
-    private static bool TryGetAttributes(string path, out FileAttributes attributes) {
-        try {
-            attributes = File.GetAttributes(path);
-            return true;
-        } catch (FileNotFoundException) {
-            attributes = default;
-            return false;
-        } catch (DirectoryNotFoundException) {
-            attributes = default;
-            return false;
-        }
-    }
-
-    private void CommitOverwrite(string tempPath, string fullPath) {
-        if (!File.Exists(fullPath)) {
-            try {
-                File.Move(tempPath, fullPath);
-                return;
-            } catch (IOException) when (File.Exists(fullPath)) {
-                // The destination appeared after the check. Replace it below.
-            }
-        }
-        EnsureNoLinkTraversal(fullPath);
-        File.Replace(tempPath, fullPath, null);
-    }
-
+    private void CommitOverwrite(string tempPath, string fullPath) => TransferFileSystem.CommitStagedFile(tempPath, fullPath);
     private static string EnsureTrailingSeparator(string path) =>
         path.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) ||
         path.EndsWith(Path.AltDirectorySeparatorChar.ToString(), StringComparison.Ordinal)

@@ -135,10 +135,9 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
         if (item == null) {
             throw new FileNotFoundException("The source SFTP item does not exist.", relativePath);
         }
-        return ProtocolTransferEndpointResource.OpenRead(
-            () => _session.Client.OpenRead(ProtocolTransferEndpointPath.Resolve(_prefix, relativePath)),
-            item,
-            cancellationToken);
+        Stream stream = await SftpTransferStreamOperations.OpenAsync(_session.Client,
+            ProtocolTransferEndpointPath.Resolve(_prefix, relativePath), FileMode.Open, FileAccess.Read, cancellationToken).ConfigureAwait(false);
+        return new TransferReadHandle(item, stream);
     }
 
     /// <inheritdoc />
@@ -169,9 +168,15 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
 
         EnsureParentDirectory(remotePath);
         string temporaryPath = ProtocolTransferEndpointPath.CreateTemporaryPath(remotePath);
+        Renci.SshNet.Sftp.SftpFileAttributes? existingAttributes = resolvedOptions.Mode == TransferWriteMode.Overwrite
+            ? await SftpTransferStreamOperations.GetExistingAttributesAsync(_session.Client, remotePath, cancellationToken).ConfigureAwait(false)
+            : null;
         long bytesWritten;
         try {
-            using (Stream destination = _session.Client.OpenWrite(temporaryPath)) {
+            using (Stream destination = await SftpTransferStreamOperations.OpenAsync(_session.Client, temporaryPath, FileMode.CreateNew, FileAccess.Write,
+                cancellationToken).ConfigureAwait(false)) {
+                await SftpTransferStreamOperations.PreserveReplacementAttributesAsync(_session.Client, temporaryPath, existingAttributes,
+                    cancellationToken).ConfigureAwait(false);
                 bytesWritten = await TransferContent.CopyToAsync(content, destination, length, cancellationToken).ConfigureAwait(false);
                 await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
@@ -198,7 +203,7 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
                 LastModifiedUtc = DateTimeOffset.UtcNow
             }, wasWritten: true);
         } catch {
-            TryRemoveTemporaryFile(temporaryPath);
+            await SftpTransferStreamOperations.RemoveTemporaryFileAsync(_session, temporaryPath).ConfigureAwait(false);
             throw;
         }
     }
@@ -229,16 +234,6 @@ public sealed class SftpTransferEndpoint : ITransferEndpoint, IDisposable {
         SftpTransferDirectory.Ensure(
             new SftpTransferDirectoryOperations(_session),
             parent!);
-    }
-
-    private void TryRemoveTemporaryFile(string path) {
-        try {
-            if (_session.Client.Exists(path)) {
-                TransferettoClient.RemoveSftpFile(_session, path);
-            }
-        } catch {
-            // Preserve the original transfer failure when best-effort cleanup also fails.
-        }
     }
 
     private SftpTransferEndpoint(OwnedEndpointState state) {

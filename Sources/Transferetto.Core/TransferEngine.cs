@@ -117,7 +117,11 @@ public static class TransferEngine {
         private readonly long? _length;
         private readonly IProgress<TransferProgress>? _progress;
         private readonly long _progressInterval;
+#if NET8_0_OR_GREATER
+        private readonly IncrementalHash _sha256 = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+#else
         private readonly SHA256 _sha256 = SHA256.Create();
+#endif
         private long _lastProgress;
         private bool _completed;
 
@@ -164,33 +168,66 @@ public static class TransferEngine {
             return read;
         }
 
+#if NET8_0_OR_GREATER
+        public override int Read(Span<byte> buffer) {
+            int read = _inner.Read(buffer);
+            Track(buffer.Slice(0, read), read);
+            return read;
+        }
+
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) {
+            int read = await _inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            Track(buffer.Span.Slice(0, read), read);
+            return read;
+        }
+
+        private void Track(ReadOnlySpan<byte> content, int read) {
+            if (!ValidateRead(read)) { return; }
+            _sha256.AppendData(content);
+            ReportProgress(force: false);
+        }
+#endif
+
         internal void Complete() {
             if (_completed) {
                 return;
             }
+#if NET8_0_OR_GREATER
+            Sha256 = Convert.ToHexString(_sha256.GetHashAndReset()).ToLowerInvariant();
+#else
             _sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
             Sha256 = BitConverter.ToString(_sha256.Hash!).Replace("-", string.Empty).ToLowerInvariant();
+#endif
             _completed = true;
             ReportProgress(force: true);
         }
 
         private void Track(byte[] buffer, int offset, int read) {
+            if (!ValidateRead(read)) { return; }
+#if NET8_0_OR_GREATER
+            _sha256.AppendData(buffer, offset, read);
+#else
+            _sha256.TransformBlock(buffer, offset, read, null, 0);
+#endif
+            ReportProgress(force: false);
+        }
+
+        private bool ValidateRead(int read) {
             if (read <= 0) {
                 if (_length.HasValue && BytesRead != _length.Value) {
                     throw new EndOfStreamException(
                         $"The source produced {BytesRead} bytes but reported a length of {_length.Value}.");
                 }
                 Complete();
-                return;
+                return false;
             }
             long nextBytesRead = checked(BytesRead + read);
             if (_length.HasValue && nextBytesRead > _length.Value) {
                 throw new EndOfStreamException(
                     $"The source produced more than its reported length of {_length.Value} bytes.");
             }
-            _sha256.TransformBlock(buffer, offset, read, null, 0);
             BytesRead = nextBytesRead;
-            ReportProgress(force: false);
+            return true;
         }
 
         private void ReportProgress(bool force) {
