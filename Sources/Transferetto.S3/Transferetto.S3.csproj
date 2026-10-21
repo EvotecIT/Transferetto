@@ -32,9 +32,9 @@
 
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="4.0.104.3" />
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.12" />
-    <PackageReference Include="System.Text.Encodings.Web" Version="10.0.12" />
-    <PackageReference Include="System.Text.Json" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.13" />
+    <PackageReference Include="System.Text.Encodings.Web" Version="10.0.13" />
+    <PackageReference Include="System.Text.Json" Version="10.0.13" />
     <ProjectReference Include="..\Transferetto.Core\Transferetto.Core.csproj" />
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
