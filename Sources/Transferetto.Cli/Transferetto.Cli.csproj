@@ -7,7 +7,7 @@
     <ToolCommandName>transferetto</ToolCommandName>
     <IsPackable>true</IsPackable>
     <PackageId>Transferetto.Cli</PackageId>
-    <VersionPrefix>2.0.2</VersionPrefix>
+    <VersionPrefix>2.0.3</VersionPrefix>
     <Description>Command-line file and object transfers through Transferetto endpoints.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/EvotecIT/Transferetto</PackageProjectUrl>

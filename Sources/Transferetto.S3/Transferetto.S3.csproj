@@ -9,9 +9,9 @@
     <AssemblyName>Transferetto.S3</AssemblyName>
     <Title>Transferetto S3 Provider</Title>
     <Description>Amazon S3 and S3-compatible object transfer provider for Transferetto.</Description>
-    <VersionPrefix>2.0.2</VersionPrefix>
-    <AssemblyVersion>2.0.2</AssemblyVersion>
-    <FileVersion>2.0.2</FileVersion>
+    <VersionPrefix>2.0.3</VersionPrefix>
+    <AssemblyVersion>2.0.3</AssemblyVersion>
+    <FileVersion>2.0.3</FileVersion>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <PackageId>Transferetto.S3</PackageId>
     <PackageProjectUrl>https://github.com/EvotecIT/Transferetto</PackageProjectUrl>
