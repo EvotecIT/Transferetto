@@ -140,6 +140,19 @@ public sealed class DirectoryDownloadTests : IDisposable {
         Assert.Equal("new", File.ReadAllText(Path.Combine(selected, "second")));
     }
 
+    [Fact]
+    public void UnknownSizeEmptyFilesFollowTheDisabledZeroBytePolicyForDirectories() {
+        string selected = Path.Combine(_parent, "download");
+        Directory.CreateDirectory(selected);
+        File.WriteAllText(Path.Combine(selected, "first"), "keep");
+        DirectoryFtpClient client = new() { RemoteSize = -1, DownloadZeroByteFiles = false, OmitEmpty = true };
+        var results = TransferettoClient.DownloadFtpDirectoryCore(client, selected, "/root", FtpFolderSyncMode.Mirror,
+            FtpLocalExists.Overwrite, FtpVerify.None, null, new TransferettoTransferOptions());
+        Assert.All(results, result => { Assert.True(result.IsSkipped); Assert.False(result.IsFailed); });
+        Assert.Equal("keep", File.ReadAllText(Path.Combine(selected, "first")));
+        Assert.Single(Directory.GetFileSystemEntries(selected));
+    }
+
     [Theory]
     [InlineData(false, "../escape")]
     [InlineData(true, "../escape")]
@@ -221,7 +234,8 @@ public sealed class DirectoryDownloadTests : IDisposable {
         internal Action? AfterFirst { get; set; }
         internal string SecondName { get; set; } = "second";
         public bool DeleteExcluded { get; set; }
-        public bool DownloadZeroByteFiles => true;
+        public bool DownloadZeroByteFiles { get; set; } = true;
+        internal bool OmitEmpty { get; set; }
         internal FtpDataType DataType { get; set; } = FtpDataType.Binary;
         internal long RemoteSize { get; set; } = 3;
         public FtpDataType DownloadDataType => DataType;
@@ -232,6 +246,7 @@ public sealed class DirectoryDownloadTests : IDisposable {
         };
         public FtpStatus DownloadFile(string localPath, string remotePath, FtpLocalExists existsMode,
             FtpVerify verifyOptions, Action<FtpProgress> progress) {
+            if (OmitEmpty) { return FtpStatus.Success; }
             bool failed = remotePath.EndsWith("second", StringComparison.Ordinal) && FailSecond;
             string content = failed ? "x" : "new";
             if (existsMode == FtpLocalExists.Skip && File.Exists(localPath)) { return FtpStatus.Skipped; }

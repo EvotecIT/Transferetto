@@ -14,14 +14,19 @@ internal sealed class LoopbackFtpServer : IDisposable {
     private readonly bool _failSecond;
     private readonly bool _shortSecond;
     private readonly bool _emptySecond;
+    private readonly string _shortContent;
+    private readonly bool _knownSize;
     private int _restart;
     internal ConcurrentQueue<string> Commands { get; } = new();
     internal int Port { get; }
 
-    internal LoopbackFtpServer(bool failSecond = true, bool shortSecond = false, bool emptySecond = false) {
+    internal LoopbackFtpServer(bool failSecond = true, bool shortSecond = false, bool emptySecond = false,
+        string shortContent = "n", bool knownSize = true) {
         _failSecond = failSecond;
         _shortSecond = shortSecond;
         _emptySecond = emptySecond;
+        _shortContent = shortContent;
+        _knownSize = knownSize;
         _control.Start();
         Port = ((IPEndPoint)_control.LocalEndpoint).Port;
         _run = RunAsync();
@@ -52,7 +57,8 @@ internal sealed class LoopbackFtpServer : IDisposable {
                     case "TYPE": case "OPTS": case "NOOP": await output.WriteLineAsync("200 Accepted"); break;
                     case "REST": _restart = int.Parse(argument, System.Globalization.CultureInfo.InvariantCulture);
                         await output.WriteLineAsync("350 Restart accepted"); break;
-                    case "SIZE": await output.WriteLineAsync(_emptySecond && argument.EndsWith("second", StringComparison.Ordinal) ? "213 0" : "213 3"); break;
+                    case "SIZE": await output.WriteLineAsync(!_knownSize ? "550 Size unavailable" :
+                        _emptySecond && argument.EndsWith("second", StringComparison.Ordinal) ? "213 0" : "213 3"); break;
                     case "EPSV": case "PASV":
                         _data?.Stop();
                         _data = new TcpListener(IPAddress.Loopback, 0); _data.Start();
@@ -67,7 +73,7 @@ internal sealed class LoopbackFtpServer : IDisposable {
                         if (_failSecond && argument.EndsWith("second", StringComparison.Ordinal)) { _data?.Stop(); await output.WriteLineAsync("550 File unavailable"); }
                         else {
                             bool second = argument.EndsWith("second", StringComparison.Ordinal);
-                            string content = second && _emptySecond ? "" : second && _shortSecond ? "n" : "new";
+                            string content = second && _emptySecond ? "" : second && _shortSecond ? _shortContent : "new";
                             content = content.Substring(Math.Min(_restart, content.Length));
                             _restart = 0; await SendDataAsync(output, content);
                         }

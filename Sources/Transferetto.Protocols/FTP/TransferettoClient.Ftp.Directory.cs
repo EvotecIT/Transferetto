@@ -61,9 +61,8 @@ public static partial class TransferettoClient {
                             ResolveFtpTotalBytes(progress, member.Metadata.Size >= 0 ? member.Metadata.Size : null), lastReported);
                     });
                     options.CancellationToken.ThrowIfCancellationRequested();
-                    if (status == FtpStatus.Success) {
-                        ValidateFtpDownloadLength(staged, member.Remote, member.Metadata.Size, operations.DownloadDataType);
-                    }
+                    status = CompleteFtpReceive(staged, member.Remote, member.Metadata.Size,
+                        operations.DownloadDataType, operations.DownloadZeroByteFiles, status);
                     return status == FtpStatus.Success;
                 }, seedExisting: existsMode != FtpLocalExists.Overwrite && existsMode != FtpLocalExists.Skip,
                     cancellationToken: options.CancellationToken);
@@ -94,14 +93,4 @@ public static partial class TransferettoClient {
         return results.Select(result => FromFtpResult("DownloadDirectory", localRoot, result)).ToArray();
     }
 
-    /// <summary>Some FTP peers send a successful completion reply after a short data stream.</summary>
-    private static void ValidateFtpDownloadLength(string staged, string remote, long expectedSize, FtpDataType dataType) {
-        // ASCII transformations and servers without a size cannot support a byte-length comparison.
-        if (dataType != FtpDataType.Binary || expectedSize < 0) { return; }
-        long actualSize = new FileInfo(staged).Length;
-        if (actualSize != expectedSize) {
-            throw new EndOfStreamException("The FTP download length does not match the remote file: " + remote +
-                " (expected " + expectedSize + ", received " + actualSize + " bytes).");
-        }
-    }
 }
