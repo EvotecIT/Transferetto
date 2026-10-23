@@ -337,9 +337,10 @@ public static partial class TransferettoClient {
             };
 
         Transferetto.Core.TransferFileSystem.EnsureNoLinkTraversal(localPath, localPath);
+        Transferetto.Core.TransferPathRegistry destinationNames = new(localPath);
         foreach (string remotePath in resolvedPaths) {
             string name = remotePath.Substring(remotePath.LastIndexOf('/') + 1);
-            Transferetto.Core.TransferFileSystem.ResolveRelativePath(localPath, name);
+            destinationNames.Add(name);
         }
         List<FtpResult> results = session.Client.DownloadFiles(localPath, resolvedPaths, localExists, verifyOptions, errorHandling, progress, null);
         return results.Select(result => new TransferettoTransferResult {

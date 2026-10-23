@@ -342,7 +342,10 @@ public sealed partial class AzureBlobTransferEndpoint : ITransferEndpoint, ITran
         };
 
     private string ResolveName(string path, bool allowEmpty = false) {
-        string normalized = (path ?? string.Empty).Replace('\\', '/').TrimStart('/');
+        string normalized = path ?? string.Empty;
+        if (normalized.StartsWith("/", StringComparison.Ordinal)) {
+            throw new ArgumentException("The Azure SDK cannot address a leading-slash blob name without changing its identity.", nameof(path));
+        }
         if (!allowEmpty && string.IsNullOrEmpty(normalized)) {
             throw new ArgumentException("An endpoint-relative blob name is required.", nameof(path));
         }
@@ -356,8 +359,11 @@ public sealed partial class AzureBlobTransferEndpoint : ITransferEndpoint, ITran
         name.StartsWith(_prefix, StringComparison.Ordinal) ? name.Substring(_prefix.Length) : name;
 
     private static string NormalizePrefix(string? prefix) {
-        string normalized = (prefix ?? string.Empty).Replace('\\', '/').Trim('/');
-        return string.IsNullOrEmpty(normalized) ? string.Empty : normalized + "/";
+        string value = prefix ?? string.Empty;
+        if (value.StartsWith("/", StringComparison.Ordinal)) {
+            throw new ArgumentException("The Azure SDK cannot address a leading-slash blob prefix without changing its identity.", nameof(prefix));
+        }
+        return value.Length == 0 || value.EndsWith("/", StringComparison.Ordinal) ? value : value + "/";
     }
 
     private static void ValidateContainerUri(Uri? containerUri) {

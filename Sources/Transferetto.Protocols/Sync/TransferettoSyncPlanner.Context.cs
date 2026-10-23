@@ -19,7 +19,7 @@ public static partial class TransferettoSyncPlanner {
             bool ignoreCase = options.PathComparison == TransferettoSyncPathComparison.OrdinalIgnoreCase
                 || (options.PathComparison == TransferettoSyncPathComparison.Automatic
                     && options.Direction == TransferettoSyncDirection.Download
-                    && RuntimeInformation.IsOSPlatform(OSPlatform.Windows));
+                    && (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)));
             Comparer = ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
             _inclusion = new Dictionary<string, bool>(Comparer);
             _include = CreatePatterns(options.IncludePatterns);

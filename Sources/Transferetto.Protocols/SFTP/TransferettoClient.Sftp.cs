@@ -351,9 +351,12 @@ public static partial class TransferettoClient {
 
         List<TransferettoTransferResult> results = new();
         TransferFileSystem.EnsureNoLinkTraversal(localPath, localPath);
+        ValidateLocalSyncNames(BuildSftpRemoteSyncManifest(session, normalizedRemotePath, localPath,
+            resolvedOptions.CancellationToken), localPath);
         Directory.CreateDirectory(localPath);
         results.Add(CreateDirectoryTransferResult(localPath, normalizedRemotePath));
-        DownloadSftpDirectoryInternal(session, normalizedRemotePath, localPath, allowOverride, resolvedOptions, results);
+        DownloadSftpDirectoryInternal(session, normalizedRemotePath, localPath, allowOverride, resolvedOptions, results,
+            new TransferPathRegistry(localPath), string.Empty);
         return results;
     }
     /// <summary>
@@ -779,16 +782,20 @@ public static partial class TransferettoClient {
         string localDirectoryPath,
         bool allowOverride,
         TransferettoTransferOptions options,
-        ICollection<TransferettoTransferResult> results) {
+        ICollection<TransferettoTransferResult> results,
+        TransferPathRegistry paths,
+        string relativeDirectory) {
         options.CancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<TransferettoSftpItem> items = GetSftpListing(session, remoteDirectoryPath);
         foreach (TransferettoSftpItem item in items.Where(static item => !IsSpecialSftpDirectory(item))) {
             options.CancellationToken.ThrowIfCancellationRequested();
+            if (item.Name.IndexOf('/') >= 0) { throw new InvalidDataException("An SFTP member name must be a single component."); }
+            string relative = relativeDirectory.Length == 0 ? item.Name : relativeDirectory + "/" + item.Name;
             if (item.IsDirectory) {
-                string localChildPath = Transferetto.Core.TransferFileSystem.ResolveRelativePath(localDirectoryPath, item.Name);
+                string localChildPath = paths.Add(relative);
                 Directory.CreateDirectory(localChildPath);
                 results.Add(CreateDirectoryTransferResult(localChildPath, item.FullName));
-                DownloadSftpDirectoryInternal(session, item.FullName, localChildPath, allowOverride, options, results);
+                DownloadSftpDirectoryInternal(session, item.FullName, localChildPath, allowOverride, options, results, paths, relative);
                 continue;
             }
 
@@ -796,7 +803,7 @@ public static partial class TransferettoClient {
                 continue;
             }
 
-            string localFilePath = Transferetto.Core.TransferFileSystem.ResolveRelativePath(localDirectoryPath, item.Name);
+            string localFilePath = paths.Add(relative);
             if (File.Exists(localFilePath) && !allowOverride) {
                 results.Add(new TransferettoTransferResult {
                     Action = "DownloadFile",

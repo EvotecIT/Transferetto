@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -60,7 +59,7 @@ public static class TransferettoEndpointSync {
                     if (!sourceItems.TryGetValue(relative, out TransferItem? recorded)) {
                         throw new IOException("A planned source file is no longer present in the listing.");
                     }
-                    string sourcePath = Combine(sourceRoot, relative);
+                    string sourcePath = recorded.Path;
                     TransferItem? current = await source.GetItemAsync(sourcePath, cancellationToken).ConfigureAwait(false);
                     EnsureSameVersion(recorded, current, "source");
                     TransferWriteOptions write = new() {
@@ -87,7 +86,7 @@ public static class TransferettoEndpointSync {
                     if (!destinationItems.TryGetValue(relative, out TransferItem? recorded)) {
                         throw new IOException("A planned destination file is no longer present in the listing.");
                     }
-                    string destinationPath = Combine(destinationRoot, relative);
+                    string destinationPath = recorded.Path;
                     TransferItem? current = await destination.GetItemAsync(destinationPath, cancellationToken).ConfigureAwait(false);
                     EnsureSameVersion(recorded, current, "destination");
                     bool deleted = await destination.DeleteAsync(destinationPath, cancellationToken).ConfigureAwait(false);
@@ -142,21 +141,27 @@ public static class TransferettoEndpointSync {
         }
         var sourceManifest = BuildManifest(sourceListing, sourceRoot);
         var destinationManifest = BuildManifest(destinationListing, destinationRoot);
-        if (destination.Scheme == "file" && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            && resolved.PathComparison != TransferettoSyncPathComparison.Ordinal) {
-            HashSet<string> mappedPaths = new(StringComparer.OrdinalIgnoreCase);
+        if (destination is ITransferPathIdentityEndpoint destinationIdentity) {
+            Dictionary<string, string> mappedPaths = new(StringComparer.Ordinal);
             foreach (TransferettoSyncEntry entry in sourceManifest.Entries) {
-                if (!mappedPaths.Add(entry.RelativePath)) {
-                    throw new InvalidDataException("Distinct source paths collide on the Windows destination filesystem.");
+                string identity = destinationIdentity.GetPathIdentity(Combine(destinationRoot, entry.RelativePath));
+                if (mappedPaths.TryGetValue(identity, out string? previous) && previous != entry.RelativePath) {
+                    throw new InvalidDataException("Distinct source paths collide on the destination endpoint.");
                 }
+                mappedPaths[identity] = entry.RelativePath;
             }
         }
         TransferettoSyncOptions plannerOptions = resolved.PathComparison == TransferettoSyncPathComparison.Automatic
-            && destination.Scheme == "file" && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? CopyWithPathComparison(resolved, TransferettoSyncPathComparison.OrdinalIgnoreCase)
+            ? resolved.WithPathComparison(destination is FileSystemTransferEndpoint fileSystem
+                && fileSystem.PathComparison == StringComparison.OrdinalIgnoreCase
+                    ? TransferettoSyncPathComparison.OrdinalIgnoreCase : TransferettoSyncPathComparison.Ordinal)
             : resolved;
         IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(
             sourceManifest.Entries, destinationManifest.Entries, plannerOptions, cancellationToken);
+        if (destination is ITransferPathIdentityEndpoint namedDestination) {
+            TransferettoClient.ValidateSyncDeleteIdentities(plan,
+                item => namedDestination.GetPathIdentity(Combine(destinationRoot, item.RelativePath)));
+        }
         return (plan, sourceManifest.Items, destinationManifest.Items);
     }
 
@@ -190,7 +195,7 @@ public static class TransferettoEndpointSync {
     private static bool TryRelative(string root, string path, out string relative) {
         relative = string.Empty;
         if (string.IsNullOrEmpty(path)) { throw new InvalidDataException("An endpoint listed an empty file path."); }
-        string normalized = path.Replace('\\', '/').TrimStart('/');
+        string normalized = path;
         if (root.Length > 0) {
             if (!normalized.StartsWith(root + "/", StringComparison.Ordinal)) { return false; }
             normalized = normalized.Substring(root.Length + 1);
@@ -200,7 +205,7 @@ public static class TransferettoEndpointSync {
     }
 
     private static string NormalizePrefix(string prefix) {
-        string normalized = (prefix ?? string.Empty).Replace('\\', '/').Trim('/');
+        string normalized = (prefix ?? string.Empty).TrimEnd('/');
         if (normalized.Length > 0) { ValidateRelative(normalized); }
         return normalized;
     }
@@ -267,21 +272,6 @@ public static class TransferettoEndpointSync {
         }
         return adjusted;
     }
-
-    private static TransferettoSyncOptions CopyWithPathComparison(TransferettoSyncOptions options,
-        TransferettoSyncPathComparison comparison) => new() {
-        PathComparison = comparison,
-        Direction = options.Direction,
-        Mode = options.Mode,
-        Comparison = options.Comparison,
-        DryRun = options.DryRun,
-        OverwriteExisting = options.OverwriteExisting,
-        CreateDestinationDirectories = options.CreateDestinationDirectories,
-        PreserveTimestamps = options.PreserveTimestamps,
-        TimestampTolerance = options.TimestampTolerance,
-        IncludePatterns = options.IncludePatterns,
-        ExcludePatterns = options.ExcludePatterns
-    };
 
     private static void EnsureSameVersion(TransferItem recorded, TransferItem? current, string side) {
         if (current == null || (recorded.Length.HasValue && recorded.Length != current.Length)

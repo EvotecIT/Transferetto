@@ -160,14 +160,14 @@ public sealed class TransferettoEndpointSyncTests : IDisposable {
     }
 
     [Fact]
-    public async Task ExplicitOrdinalAllowsCaseDistinctWindowsSourcePathsInPlan() {
+    public async Task ExplicitOrdinalCannotDisablePhysicalDestinationCollisionChecks() {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) { return; }
         string destinationRoot = Path.Combine(_root, "destination");
         Directory.CreateDirectory(destinationRoot);
-        IReadOnlyList<TransferettoSyncPlanItem> plan = await TransferettoEndpointSync.PlanAsync(
+        await Assert.ThrowsAsync<InvalidDataException>(() => TransferettoEndpointSync.PlanAsync(
             new ListingEndpoint("A.txt", "a.txt"), "", new FileSystemTransferEndpoint(destinationRoot), "",
-            new TransferettoSyncOptions { PathComparison = TransferettoSyncPathComparison.Ordinal });
-        Assert.Equal(2, plan.Count(item => item.Action == TransferettoSyncAction.UploadFile));
+            new TransferettoSyncOptions { PathComparison = TransferettoSyncPathComparison.Ordinal }));
+        Assert.Empty(Directory.GetFileSystemEntries(destinationRoot));
     }
 
     private sealed class NoDirectoryEndpoint : ITransferEndpoint {

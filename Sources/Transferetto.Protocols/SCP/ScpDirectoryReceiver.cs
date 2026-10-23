@@ -14,6 +14,7 @@ internal sealed class ScpDirectoryReceiver {
     private readonly Stream _records;
     private readonly Stream _acknowledgements;
     private readonly string _root;
+    private readonly TransferPathRegistry _paths;
     private readonly Action<string, long, long>? _progress;
     private readonly byte[] _singleByte = new byte[1];
     private static readonly Encoding HeaderEncoding = new UTF8Encoding(false, true);
@@ -22,6 +23,7 @@ internal sealed class ScpDirectoryReceiver {
         _records = records;
         _acknowledgements = acknowledgements;
         _root = Path.GetFullPath(root);
+        _paths = new TransferPathRegistry(_root);
         _progress = progress;
     }
 
@@ -71,7 +73,7 @@ internal sealed class ScpDirectoryReceiver {
                 if (name == "." || name == ".." || name.IndexOf('/') >= 0) { throw new InvalidDataException("Invalid SCP item name."); }
                 string parent = directories.Peek().RelativePath;
                 string relative = parent.Length == 0 ? name : parent + "/" + name;
-                string localPath = TransferFileSystem.ResolveRelativePath(_root, relative);
+                string localPath = _paths.Add(relative);
                 if (record[0] == 'D') {
                     if (length != 0) { throw new InvalidDataException("An SCP directory cannot have file content."); }
                     Directory.CreateDirectory(localPath);

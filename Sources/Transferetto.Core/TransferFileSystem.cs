@@ -13,7 +13,7 @@ namespace Transferetto.Core;
 /// <summary>Provides rooted local path validation, safe traversal, and same-directory atomic file commits.</summary>
 /// <remarks>The caller must control the root and its ancestors. Checks reject links at and beneath the selected
 /// root, but do not provide an OS sandbox against concurrent directory mutation by another process.</remarks>
-public static class TransferFileSystem {
+public static partial class TransferFileSystem {
 #if !NET8_0_OR_GREATER
     private static readonly MethodInfo? GetUnixMode = typeof(File).GetMethod("GetUnixFileMode", new[] { typeof(string) });
     private static readonly MethodInfo? SetUnixMode = GetUnixMode == null ? null

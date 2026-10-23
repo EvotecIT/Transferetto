@@ -51,7 +51,10 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint, ITransferRan
     internal string ResolveForResume(string path) => ResolvePath(path);
 
     /// <inheritdoc />
-    public string GetPathIdentity(string path) => ResolvePath(path);
+    public string GetPathIdentity(string path) => TransferFileSystem.GetPathIdentity(ResolvePath(path));
+
+    /// <summary>Gets the destination root directory's actual case comparison without creating probe files.</summary>
+    public StringComparison PathComparison => TransferFileSystem.GetPathComparison(_rootPath);
 
     /// <inheritdoc />
     public TransferEndpointCapabilities Capabilities =>
@@ -263,7 +266,6 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint, ITransferRan
 
     private string ResolvePath(string path, bool allowEmpty = false) {
         string relative = path ?? string.Empty;
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) { relative = relative.Replace('\\', '/'); }
         return TransferFileSystem.ResolveRelativePath(_rootPath, relative, allowEmpty);
     }
     private IEnumerable<TransferItem> EnumerateFilesSafely(

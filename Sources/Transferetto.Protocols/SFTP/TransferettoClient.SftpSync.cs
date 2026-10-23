@@ -19,6 +19,7 @@ public static partial class TransferettoClient {
         EnsureNotNullOrWhiteSpace(localPath, nameof(localPath));
         EnsureNotNullOrWhiteSpace(remotePath, nameof(remotePath));
         TransferettoSyncOptions resolvedSyncOptions = syncOptions ?? new TransferettoSyncOptions();
+        resolvedSyncOptions = ResolveLocalSyncComparison(resolvedSyncOptions, localPath);
         TransferettoTransferOptions resolvedTransferOptions = transferOptions ?? new TransferettoTransferOptions();
         string normalizedRemotePath = NormalizeRemotePath(remotePath);
 
@@ -36,8 +37,9 @@ public static partial class TransferettoClient {
             ? BuildLocalSyncManifest(localPath, normalizedRemotePath, resolvedTransferOptions.CancellationToken)
             : BuildLocalSyncManifestOrEmpty(localPath, normalizedRemotePath, resolvedTransferOptions.CancellationToken);
         IReadOnlyList<TransferettoSyncEntry> remoteManifest = remoteRootIsDirectory
-            ? BuildSftpRemoteSyncManifest(session, normalizedRemotePath, localPath)
+            ? BuildSftpRemoteSyncManifest(session, normalizedRemotePath, localPath, resolvedTransferOptions.CancellationToken)
             : Array.Empty<TransferettoSyncEntry>();
+        if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Download) { ValidateLocalSyncNames(remoteManifest, localPath); }
         IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(
             resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload ? localManifest : remoteManifest,
             resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload ? remoteManifest : localManifest,
@@ -55,6 +57,7 @@ public static partial class TransferettoClient {
         }
 
         plan = HandleConflictingDownloadRootFile(plan, localPath, normalizedRemotePath, resolvedSyncOptions);
+        ValidateLocalSyncDeletes(plan, localPath, resolvedSyncOptions);
 
         if (resolvedSyncOptions.DryRun) {
             return ExecuteDryRunSyncPlan(plan);
@@ -140,9 +143,9 @@ public static partial class TransferettoClient {
     private static IReadOnlyList<TransferettoSyncEntry> BuildSftpRemoteSyncManifest(
         TransferettoSftpSession session,
         string remoteRoot,
-        string localRoot) {
+        string localRoot, System.Threading.CancellationToken cancellationToken = default) {
         List<TransferettoSyncEntry> entries = new();
-        BuildSftpRemoteSyncManifest(session, remoteRoot, remoteRoot, localRoot, entries);
+        BuildSftpRemoteSyncManifest(session, remoteRoot, remoteRoot, localRoot, entries, cancellationToken);
         return entries;
     }
 
@@ -151,8 +154,10 @@ public static partial class TransferettoClient {
         string remoteRoot,
         string currentRemotePath,
         string localRoot,
-        ICollection<TransferettoSyncEntry> entries) {
+        ICollection<TransferettoSyncEntry> entries, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (TransferettoSftpItem item in GetSftpListing(session, currentRemotePath)) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (IsSpecialRemoteDirectoryName(item.Name)) {
                 continue;
             }
@@ -173,7 +178,7 @@ public static partial class TransferettoClient {
             });
 
             if (item.IsDirectory) {
-                BuildSftpRemoteSyncManifest(session, remoteRoot, item.FullName, localRoot, entries);
+                BuildSftpRemoteSyncManifest(session, remoteRoot, item.FullName, localRoot, entries, cancellationToken);
             }
         }
     }

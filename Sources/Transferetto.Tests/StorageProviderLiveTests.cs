@@ -198,11 +198,14 @@ public sealed class StorageProviderLiveTests {
                 using MemoryStream repairedBytes = new();
                 await repairedRead.Stream.CopyToAsync(repairedBytes);
                 Assert.Equal(payload, repairedBytes.ToArray());
-                TransferBatchItem[] aliases = {
+                TransferBatchItem[] distinctNames = {
                     new(source, "input.txt", destination, @"alias\item.txt"),
                     new(source, "input.txt", destination, "alias/item.txt")
                 };
-                await Assert.ThrowsAsync<ArgumentException>(() => TransferEngine.CopyBatchAsync(aliases));
+                TransferBatchResult distinct = await TransferEngine.CopyBatchAsync(distinctNames);
+                Assert.True(distinct.IsSuccess);
+                Assert.NotEqual(((ITransferPathIdentityEndpoint)destination).GetPathIdentity(@"alias\item.txt"),
+                    ((ITransferPathIdentityEndpoint)destination).GetPathIdentity("alias/item.txt"));
 
                 FileSystemTransferEndpoint firstSource = new(firstRoot);
                 FileSystemTransferEndpoint secondSource = new(secondRoot);
