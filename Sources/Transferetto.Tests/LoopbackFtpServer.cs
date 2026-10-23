@@ -12,12 +12,16 @@ internal sealed class LoopbackFtpServer : IDisposable {
     private TcpClient? _client;
     private TcpListener? _data;
     private readonly bool _failSecond;
+    private readonly bool _shortSecond;
+    private readonly bool _emptySecond;
     private int _restart;
     internal ConcurrentQueue<string> Commands { get; } = new();
     internal int Port { get; }
 
-    internal LoopbackFtpServer(bool failSecond = true) {
+    internal LoopbackFtpServer(bool failSecond = true, bool shortSecond = false, bool emptySecond = false) {
         _failSecond = failSecond;
+        _shortSecond = shortSecond;
+        _emptySecond = emptySecond;
         _control.Start();
         Port = ((IPEndPoint)_control.LocalEndpoint).Port;
         _run = RunAsync();
@@ -48,7 +52,7 @@ internal sealed class LoopbackFtpServer : IDisposable {
                     case "TYPE": case "OPTS": case "NOOP": await output.WriteLineAsync("200 Accepted"); break;
                     case "REST": _restart = int.Parse(argument, System.Globalization.CultureInfo.InvariantCulture);
                         await output.WriteLineAsync("350 Restart accepted"); break;
-                    case "SIZE": await output.WriteLineAsync("213 3"); break;
+                    case "SIZE": await output.WriteLineAsync(_emptySecond && argument.EndsWith("second", StringComparison.Ordinal) ? "213 0" : "213 3"); break;
                     case "EPSV": case "PASV":
                         _data?.Stop();
                         _data = new TcpListener(IPAddress.Loopback, 0); _data.Start();
@@ -57,11 +61,16 @@ internal sealed class LoopbackFtpServer : IDisposable {
                             : "227 Entering Passive Mode (127,0,0,1," + port / 256 + "," + port % 256 + ")"); break;
                     case "MLSD": case "LIST":
                         await SendDataAsync(output, verb == "MLSD"
-                            ? "type=file;size=3;modify=20200102030405; first\r\ntype=file;size=3;modify=20200102030405; second\r\n"
-                            : "-rw-r--r-- 1 user group 3 Jan 02 2020 first\r\n-rw-r--r-- 1 user group 3 Jan 02 2020 second\r\n"); break;
+                            ? "type=file;size=3;modify=20200102030405; first\r\ntype=file;size=" + (_emptySecond ? "0" : "3") + ";modify=20200102030405; second\r\n"
+                            : "-rw-r--r-- 1 user group 3 Jan 02 2020 first\r\n-rw-r--r-- 1 user group " + (_emptySecond ? "0" : "3") + " Jan 02 2020 second\r\n"); break;
                     case "RETR":
                         if (_failSecond && argument.EndsWith("second", StringComparison.Ordinal)) { _data?.Stop(); await output.WriteLineAsync("550 File unavailable"); }
-                        else { string content = "new".Substring(_restart); _restart = 0; await SendDataAsync(output, content); }
+                        else {
+                            bool second = argument.EndsWith("second", StringComparison.Ordinal);
+                            string content = second && _emptySecond ? "" : second && _shortSecond ? "n" : "new";
+                            content = content.Substring(Math.Min(_restart, content.Length));
+                            _restart = 0; await SendDataAsync(output, content);
+                        }
                         break;
                     case "QUIT": await output.WriteLineAsync("221 Goodbye"); return;
                     default: await output.WriteLineAsync("502 Unsupported command"); break;

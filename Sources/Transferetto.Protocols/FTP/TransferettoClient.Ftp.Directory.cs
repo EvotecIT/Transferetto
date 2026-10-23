@@ -46,7 +46,8 @@ public static partial class TransferettoClient {
                 result.IsSuccess = true; result.IsSkipped = Directory.Exists(member.Local);
                 continue;
             }
-            if (existsMode == FtpLocalExists.Skip && File.Exists(member.Local)) {
+            if ((existsMode == FtpLocalExists.Skip && File.Exists(member.Local)) ||
+                (!operations.DownloadZeroByteFiles && member.Metadata.Size == 0)) {
                 result.IsSkipped = true; continue;
             }
             long lastReported = 0;
@@ -56,9 +57,13 @@ public static partial class TransferettoClient {
                     status = operations.DownloadFile(staged, member.Remote, existsMode, verifyOptions, progress => {
                         options.CancellationToken.ThrowIfCancellationRequested();
                         lastReported = ReportFtpTransferProgress(options, "DownloadDirectory", TransferettoTransferDirection.Download,
-                            member.Local, member.Remote, progress, member.Metadata.Size >= 0 ? member.Metadata.Size : null, lastReported);
+                            member.Local, member.Remote, NormalizeTransferredBytes(progress.TransferredBytes),
+                            ResolveFtpTotalBytes(progress, member.Metadata.Size >= 0 ? member.Metadata.Size : null), lastReported);
                     });
                     options.CancellationToken.ThrowIfCancellationRequested();
+                    if (status == FtpStatus.Success) {
+                        ValidateFtpDownloadLength(staged, member.Remote, member.Metadata.Size, operations.DownloadDataType);
+                    }
                     return status == FtpStatus.Success;
                 }, seedExisting: existsMode != FtpLocalExists.Overwrite && existsMode != FtpLocalExists.Skip,
                     cancellationToken: options.CancellationToken);
@@ -87,5 +92,16 @@ public static partial class TransferettoClient {
         }
         transaction.CommitAsync(options.CancellationToken).GetAwaiter().GetResult();
         return results.Select(result => FromFtpResult("DownloadDirectory", localRoot, result)).ToArray();
+    }
+
+    /// <summary>Some FTP peers send a successful completion reply after a short data stream.</summary>
+    private static void ValidateFtpDownloadLength(string staged, string remote, long expectedSize, FtpDataType dataType) {
+        // ASCII transformations and servers without a size cannot support a byte-length comparison.
+        if (dataType != FtpDataType.Binary || expectedSize < 0) { return; }
+        long actualSize = new FileInfo(staged).Length;
+        if (actualSize != expectedSize) {
+            throw new EndOfStreamException("The FTP download length does not match the remote file: " + remote +
+                " (expected " + expectedSize + ", received " + actualSize + " bytes).");
+        }
     }
 }

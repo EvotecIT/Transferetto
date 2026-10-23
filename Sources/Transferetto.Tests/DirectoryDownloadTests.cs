@@ -128,6 +128,19 @@ public sealed class DirectoryDownloadTests : IDisposable {
     };
 
     [Theory]
+    [InlineData(FtpDataType.Binary, -1)]
+    [InlineData(FtpDataType.ASCII, 9)]
+    public void UnknownOrAsciiRemoteSizesDoNotRejectACompletedFtpDirectory(FtpDataType dataType, long size) {
+        string selected = Path.Combine(_parent, "download");
+        DirectoryFtpClient client = new() { DataType = dataType, RemoteSize = size };
+        var results = TransferettoClient.DownloadFtpDirectoryCore(client, selected, "/root", FtpFolderSyncMode.Update,
+            FtpLocalExists.Overwrite, FtpVerify.None, null, new TransferettoTransferOptions());
+        Assert.DoesNotContain(results, result => result.IsFailed);
+        Assert.Equal("new", File.ReadAllText(Path.Combine(selected, "first")));
+        Assert.Equal("new", File.ReadAllText(Path.Combine(selected, "second")));
+    }
+
+    [Theory]
     [InlineData(false, "../escape")]
     [InlineData(true, "../escape")]
     [InlineData(false, "first")]
@@ -208,10 +221,14 @@ public sealed class DirectoryDownloadTests : IDisposable {
         internal Action? AfterFirst { get; set; }
         internal string SecondName { get; set; } = "second";
         public bool DeleteExcluded { get; set; }
+        public bool DownloadZeroByteFiles => true;
+        internal FtpDataType DataType { get; set; } = FtpDataType.Binary;
+        internal long RemoteSize { get; set; } = 3;
+        public FtpDataType DownloadDataType => DataType;
         public bool DirectoryExists(string path) => true;
         public IReadOnlyList<FtpListItem> ListDirectory(string path) => new[] {
-            new FtpListItem { Name = "first", FullName = "/root/first", Type = FtpObjectType.File, Size = 3 },
-            new FtpListItem { Name = SecondName, FullName = "/root/" + SecondName, Type = FtpObjectType.File, Size = 3 }
+            new FtpListItem { Name = "first", FullName = "/root/first", Type = FtpObjectType.File, Size = RemoteSize },
+            new FtpListItem { Name = SecondName, FullName = "/root/" + SecondName, Type = FtpObjectType.File, Size = RemoteSize }
         };
         public FtpStatus DownloadFile(string localPath, string remotePath, FtpLocalExists existsMode,
             FtpVerify verifyOptions, Action<FtpProgress> progress) {
