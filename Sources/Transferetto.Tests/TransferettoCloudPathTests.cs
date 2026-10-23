@@ -39,7 +39,7 @@ public sealed class TransferettoCloudPathTests {
     }
 
     [Theory]
-    [InlineData(@"reports\latest.txt", "reports/latest.txt", "scope\\raw/")]
+    [InlineData(@"reports\latest.txt", "reports/latest.txt", "scope/")]
     [InlineData("/latest.txt", "latest.txt", "")]
     [InlineData("/latest.txt", "latest.txt", "scope/")]
     public async Task AzureListedNamesAddressTheSameBlobOrFailBeforeSubstitutingAnotherName(string name, string alias, string prefix) {
@@ -51,16 +51,20 @@ public sealed class TransferettoCloudPathTests {
         options.Retry.MaxRetries = 0;
         AzureBlobTransferEndpoint endpoint = new(new BlobContainerClient(new Uri("https://account.blob.core.windows.net/container"), options), prefix);
         TransferItem listed = Assert.Single(await endpoint.ListAsync(""), item => item.Path == name);
-        if (prefix.Length == 0 && name.StartsWith("/", StringComparison.Ordinal)) {
+        if ((prefix.Length == 0 && name.StartsWith("/", StringComparison.Ordinal)) || name.IndexOf('\\') >= 0) {
+            int listingRequests = handler.Requests;
             await Assert.ThrowsAsync<ArgumentException>(() => endpoint.GetItemAsync(listed.Path));
+            await Assert.ThrowsAsync<ArgumentException>(() => endpoint.OpenReadAsync(listed.Path));
             await Assert.ThrowsAsync<ArgumentException>(() => endpoint.DeleteAsync(listed.Path));
             using MemoryStream unsupported = new(new byte[] { 1 });
             await Assert.ThrowsAsync<ArgumentException>(() => endpoint.WriteAsync(listed.Path, unsupported, 1,
                 new TransferWriteOptions { Mode = TransferWriteMode.Overwrite }));
             Assert.Null(handler.LastInspected);
             Assert.Null(handler.LastWritten);
-            Assert.Contains(name, handler.Names);
-            Assert.Contains(alias, handler.Names);
+            Assert.Throws<ArgumentException>(() => endpoint.GetPathIdentity(listed.Path));
+            Assert.Equal(listingRequests, handler.Requests);
+            Assert.Contains(prefix + name, handler.Names);
+            Assert.Contains(prefix + alias, handler.Names);
             return;
         }
         Assert.NotNull(await endpoint.GetItemAsync(listed.Path));
@@ -75,6 +79,59 @@ public sealed class TransferettoCloudPathTests {
         Assert.NotEqual(endpoint.GetPathIdentity(name), endpoint.GetPathIdentity(alias));
     }
 
+    [Fact]
+    public void AzureBackslashPrefixesAreRejectedBeforeAddressingAnAliasedScope() {
+        BlobContainerClient container = new(new Uri("https://account.blob.core.windows.net/container"));
+        Assert.Throws<ArgumentException>(() => new AzureBlobTransferEndpoint(container, @"scope\raw"));
+    }
+
+    [Fact]
+    public async Task S3BatchCopiesDistinctSlashAndBackslashKeysWithoutColliding() {
+        using MemoryS3 client = new();
+        byte[] payload = Encoding.UTF8.GetBytes("source");
+        client.Files["source/input.txt"] = payload;
+        using S3TransferEndpoint source = new(client, "bucket", "source");
+        using S3TransferEndpoint destination = new(client, "bucket", "destination");
+        TransferBatchResult result = await TransferEngine.CopyBatchAsync(new[] {
+            new TransferBatchItem(source, "input.txt", destination, @"alias\item.txt"),
+            new TransferBatchItem(source, "input.txt", destination, "alias/item.txt")
+        });
+        Assert.True(result.IsSuccess, string.Join("; ", result.Items.Select(item => item.Error?.ToString())));
+        Assert.All(result.Items, item => Assert.Equal(TransferBatchItemOutcome.Copied, item.Outcome));
+        Assert.Equal(payload, client.Files[@"destination/alias\item.txt"]);
+        Assert.Equal(payload, client.Files["destination/alias/item.txt"]);
+        Assert.Equal(2, (await destination.ListAsync("")).Count);
+    }
+
+    [Theory]
+    [InlineData("report/", "report", "")]
+    [InlineData("report//", "scope/report", "scope/")]
+    [InlineData("/", "scope", "scope/")]
+    public async Task AzureTrailingSlashNamesNeverOperateOnTheTrimmedBlob(string name, string alias, string prefix) {
+        using MemoryBlobHandler handler = new();
+        handler.Names.Add(prefix + name);
+        handler.Names.Add(alias);
+        using HttpClient http = new(handler);
+        BlobClientOptions options = new() { Transport = new HttpClientTransport(http) };
+        options.Retry.MaxRetries = 0;
+        BlobContainerClient container = new(new Uri("https://account.blob.core.windows.net/container"), options);
+        Assert.Equal(alias, container.GetBlobClient(prefix + name).Name);
+        AzureBlobTransferEndpoint endpoint = new(container, prefix);
+        TransferItem listed = Assert.Single(await endpoint.ListAsync(""), item => item.Path == name);
+        int listingRequests = handler.Requests;
+        await Assert.ThrowsAsync<ArgumentException>(() => endpoint.GetItemAsync(listed.Path));
+        await Assert.ThrowsAsync<ArgumentException>(() => endpoint.OpenReadAsync(listed.Path));
+        await Assert.ThrowsAsync<ArgumentException>(() => endpoint.DeleteAsync(listed.Path));
+        using MemoryStream replacement = new(new byte[] { 1 });
+        await Assert.ThrowsAsync<ArgumentException>(() => endpoint.WriteAsync(listed.Path, replacement, 1,
+            new TransferWriteOptions { Mode = TransferWriteMode.Overwrite }));
+        Assert.Throws<ArgumentException>(() => endpoint.GetPathIdentity(listed.Path));
+        Assert.Equal(listingRequests, handler.Requests);
+        Assert.Equal(0, replacement.Position);
+        Assert.Contains(prefix + name, handler.Names);
+        Assert.Contains(alias, handler.Names);
+    }
+
     private sealed class MemoryS3 : AmazonS3Client {
         internal Dictionary<string, byte[]> Files { get; } = new(StringComparer.Ordinal);
         internal MemoryS3() : base(new AnonymousAWSCredentials(), new AmazonS3Config {
@@ -86,9 +143,9 @@ public sealed class TransferettoCloudPathTests {
                     .Select(file => new S3Object { Key = file.Key, Size = file.Value.Length }).ToList()
             });
         public override Task<GetObjectMetadataResponse> GetObjectMetadataAsync(GetObjectMetadataRequest request,
-            CancellationToken cancellationToken = default) => Task.FromResult(new GetObjectMetadataResponse {
+            CancellationToken cancellationToken = default) => Files.ContainsKey(request.Key) ? Task.FromResult(new GetObjectMetadataResponse {
                 ContentLength = Files[request.Key].Length, ETag = "fixture"
-            });
+            }) : Task.FromException<GetObjectMetadataResponse>(new AmazonS3Exception("Not found") { StatusCode = HttpStatusCode.NotFound });
         public override Task<GetObjectResponse> GetObjectAsync(GetObjectRequest request,
             CancellationToken cancellationToken = default) => Task.FromResult(new GetObjectResponse {
                 ResponseStream = new MemoryStream(Files[request.Key], writable: false),
@@ -111,9 +168,11 @@ public sealed class TransferettoCloudPathTests {
     // The SDK's HTTP boundary is replaced entirely; no request reaches a socket or a local listener.
     private sealed class MemoryBlobHandler : HttpMessageHandler {
         internal HashSet<string> Names { get; } = new(StringComparer.Ordinal);
+        internal int Requests { get; private set; }
         internal string? LastInspected { get; private set; }
         internal string? LastWritten { get; private set; }
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+            Requests++;
             HttpResponseMessage response;
             if (request.RequestUri!.Query.Contains("comp=list")) {
                 XElement xml = new("EnumerationResults",
