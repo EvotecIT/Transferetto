@@ -39,10 +39,10 @@ public sealed class TransferettoCloudPathTests {
     }
 
     [Theory]
-    [InlineData(@"reports\latest.txt", "reports/latest.txt")]
-    [InlineData("/latest.txt", "latest.txt")]
-    public async Task AzureListedNamesAddressTheSameBlobOrFailBeforeSubstitutingAnotherName(string name, string alias) {
-        string prefix = name.StartsWith("/", StringComparison.Ordinal) ? string.Empty : "scope\\raw/";
+    [InlineData(@"reports\latest.txt", "reports/latest.txt", "scope\\raw/")]
+    [InlineData("/latest.txt", "latest.txt", "")]
+    [InlineData("/latest.txt", "latest.txt", "scope/")]
+    public async Task AzureListedNamesAddressTheSameBlobOrFailBeforeSubstitutingAnotherName(string name, string alias, string prefix) {
         using MemoryBlobHandler handler = new();
         handler.Names.Add(prefix + name);
         handler.Names.Add(prefix + alias);
@@ -51,7 +51,7 @@ public sealed class TransferettoCloudPathTests {
         options.Retry.MaxRetries = 0;
         AzureBlobTransferEndpoint endpoint = new(new BlobContainerClient(new Uri("https://account.blob.core.windows.net/container"), options), prefix);
         TransferItem listed = Assert.Single(await endpoint.ListAsync(""), item => item.Path == name);
-        if (name.StartsWith("/", StringComparison.Ordinal)) {
+        if (prefix.Length == 0 && name.StartsWith("/", StringComparison.Ordinal)) {
             await Assert.ThrowsAsync<ArgumentException>(() => endpoint.GetItemAsync(listed.Path));
             await Assert.ThrowsAsync<ArgumentException>(() => endpoint.DeleteAsync(listed.Path));
             using MemoryStream unsupported = new(new byte[] { 1 });

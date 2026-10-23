@@ -9,6 +9,7 @@ public sealed class TransferPathRegistry {
     private readonly string _root;
     private readonly Dictionary<string, string> _names = new(StringComparer.Ordinal);
     private readonly HashSet<string> _items = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, StringComparison> _comparisons = new(StringComparer.Ordinal);
 
     /// <summary>Initializes an operation-wide registry rooted at the destination directory.</summary>
     public TransferPathRegistry(string root) { _root = Path.GetFullPath(root); }
@@ -23,7 +24,7 @@ public sealed class TransferPathRegistry {
         foreach (string segment in relativePath.Split('/')) {
             relative = relative.Length == 0 ? segment : relative + "/" + segment;
             string full = TransferFileSystem.ResolveRelativePath(_root, relative);
-            string identity = TransferFileSystem.GetPathIdentity(full);
+            string identity = TransferFileSystem.GetPathIdentity(full, _comparisons);
             if (_names.TryGetValue(identity, out string? previous) && previous != relative) {
                 throw new InvalidDataException($"Distinct source names map to the same destination: {previous} and {relative}");
             }

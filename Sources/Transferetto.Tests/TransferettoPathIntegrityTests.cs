@@ -11,6 +11,28 @@ public sealed class TransferettoPathIntegrityTests : IDisposable {
     public TransferettoPathIntegrityTests() { Directory.CreateDirectory(_root); }
 
     [Fact]
+    public void EmptyDirectoryIdentityAgreesWithItsFilesystemAndRemainsStableAfterWriting() {
+        string root = Path.Combine(_root, "empty");
+        Directory.CreateDirectory(root);
+        string first = Path.Combine(root, "a.txt");
+        string second = Path.Combine(root, "A.txt");
+        string initialIdentity = TransferFileSystem.GetPathIdentity(first);
+        TransferPathRegistry registry = new(root);
+        registry.Add("a.txt");
+        File.WriteAllText(first, "preserve");
+        bool insensitive = File.Exists(second);
+        Assert.Equal(initialIdentity, TransferFileSystem.GetPathIdentity(first));
+        if (insensitive) {
+            Assert.Equal(initialIdentity, TransferFileSystem.GetPathIdentity(second));
+            Assert.Throws<InvalidDataException>(() => registry.Add("A.txt"));
+        } else {
+            Assert.NotEqual(initialIdentity, TransferFileSystem.GetPathIdentity(second));
+            registry.Add("A.txt");
+        }
+        Assert.Equal("preserve", File.ReadAllText(first));
+    }
+
+    [Fact]
     public async Task ScpCaseCollisionsNeverOverwriteTheFirstRemoteMember() {
         bool insensitive = IsCaseInsensitive();
         string selected = Path.Combine(_root, "selected");

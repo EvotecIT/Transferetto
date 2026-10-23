@@ -153,7 +153,7 @@ public static class TransferettoEndpointSync {
         }
         TransferettoSyncOptions plannerOptions = resolved.PathComparison == TransferettoSyncPathComparison.Automatic
             ? resolved.WithPathComparison(destination is FileSystemTransferEndpoint fileSystem
-                && fileSystem.PathComparison == StringComparison.OrdinalIgnoreCase
+                && fileSystem.GetPathComparison(destinationRoot) == StringComparison.OrdinalIgnoreCase
                     ? TransferettoSyncPathComparison.OrdinalIgnoreCase : TransferettoSyncPathComparison.Ordinal)
             : resolved;
         IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(

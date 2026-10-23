@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -10,7 +11,8 @@ namespace Transferetto.Core;
 public static partial class TransferFileSystem {
     /// <summary>Gets the case comparison of an existing destination directory, or its nearest existing ancestor.</summary>
     /// <remarks>This read-only query does not create probe files. Native Windows and macOS directory settings
-    /// take precedence; other filesystems are checked using existing names, with the host default as fallback.</remarks>
+    /// take precedence; unknown filesystems are checked using existing names and conservatively treated as
+    /// case-insensitive when there is no evidence. No filesystem settings are changed.</remarks>
     public static StringComparison GetPathComparison(string directory) {
         string current = Path.GetFullPath(directory);
         while (!Directory.Exists(current)) {
@@ -32,6 +34,10 @@ public static partial class TransferFileSystem {
             if (sensitive >= 0) { return sensitive == 0 ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal; }
             return StringComparison.OrdinalIgnoreCase;
         }
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+            StringComparison? native = GetLinuxPathComparison(current);
+            if (native.HasValue) { return native.Value; }
+        }
         // Mounted filesystems on Unix can be case-insensitive. An alternative spelling that is absent
         // from enumeration but resolves successfully proves aliasing without modifying the destination.
         string[] entries = Directory.EnumerateFileSystemEntries(current).Take(32).ToArray();
@@ -48,13 +54,17 @@ public static partial class TransferFileSystem {
             }
             return StringComparison.Ordinal;
         }
-        return StringComparison.Ordinal;
+        return StringComparison.OrdinalIgnoreCase;
     }
 
     /// <summary>Gets a filesystem-wide lexical identity, independent of a transfer endpoint's selected root.</summary>
     /// <remarks>Uses each existing parent directory's comparison rules. On macOS, canonical Unicode spellings
     /// are also equivalent. Existing link checks remain the responsibility of the caller's rooted resolver.</remarks>
     public static string GetPathIdentity(string path) {
+        return GetPathIdentity(path, null);
+    }
+
+    internal static string GetPathIdentity(string path, IDictionary<string, StringComparison>? comparisons) {
         string full = Path.GetFullPath(path);
         string volume = Path.GetPathRoot(full)!;
         string current = volume;
@@ -62,7 +72,15 @@ public static partial class TransferFileSystem {
         foreach (string segment in full.Substring(volume.Length).Split(
             new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries)) {
             string name = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? segment.Normalize(NormalizationForm.FormC) : segment;
-            if (GetPathComparison(current) == StringComparison.OrdinalIgnoreCase) { name = name.ToUpperInvariant(); }
+            StringComparison comparison;
+            if (comparisons == null || !comparisons.TryGetValue(current, out comparison)) {
+                comparison = GetPathComparison(current);
+                if (comparisons != null) { comparisons[current] = comparison; }
+            }
+            if (comparison == StringComparison.OrdinalIgnoreCase && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                name = name.Normalize(NormalizationForm.FormC);
+            }
+            if (comparison == StringComparison.OrdinalIgnoreCase) { name = name.ToUpperInvariant(); }
             identity = Path.Combine(identity, name);
             current = Path.Combine(current, segment);
         }

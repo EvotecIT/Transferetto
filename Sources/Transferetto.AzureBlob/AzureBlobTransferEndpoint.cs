@@ -343,7 +343,7 @@ public sealed partial class AzureBlobTransferEndpoint : ITransferEndpoint, ITran
 
     private string ResolveName(string path, bool allowEmpty = false) {
         string normalized = path ?? string.Empty;
-        if (normalized.StartsWith("/", StringComparison.Ordinal)) {
+        if (_prefix.Length == 0 && normalized.StartsWith("/", StringComparison.Ordinal)) {
             throw new ArgumentException("The Azure SDK cannot address a leading-slash blob name without changing its identity.", nameof(path));
         }
         if (!allowEmpty && string.IsNullOrEmpty(normalized)) {

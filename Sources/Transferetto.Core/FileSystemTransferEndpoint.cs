@@ -53,8 +53,8 @@ public sealed class FileSystemTransferEndpoint : ITransferEndpoint, ITransferRan
     /// <inheritdoc />
     public string GetPathIdentity(string path) => TransferFileSystem.GetPathIdentity(ResolvePath(path));
 
-    /// <summary>Gets the destination root directory's actual case comparison without creating probe files.</summary>
-    public StringComparison PathComparison => TransferFileSystem.GetPathComparison(_rootPath);
+    /// <summary>Gets a selected destination directory's case comparison without creating probe files.</summary>
+    public StringComparison GetPathComparison(string prefix = "") => TransferFileSystem.GetPathComparison(ResolvePath(prefix, allowEmpty: true));
 
     /// <inheritdoc />
     public TransferEndpointCapabilities Capabilities =>
