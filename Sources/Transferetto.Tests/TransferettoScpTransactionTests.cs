@@ -165,7 +165,7 @@ public sealed class TransferettoScpTransactionTests : IDisposable {
             await transaction.AddFileAsync("other", content, 1, null, null, CancellationToken.None);
             string ownStage = Assert.Single(Directory.GetDirectories(selected, ".transferetto-scp-*"));
             transaction.AddDirectory(Path.GetFileName(ownStage), null, null);
-            Assert.Throws<InvalidDataException>(() => transaction.Commit(CancellationToken.None));
+            await Assert.ThrowsAsync<InvalidDataException>(() => transaction.CommitAsync(CancellationToken.None));
         }
         Assert.Empty(Directory.GetFileSystemEntries(selected));
         Assert.Equal(new[] { selected }, Directory.GetFileSystemEntries(_parent));

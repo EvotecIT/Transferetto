@@ -44,7 +44,7 @@ internal sealed class ScpDirectoryTransaction : IDisposable {
         _entries.Add(new Entry(relative, staged, modified, accessed));
     }
 
-    internal void Commit(CancellationToken cancellationToken) {
+    internal async Task CommitAsync(CancellationToken cancellationToken) {
         // Check every destination type before publishing anything. Validation always uses the
         // real destination, not the staging directory's possibly different case semantics.
         foreach (Entry entry in _entries) {
@@ -66,13 +66,24 @@ internal sealed class ScpDirectoryTransaction : IDisposable {
                 } else {
                     EnsureDirectory(Path.GetDirectoryName(target)!);
                     _published.Add(entry);
+                    // Final staging is adjacent to the destination so a new file inherits
+                    // that directory's ACL/default permissions rather than the private store's.
+                    string adjacent = Path.Combine(Path.GetDirectoryName(target)!, ".transferetto-" + Guid.NewGuid().ToString("N") + ".tmp");
+                    using (FileStream output = new(adjacent, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true)) {
+                        entry.PublishStage = adjacent;
+                        TransferFileSystem.PreserveStagingPermissions(adjacent, target);
+                        using FileStream source = new(entry.Staged!, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true);
+                        await TransferContent.CopyToAsync(source, output, source.Length, cancellationToken).ConfigureAwait(false);
+                    }
+                    cancellationToken.ThrowIfCancellationRequested();
+                    File.Delete(entry.Staged!);
                     if (File.Exists(target)) {
                         entry.Backup = Path.Combine(GetStage(), Guid.NewGuid().ToString("N"));
                         // ReplaceFile preserves destination metadata (including its Windows ACL)
                         // and retains the original for rollback, without first removing the target.
-                        File.Replace(entry.Staged!, target, entry.Backup);
+                        File.Replace(adjacent, target, entry.Backup);
                     } else {
-                        File.Move(entry.Staged!, target);
+                        File.Move(adjacent, target);
                     }
                     entry.Written = true;
                     ApplyTimes(target, entry.Modified, entry.Accessed);
@@ -98,6 +109,10 @@ internal sealed class ScpDirectoryTransaction : IDisposable {
             string target = Resolve(entry.Relative);
             if (entry.Written) { File.Delete(target); }
             if (entry.Backup != null && File.Exists(entry.Backup)) { File.Move(entry.Backup, target); }
+            if (entry.PublishStage != null) {
+                TransferFileSystem.EnsureNoLinkTraversal(_root, entry.PublishStage);
+                File.Delete(entry.PublishStage);
+            }
         }
         foreach (string directory in _created.AsEnumerable().Reverse()) {
             TransferFileSystem.EnsureNoLinkTraversal(directory, directory);
@@ -131,8 +146,10 @@ internal sealed class ScpDirectoryTransaction : IDisposable {
         TransferFileSystem.EnsureNoLinkTraversal(parent, parent);
         _stageParent = parent;
         _stageParentTimes = new Times(parent);
-        _stage = Path.Combine(parent, ".transferetto-scp-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_stage);
+        string stage = Path.Combine(parent, ".transferetto-scp-" + Guid.NewGuid().ToString("N"));
+        try { TransferFileSystem.CreatePrivateStagingDirectory(stage); }
+        catch { _stageParentTimes.Restore(parent); throw; }
+        _stage = stage;
         return _stage;
     }
 
@@ -182,6 +199,7 @@ internal sealed class ScpDirectoryTransaction : IDisposable {
         internal DateTime? Modified { get; }
         internal DateTime? Accessed { get; }
         internal string? Backup { get; set; }
+        internal string? PublishStage { get; set; }
         internal bool Written { get; set; }
     }
 

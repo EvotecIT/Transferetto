@@ -45,7 +45,7 @@ internal sealed class ScpDirectoryReceiver {
                         throw new InvalidDataException("SCP sent data after closing the selected directory.");
                     }
                     if (validateCompletion != null) { await validateCompletion().ConfigureAwait(false); }
-                    destination.Commit(cancellationToken);
+                    await destination.CommitAsync(cancellationToken).ConfigureAwait(false);
                     return;
                 }
                 continue;

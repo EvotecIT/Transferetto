@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
+using Transferetto.Core;
 
 namespace Transferetto.Tests;
 
@@ -28,6 +29,89 @@ public sealed class TransferettoScpPlatformTests : IDisposable {
         Assert.Equal("new", File.ReadAllText(target));
         Assert.Equal(expected, new FileInfo(target).GetAccessControl().GetSecurityDescriptorSddlForm(AccessControlSections.Access));
         Assert.Equal(new[] { selected }, Directory.GetFileSystemEntries(_parent));
+    }
+
+    [WindowsFact]
+    public async Task NewFilesInheritTheProtectedDestinationDirectoryAccessRules() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) { throw new PlatformNotSupportedException(); }
+        string selected = Path.Combine(_parent, "download");
+        Directory.CreateDirectory(selected);
+        SetWindowsDirectoryRules(selected, broad: true);
+        string child = Path.Combine(selected, "child");
+        Directory.CreateDirectory(child);
+        SetWindowsDirectoryRules(child, broad: false);
+        string expectedFile = Path.Combine(child, "expected");
+        File.WriteAllText(expectedFile, "control");
+        string expected = new FileInfo(expectedFile).GetAccessControl().GetSecurityDescriptorSddlForm(AccessControlSections.Access);
+        File.Delete(expectedFile);
+        using MemoryStream records = new(Encoding.UTF8.GetBytes("D0755 0 root\nD0755 0 child\nC0644 3 target\nnew\0E\nE\n"));
+        using MemoryStream acks = new();
+        await new ScpDirectoryReceiver(records, acks, selected).ReceiveAsync(CancellationToken.None);
+        string target = Path.Combine(child, "target");
+        Assert.Equal("new", File.ReadAllText(target));
+        Assert.Equal(expected, new FileInfo(target).GetAccessControl().GetSecurityDescriptorSddlForm(AccessControlSections.Access));
+    }
+
+    [WindowsFact]
+    public async Task IncompleteContentIsStagedWithoutTheRootsBroadReadRules() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) { throw new PlatformNotSupportedException(); }
+        string selected = Path.Combine(_parent, "download");
+        Directory.CreateDirectory(selected);
+        SetWindowsDirectoryRules(selected, broad: true);
+        using MemoryStream records = new(Encoding.UTF8.GetBytes("D0755 0 root\nC0644 3 target\nnew\0E\n"));
+        using MemoryStream acks = new();
+        bool observed = false;
+        ScpDirectoryReceiver receiver = new(records, acks, selected, (_, _, _) => {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) { throw new PlatformNotSupportedException(); }
+            string stage = Assert.Single(Directory.GetDirectories(selected, ".transferetto-scp-*"));
+            FileSecurity security = new FileInfo(Assert.Single(Directory.GetFiles(stage))).GetAccessControl();
+            SecurityIdentifier broad = new(WellKnownSidType.BuiltinUsersSid, null);
+            foreach (FileSystemAccessRule rule in security.GetAccessRules(true, true, typeof(SecurityIdentifier))) {
+                Assert.NotEqual(broad, rule.IdentityReference);
+            }
+            Assert.True(new DirectoryInfo(stage).GetAccessControl().AreAccessRulesProtected);
+            observed = true;
+        });
+        await receiver.ReceiveAsync(CancellationToken.None);
+        Assert.True(observed);
+        Assert.Equal("new", File.ReadAllText(Path.Combine(selected, "target")));
+        Assert.Single(Directory.GetFileSystemEntries(selected));
+    }
+
+    private static void SetWindowsDirectoryRules(string directory, bool broad) {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) { throw new PlatformNotSupportedException(); }
+        DirectorySecurity security = new();
+        security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+        InheritanceFlags inheritance = InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit;
+        security.AddAccessRule(new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!, FileSystemRights.FullControl, inheritance, PropagationFlags.None, AccessControlType.Allow));
+        if (broad) {
+            security.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null), FileSystemRights.ReadAndExecute, inheritance, PropagationFlags.None, AccessControlType.Allow));
+        }
+        new DirectoryInfo(directory).SetAccessControl(security);
+    }
+
+    [WindowsFact]
+    public void ReplacementStagingGetsTheOriginalFilesAccessRulesBeforeContentIsWritten() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) { throw new PlatformNotSupportedException(); }
+        SetWindowsDirectoryRules(_parent, broad: true);
+        string target = Path.Combine(_parent, "target");
+        string staged = Path.Combine(_parent, "staged");
+        File.WriteAllText(target, "original");
+        FileSecurity security = new();
+        security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+        security.AddAccessRule(new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!, FileSystemRights.FullControl, AccessControlType.Allow));
+        new FileInfo(target).SetAccessControl(security);
+        using FileStream output = new(staged, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        TransferFileSystem.PreserveStagingPermissions(staged, target);
+        Assert.Equal(0, output.Length);
+        FileSecurity stagedSecurity = new FileInfo(staged).GetAccessControl();
+        Assert.True(stagedSecurity.AreAccessRulesProtected);
+        FileSystemAccessRule expected = Assert.Single(new FileInfo(target).GetAccessControl().GetAccessRules(true, true, typeof(SecurityIdentifier)).Cast<FileSystemAccessRule>());
+        FileSystemAccessRule actual = Assert.Single(stagedSecurity.GetAccessRules(true, true, typeof(SecurityIdentifier)).Cast<FileSystemAccessRule>());
+        Assert.Equal(expected.IdentityReference, actual.IdentityReference);
+        Assert.Equal(expected.FileSystemRights, actual.FileSystemRights);
+        Assert.Equal(expected.AccessControlType, actual.AccessControlType);
+        Assert.Equal("original", File.ReadAllText(target));
     }
 
 #if NET8_0_OR_GREATER
@@ -75,7 +159,11 @@ public sealed class TransferettoScpPlatformTests : IDisposable {
         File.SetUnixFileMode(target, UnixFileMode.UserRead | UnixFileMode.UserWrite);
         using MemoryStream records = new(Encoding.UTF8.GetBytes("D0755 0 root\nC0644 3 target\nnew\0E\n"));
         using MemoryStream acks = new();
-        await new ScpDirectoryReceiver(records, acks, selected).ReceiveAsync(CancellationToken.None);
+        await new ScpDirectoryReceiver(records, acks, selected, (_, _, _) => {
+            if (OperatingSystem.IsWindows()) { throw new PlatformNotSupportedException(); }
+            string stage = Assert.Single(Directory.GetDirectories(selected, ".transferetto-scp-*"));
+            Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute, File.GetUnixFileMode(stage));
+        }).ReceiveAsync(CancellationToken.None);
         Assert.Equal("new", File.ReadAllText(target));
         Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(target));
     }

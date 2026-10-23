@@ -19,9 +19,13 @@ public static partial class TransferFileSystem {
     private static readonly MethodInfo? SetUnixMode = GetUnixMode == null ? null
         : typeof(File).GetMethod("SetUnixFileMode", new[] { typeof(string), GetUnixMode.ReturnType });
 #endif
-    /// <summary>Preserves the destination's Unix permission bits on a staged replacement before content is written.</summary>
+    /// <summary>Preserves the destination's access rules or Unix permission bits on a staged replacement before content is written.</summary>
     public static void PreserveStagingPermissions(string stagedPath, string destinationPath) {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || !File.Exists(destinationPath)) { return; }
+        if (!File.Exists(destinationPath)) { return; }
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            PreserveWindowsStagingPermissions(stagedPath, destinationPath);
+            return;
+        }
 #if NET8_0_OR_GREATER
         File.SetUnixFileMode(stagedPath, File.GetUnixFileMode(destinationPath));
 #else
