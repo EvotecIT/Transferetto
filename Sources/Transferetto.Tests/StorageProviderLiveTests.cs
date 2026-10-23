@@ -198,11 +198,42 @@ public sealed class StorageProviderLiveTests {
                 using MemoryStream repairedBytes = new();
                 await repairedRead.Stream.CopyToAsync(repairedBytes);
                 Assert.Equal(payload, repairedBytes.ToArray());
-                TransferBatchItem[] aliases = {
+                TransferBatchItem[] distinctNames = {
                     new(source, "input.txt", destination, @"alias\item.txt"),
                     new(source, "input.txt", destination, "alias/item.txt")
                 };
-                await Assert.ThrowsAsync<ArgumentException>(() => TransferEngine.CopyBatchAsync(aliases));
+                byte[] expectedAlias = payload;
+                if (destination is AzureBlobTransferEndpoint) {
+                    expectedAlias = Encoding.UTF8.GetBytes("preserve-existing-alias");
+                    await destination.WriteAsync("alias/item.txt", new MemoryStream(expectedAlias), expectedAlias.Length,
+                        new TransferWriteOptions { Mode = TransferWriteMode.Overwrite });
+                    await Assert.ThrowsAsync<ArgumentException>(() => TransferEngine.CopyBatchAsync(distinctNames));
+                    Assert.Throws<ArgumentException>(() => ((ITransferPathIdentityEndpoint)destination).GetPathIdentity(@"alias\item.txt"));
+                } else {
+                    TransferBatchResult distinct = await TransferEngine.CopyBatchAsync(distinctNames);
+                    // S3Mock's HTTP connector rejects encoded backslashes before its S3 handler.
+                    // Explicit rejection must not prevent the distinct slash key from copying.
+                    if (distinct.Items[0].Error is AmazonS3Exception rejected
+                        && rejected.StatusCode == System.Net.HttpStatusCode.BadRequest) {
+                        Assert.Equal(TransferBatchItemOutcome.Failed, distinct.Items[0].Outcome);
+                        Assert.Equal(TransferBatchItemOutcome.Copied, distinct.Items[1].Outcome);
+                        Assert.DoesNotContain(await destination.ListAsync(""), item => item.Path == @"alias\item.txt");
+                    } else {
+                        Assert.True(distinct.IsSuccess, destination.Scheme + ": " + string.Join("; ", distinct.Items
+                            .Where(item => item.Error != null).Select(item => item.Error!.ToString())));
+                        using TransferReadHandle literalRead = await destination.OpenReadAsync(@"alias\item.txt");
+                        using MemoryStream literalBytes = new();
+                        await literalRead.Stream.CopyToAsync(literalBytes);
+                        Assert.Equal(payload, literalBytes.ToArray());
+                    }
+                    Assert.NotEqual(((ITransferPathIdentityEndpoint)destination).GetPathIdentity(@"alias\item.txt"),
+                        ((ITransferPathIdentityEndpoint)destination).GetPathIdentity("alias/item.txt"));
+                }
+                using (TransferReadHandle slashRead = await destination.OpenReadAsync("alias/item.txt")) {
+                    using MemoryStream slashBytes = new();
+                    await slashRead.Stream.CopyToAsync(slashBytes);
+                    Assert.Equal(expectedAlias, slashBytes.ToArray());
+                }
 
                 FileSystemTransferEndpoint firstSource = new(firstRoot);
                 FileSystemTransferEndpoint secondSource = new(secondRoot);

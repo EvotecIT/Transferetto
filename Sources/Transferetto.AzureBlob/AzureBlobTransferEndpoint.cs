@@ -342,22 +342,38 @@ public sealed partial class AzureBlobTransferEndpoint : ITransferEndpoint, ITran
         };
 
     private string ResolveName(string path, bool allowEmpty = false) {
-        string normalized = (path ?? string.Empty).Replace('\\', '/').TrimStart('/');
+        string normalized = path ?? string.Empty;
+        if (normalized.IndexOf('\\') >= 0) {
+            throw new ArgumentException("Azure Blob Storage treats backslashes as forward slashes, so this name cannot retain its identity.", nameof(path));
+        }
+        if (_prefix.Length == 0 && normalized.StartsWith("/", StringComparison.Ordinal)) {
+            throw new ArgumentException("The Azure SDK cannot address a leading-slash blob name without changing its identity.", nameof(path));
+        }
         if (!allowEmpty && string.IsNullOrEmpty(normalized)) {
             throw new ArgumentException("An endpoint-relative blob name is required.", nameof(path));
         }
         if (normalized.Split('/').Any(segment => segment == "..")) {
             throw new ArgumentException("Parent path segments are not allowed.", nameof(path));
         }
-        return _prefix + normalized;
+        string resolved = _prefix + normalized;
+        if (!allowEmpty && resolved.EndsWith("/", StringComparison.Ordinal)) {
+            throw new ArgumentException("The Azure SDK cannot address a trailing-slash blob name without changing its identity.", nameof(path));
+        }
+        return resolved;
     }
 
     private string ToRelativeName(string name) =>
         name.StartsWith(_prefix, StringComparison.Ordinal) ? name.Substring(_prefix.Length) : name;
 
     private static string NormalizePrefix(string? prefix) {
-        string normalized = (prefix ?? string.Empty).Replace('\\', '/').Trim('/');
-        return string.IsNullOrEmpty(normalized) ? string.Empty : normalized + "/";
+        string value = prefix ?? string.Empty;
+        if (value.IndexOf('\\') >= 0) {
+            throw new ArgumentException("Azure Blob Storage treats backslashes as forward slashes, so this prefix cannot retain its identity.", nameof(prefix));
+        }
+        if (value.StartsWith("/", StringComparison.Ordinal)) {
+            throw new ArgumentException("The Azure SDK cannot address a leading-slash blob prefix without changing its identity.", nameof(prefix));
+        }
+        return value.Length == 0 || value.EndsWith("/", StringComparison.Ordinal) ? value : value + "/";
     }
 
     private static void ValidateContainerUri(Uri? containerUri) {

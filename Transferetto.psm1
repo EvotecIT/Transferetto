@@ -114,6 +114,11 @@ $FoundErrors = @(
     }
 
     foreach ($Import in @($Assembly)) {
+        # PowerShell Core resolves binary-module dependencies on demand. Preloading
+        # every DLL can conflict with framework assemblies already owned by its host.
+        if ($PSEdition -eq 'Core') {
+            continue
+        }
         if ($IgnoreLibraryFiles -contains $Import.Name) {
             continue
         }
@@ -149,8 +154,7 @@ $FoundErrors = @(
 
 if ($FoundErrors.Count -gt 0) {
     $ModuleName = (Get-ChildItem $PSScriptRoot\*.psd1).BaseName
-    Write-Warning "Importing module $ModuleName failed. Fix errors before continuing."
-    break
+    throw "Importing module $ModuleName failed. Fix errors before continuing."
 }
 
 Export-ModuleMember -Function '*' -Alias '*' -Cmdlet '*'

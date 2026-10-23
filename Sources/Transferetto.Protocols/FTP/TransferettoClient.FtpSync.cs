@@ -21,6 +21,7 @@ public static partial class TransferettoClient {
         EnsureNotNullOrWhiteSpace(localPath, nameof(localPath));
         EnsureNotNullOrWhiteSpace(remotePath, nameof(remotePath));
         TransferettoSyncOptions resolvedSyncOptions = syncOptions ?? new TransferettoSyncOptions();
+        resolvedSyncOptions = ResolveLocalSyncComparison(resolvedSyncOptions, localPath);
         TransferettoTransferOptions resolvedTransferOptions = transferOptions ?? new TransferettoTransferOptions();
         string normalizedRemotePath = NormalizeRemotePath(remotePath);
         bool remoteRootIsDirectory = session.Client.DirectoryExists(normalizedRemotePath);
@@ -38,8 +39,9 @@ public static partial class TransferettoClient {
             ? BuildLocalSyncManifest(localPath, normalizedRemotePath, resolvedTransferOptions.CancellationToken)
             : BuildLocalSyncManifestOrEmpty(localPath, normalizedRemotePath, resolvedTransferOptions.CancellationToken);
         IReadOnlyList<TransferettoSyncEntry> remoteManifest = remoteRootIsDirectory
-            ? BuildFtpRemoteSyncManifest(session, normalizedRemotePath, localPath)
+            ? BuildFtpRemoteSyncManifest(session, normalizedRemotePath, localPath, resolvedTransferOptions.CancellationToken)
             : Array.Empty<TransferettoSyncEntry>();
+        if (resolvedSyncOptions.Direction == TransferettoSyncDirection.Download) { ValidateLocalSyncNames(remoteManifest, localPath); }
         IReadOnlyList<TransferettoSyncPlanItem> plan = TransferettoSyncPlanner.Plan(
             resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload ? localManifest : remoteManifest,
             resolvedSyncOptions.Direction == TransferettoSyncDirection.Upload ? remoteManifest : localManifest,
@@ -57,6 +59,7 @@ public static partial class TransferettoClient {
         }
 
         plan = HandleConflictingDownloadRootFile(plan, localPath, normalizedRemotePath, resolvedSyncOptions);
+        ValidateLocalSyncDeletes(plan, localPath, resolvedSyncOptions);
 
         if (resolvedSyncOptions.DryRun) {
             return ExecuteDryRunSyncPlan(plan);
@@ -150,19 +153,29 @@ public static partial class TransferettoClient {
     private static IReadOnlyList<TransferettoSyncEntry> BuildFtpRemoteSyncManifest(
         TransferettoFtpSession session,
         string remoteRoot,
-        string localRoot) {
+        string localRoot, System.Threading.CancellationToken cancellationToken = default) {
+        return BuildFtpRemoteSyncManifest(path => GetFtpDirectoryListingExact(session, path),
+            remoteRoot, localRoot, cancellationToken);
+    }
+
+    /// <summary>Builds a manifest through an exact-directory listing boundary, with cancellation at each descent.</summary>
+    internal static IReadOnlyList<TransferettoSyncEntry> BuildFtpRemoteSyncManifest(
+        Func<string, IReadOnlyList<TransferettoRemoteItem>> listDirectory,
+        string remoteRoot, string localRoot, System.Threading.CancellationToken cancellationToken = default) {
         List<TransferettoSyncEntry> entries = new();
-        BuildFtpRemoteSyncManifest(session, remoteRoot, remoteRoot, localRoot, entries);
+        BuildFtpRemoteSyncManifest(listDirectory, remoteRoot, remoteRoot, localRoot, entries, cancellationToken);
         return entries;
     }
 
     private static void BuildFtpRemoteSyncManifest(
-        TransferettoFtpSession session,
+        Func<string, IReadOnlyList<TransferettoRemoteItem>> listDirectory,
         string remoteRoot,
         string currentRemotePath,
         string localRoot,
-        ICollection<TransferettoSyncEntry> entries) {
-        foreach (TransferettoRemoteItem item in GetFtpListing(session, currentRemotePath)) {
+        ICollection<TransferettoSyncEntry> entries, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        foreach (TransferettoRemoteItem item in listDirectory(currentRemotePath)) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (IsSpecialRemoteDirectoryName(item.Name)) {
                 continue;
             }
@@ -185,7 +198,7 @@ public static partial class TransferettoClient {
             });
 
             if (isDirectory) {
-                BuildFtpRemoteSyncManifest(session, remoteRoot, item.FullName, localRoot, entries);
+                BuildFtpRemoteSyncManifest(listDirectory, remoteRoot, item.FullName, localRoot, entries, cancellationToken);
             }
         }
     }

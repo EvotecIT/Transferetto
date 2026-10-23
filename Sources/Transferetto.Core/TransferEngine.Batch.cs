@@ -38,12 +38,8 @@ public static partial class TransferEngine {
             string path = item.Destination is ITransferPathIdentityEndpoint named
                 ? named.GetPathIdentity(item.DestinationPath)
                 : item.DestinationPath;
-            path = item.Destination.Scheme == "file" &&
-                          System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
-                              System.Runtime.InteropServices.OSPlatform.Windows)
-                ? path.ToUpperInvariant()
-                : path;
-            string identity = item.Destination.DisplayName + "\n" + path;
+            string identity = (item.Destination is FileSystemTransferEndpoint ? "file" : item.Destination.DisplayName)
+                + "\n" + path;
             if (!destinations.Add(identity)) {
                 throw new ArgumentException("A batch cannot schedule the same destination path more than once.", nameof(items));
             }

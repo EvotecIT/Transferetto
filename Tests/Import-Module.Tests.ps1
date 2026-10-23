@@ -1,4 +1,34 @@
 Describe 'Transferetto module import' {
+    It 'imports source and creates cloud endpoints in a fresh PowerShell process' {
+        $Probe = Join-Path $TestDrive 'source-import.ps1'
+        @'
+param([string] $Manifest)
+$ErrorActionPreference = 'Stop'
+Import-Module $Manifest -Force -WarningAction SilentlyContinue
+$credential = [pscredential]::new('synthetic-key', (ConvertTo-SecureString 'synthetic-secret' -AsPlainText -Force))
+$s3 = New-TransferS3Endpoint -BucketName 'evidence' -ServiceUrl 'https://storage.example.invalid' -Credential $credential -ForcePathStyle
+$azure = New-TransferAzureBlobEndpoint -ContainerUri 'https://account.blob.core.windows.net/evidence' -SasToken (ConvertTo-SecureString 'sv=test&sig=synthetic' -AsPlainText -Force)
+try {
+    [pscustomobject]@{
+        Command = (Get-Command Connect-FTP -Module Transferetto).CommandType.ToString()
+        S3Scheme = $s3.Scheme
+        AzureScheme = $azure.Scheme
+    } | ConvertTo-Json -Compress
+} finally {
+    Close-TransferEndpoint -Endpoint $s3
+    Close-TransferEndpoint -Endpoint $azure
+}
+'@ | Set-Content -LiteralPath $Probe -Encoding UTF8
+        $HostExecutable = (Get-Process -Id $PID).Path
+        $Manifest = Join-Path $PSScriptRoot '..\Transferetto.psd1'
+        $Output = & $HostExecutable -NoProfile -NonInteractive -File $Probe -Manifest $Manifest 2>&1
+        $LASTEXITCODE | Should -Be 0 -Because ($Output -join [Environment]::NewLine)
+        $Result = ($Output | Where-Object { $_ -is [string] -and $_.TrimStart().StartsWith('{') } | Select-Object -Last 1) | ConvertFrom-Json
+        $Result.Command | Should -Be 'Cmdlet'
+        $Result.S3Scheme | Should -Be 's3'
+        $Result.AzureScheme | Should -Be 'azureblob'
+    }
+
     It 'has modern manifest metadata for discovery and help' {
         $ManifestPath = Join-Path $PSScriptRoot '..\Transferetto.psd1'
         $Manifest = Import-PowerShellDataFile -Path $ManifestPath

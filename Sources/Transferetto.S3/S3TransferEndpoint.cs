@@ -406,7 +406,7 @@ public sealed partial class S3TransferEndpoint : ITransferEndpoint, ITransferRan
     }
 
     private string ResolveKey(string path, bool allowEmpty = false) {
-        string normalized = (path ?? string.Empty).Replace('\\', '/').TrimStart('/');
+        string normalized = path ?? string.Empty;
         if (!allowEmpty && string.IsNullOrEmpty(normalized)) {
             throw new ArgumentException("An endpoint-relative object key is required.", nameof(path));
         }
@@ -420,8 +420,8 @@ public sealed partial class S3TransferEndpoint : ITransferEndpoint, ITransferRan
         key.StartsWith(_prefix, StringComparison.Ordinal) ? key.Substring(_prefix.Length) : key;
 
     private static string NormalizePrefix(string? prefix) {
-        string normalized = (prefix ?? string.Empty).Replace('\\', '/').Trim('/');
-        return string.IsNullOrEmpty(normalized) ? string.Empty : normalized + "/";
+        string value = prefix ?? string.Empty;
+        return value.Length == 0 || value.EndsWith("/", StringComparison.Ordinal) ? value : value + "/";
     }
 
     private static string? TrimETag(string? eTag) => eTag?.Trim('"');

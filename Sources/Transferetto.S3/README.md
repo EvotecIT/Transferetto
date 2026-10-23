@@ -14,6 +14,8 @@ using S3TransferEndpoint endpoint = new(new S3EndpointOptions {
 
 The default AWS credential chain is used when explicit credentials are not supplied. Custom service URLs support S3-compatible providers and must use HTTPS unless the endpoint is loopback.
 
+Object keys and prefixes retain their exact spelling, including literal backslashes and leading slashes. A path returned by listing addresses that same object when inspected, read, overwritten, or deleted. Use `/` explicitly for hierarchy; `reports\latest.txt` and `reports/latest.txt` are different keys.
+
 Uploads with an unknown length or content beyond the 5 GiB single-request limit use multipart upload. Failed or cancelled uploads are aborted, and no-overwrite modes are enforced again when the multipart upload is completed.
 
 For a restartable transfer, call `TransferEngine.CopyResumableAsync` with a durable checkpoint path. It keeps a multipart upload after cancellation, checks staged part tokens on restart, and verifies the source again before completion. Remove an abandoned S3 multipart upload through the provider API when the checkpoint is no longer needed. `TransferCopyOptions.PreferServerSideCopy` uses S3 object copy for eligible same-service transfers; it returns no streaming SHA-256 digest.
