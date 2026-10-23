@@ -212,16 +212,22 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
 #if NET8_0_OR_GREATER
     [Fact]
     public async Task DiagnosticSpanExposesOutcomeWithoutPathsOrEndpointUrls() {
+        using var parent = new System.Diagnostics.Activity("diagnostic-transfer-test").Start();
         System.Diagnostics.Activity? completed = null;
         using var listener = new System.Diagnostics.ActivityListener {
             ShouldListenTo = source => source.Name == TransferDiagnostics.Name,
             Sample = (ref System.Diagnostics.ActivityCreationOptions<System.Diagnostics.ActivityContext> _) =>
                 System.Diagnostics.ActivitySamplingResult.AllDataAndRecorded,
-            ActivityStopped = activity => completed = activity
+            ActivityStopped = activity => {
+                if (activity.ParentId == parent.Id) { completed = activity; }
+            }
         };
         System.Diagnostics.ActivitySource.AddActivityListener(listener);
         await TransferEngine.CopyAsync(new MetadataSourceEndpoint(new byte[] { 1 }), "private-source-path",
             new FileSystemTransferEndpoint(_root), "private-destination-path");
+        using (var unrelatedParent = new System.Diagnostics.Activity("unrelated-operation").Start()) {
+            using var unrelated = TransferDiagnostics.StartConnection("unrelated");
+        }
         Assert.NotNull(completed);
         string tags = string.Join(";", completed!.Tags.Select(tag => tag.Key + "=" + tag.Value));
         Assert.Contains("transfer.outcome=copied", tags);
@@ -233,16 +239,22 @@ public sealed class TransferettoCoreEndpointTests : IDisposable {
 
     [Fact]
     public void ConnectionDiagnosticRecordsOnlySchemeAndFailureType() {
+        using var parent = new System.Diagnostics.Activity("diagnostic-connection-test").Start();
         System.Diagnostics.Activity? completed = null;
         using var listener = new System.Diagnostics.ActivityListener {
             ShouldListenTo = source => source.Name == TransferDiagnostics.Name,
             Sample = (ref System.Diagnostics.ActivityCreationOptions<System.Diagnostics.ActivityContext> _) =>
                 System.Diagnostics.ActivitySamplingResult.AllDataAndRecorded,
-            ActivityStopped = activity => completed = activity
+            ActivityStopped = activity => {
+                if (activity.ParentId == parent.Id) { completed = activity; }
+            }
         };
         System.Diagnostics.ActivitySource.AddActivityListener(listener);
         using (TransferDiagnostics.OperationScope operation = TransferDiagnostics.StartConnection("sftp")) {
             operation.Fail(new IOException("secret-host.example password=do-not-log"));
+        }
+        using (var unrelatedParent = new System.Diagnostics.Activity("unrelated-operation").Start()) {
+            using var unrelated = TransferDiagnostics.StartProtocolOperation("ftp", "list");
         }
         Assert.NotNull(completed);
         Assert.Equal("transfer.connection", completed!.OperationName);
