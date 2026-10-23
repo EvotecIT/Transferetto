@@ -27,21 +27,27 @@ internal sealed class ScpDirectoryReceiver {
         _progress = progress;
     }
 
-    internal async Task ReceiveAsync(CancellationToken cancellationToken) {
-        Stack<(string RelativePath, DateTime? Modified, DateTime? Accessed)> directories = new();
+    internal async Task ReceiveAsync(CancellationToken cancellationToken, Func<Task>? validateCompletion = null) {
+        Stack<string> directories = new();
         DateTime? modified = null;
         DateTime? accessed = null;
-        FileSystemTransferEndpoint destination = new(_root);
+        using ScpDirectoryTransaction destination = new(_root);
         await AcknowledgeAsync(cancellationToken).ConfigureAwait(false);
         while (true) {
             cancellationToken.ThrowIfCancellationRequested();
             string record = await ReadHeaderAsync(cancellationToken).ConfigureAwait(false);
             if (record == "E") {
                 if (directories.Count == 0) { throw new InvalidDataException("SCP ended a directory before opening the selected root."); }
-                var closed = directories.Pop();
-                ApplyTimes(TransferFileSystem.ResolveRelativePath(_root, closed.RelativePath, allowEmpty: true), closed.Modified, closed.Accessed);
+                directories.Pop();
                 await AcknowledgeAsync(cancellationToken).ConfigureAwait(false);
-                if (directories.Count == 0) { return; }
+                if (directories.Count == 0) {
+                    if (await _records.ReadAsync(_singleByte, 0, 1, cancellationToken).ConfigureAwait(false) != 0) {
+                        throw new InvalidDataException("SCP sent data after closing the selected directory.");
+                    }
+                    if (validateCompletion != null) { await validateCompletion().ConfigureAwait(false); }
+                    destination.Commit(cancellationToken);
+                    return;
+                }
                 continue;
             }
             if (record.StartsWith("T", StringComparison.Ordinal)) {
@@ -65,25 +71,23 @@ internal sealed class ScpDirectoryReceiver {
                 if (length != 0) { throw new InvalidDataException("An SCP directory cannot have file content."); }
                 // The first remote directory denotes the caller-selected root; its name is not a local path.
                 TransferFileSystem.EnsureNoLinkTraversal(_root, _root);
-                Directory.CreateDirectory(_root);
-                directories.Push((string.Empty, modified, accessed));
+                destination.AddDirectory(string.Empty, modified, accessed);
+                directories.Push(string.Empty);
             } else {
                 if (directories.Count == 0) { throw new InvalidDataException("SCP sent a file outside the selected directory record."); }
                 // A protocol name is one component, even when a Unix filename contains a backslash.
                 if (name == "." || name == ".." || name.IndexOf('/') >= 0) { throw new InvalidDataException("Invalid SCP item name."); }
-                string parent = directories.Peek().RelativePath;
+                string parent = directories.Peek();
                 string relative = parent.Length == 0 ? name : parent + "/" + name;
-                string localPath = _paths.Add(relative);
+                _paths.Add(relative);
                 if (record[0] == 'D') {
                     if (length != 0) { throw new InvalidDataException("An SCP directory cannot have file content."); }
-                    Directory.CreateDirectory(localPath);
-                    directories.Push((relative, modified, accessed));
+                    destination.AddDirectory(relative, modified, accessed);
+                    directories.Push(relative);
                 } else {
                     await AcknowledgeAsync(cancellationToken).ConfigureAwait(false);
                     using RecordContentStream content = new(this, relative, length);
-                    await destination.WriteAsync(relative, content, length,
-                        new TransferWriteOptions { Mode = TransferWriteMode.Overwrite }, cancellationToken).ConfigureAwait(false);
-                    ApplyTimes(localPath, modified, accessed);
+                    await destination.AddFileAsync(relative, content, length, modified, accessed, cancellationToken).ConfigureAwait(false);
                     await AcknowledgeAsync(cancellationToken).ConfigureAwait(false);
                     modified = accessed = null;
                     continue;
@@ -91,17 +95,6 @@ internal sealed class ScpDirectoryReceiver {
             }
             modified = accessed = null;
             await AcknowledgeAsync(cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    private void ApplyTimes(string path, DateTime? modified, DateTime? accessed) {
-        TransferFileSystem.EnsureNoLinkTraversal(_root, path);
-        if (Directory.Exists(path)) {
-            if (modified.HasValue) { Directory.SetLastWriteTimeUtc(path, modified.Value); }
-            if (accessed.HasValue) { Directory.SetLastAccessTimeUtc(path, accessed.Value); }
-        } else {
-            if (modified.HasValue) { File.SetLastWriteTimeUtc(path, modified.Value); }
-            if (accessed.HasValue) { File.SetLastAccessTimeUtc(path, accessed.Value); }
         }
     }
 

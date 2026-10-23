@@ -1,0 +1,194 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Transferetto.Core;
+
+namespace Transferetto;
+
+/// <summary>Stages an SCP directory without changing its destination, then publishes with rollback.</summary>
+/// <remarks>The caller controls the destination and its ancestors, as required by TransferFileSystem.
+/// This is not crash recovery or isolation from concurrent local writers.</remarks>
+internal sealed class ScpDirectoryTransaction : IDisposable {
+    private readonly string _root;
+    private readonly List<Entry> _entries = new();
+    private readonly List<Entry> _published = new();
+    private readonly List<string> _created = new();
+    private readonly Dictionary<string, Times> _previousTimes = new(StringComparer.Ordinal);
+    private string? _stage;
+    private string? _stageParent;
+    private Times? _stageParentTimes;
+    private bool _committed;
+    private bool _retainRecovery;
+
+    internal ScpDirectoryTransaction(string root) {
+        _root = Path.GetFullPath(root);
+        if (_root.Length > Path.GetPathRoot(_root)!.Length) {
+            _root = _root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+    }
+
+    internal void AddDirectory(string relative, DateTime? modified, DateTime? accessed) =>
+        _entries.Add(new Entry(relative, null, modified, accessed));
+
+    internal async Task AddFileAsync(string relative, Stream content, long length, DateTime? modified,
+        DateTime? accessed, CancellationToken cancellationToken) {
+        string target = Resolve(relative);
+        string staged = Path.Combine(GetStage(), Guid.NewGuid().ToString("N"));
+        using (FileStream output = new(staged, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true)) {
+            TransferFileSystem.PreserveStagingPermissions(staged, target);
+            await TransferContent.CopyToAsync(content, output, length, cancellationToken).ConfigureAwait(false);
+        }
+        _entries.Add(new Entry(relative, staged, modified, accessed));
+    }
+
+    internal void Commit(CancellationToken cancellationToken) {
+        // Check every destination type before publishing anything. Validation always uses the
+        // real destination, not the staging directory's possibly different case semantics.
+        foreach (Entry entry in _entries) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string target = Resolve(entry.Relative);
+            if (entry.IsDirectory ? File.Exists(target) : Directory.Exists(target)) {
+                throw new IOException("An SCP member conflicts with an existing destination type: " + entry.Relative);
+            }
+            if (!entry.IsDirectory && File.Exists(target) && (File.GetAttributes(target) & FileAttributes.ReadOnly) != 0) {
+                throw new UnauthorizedAccessException("The SCP destination is read-only: " + entry.Relative);
+            }
+        }
+        try {
+            foreach (Entry entry in _entries) {
+                cancellationToken.ThrowIfCancellationRequested();
+                string target = Resolve(entry.Relative);
+                if (entry.IsDirectory) {
+                    EnsureDirectory(target);
+                } else {
+                    EnsureDirectory(Path.GetDirectoryName(target)!);
+                    _published.Add(entry);
+                    if (File.Exists(target)) {
+                        entry.Backup = Path.Combine(GetStage(), Guid.NewGuid().ToString("N"));
+                        // ReplaceFile preserves destination metadata (including its Windows ACL)
+                        // and retains the original for rollback, without first removing the target.
+                        File.Replace(entry.Staged!, target, entry.Backup);
+                    } else {
+                        File.Move(entry.Staged!, target);
+                    }
+                    entry.Written = true;
+                    ApplyTimes(target, entry.Modified, entry.Accessed);
+                }
+            }
+            foreach (Entry directory in _entries.Where(entry => entry.IsDirectory).Reverse()) {
+                ApplyTimes(Resolve(directory.Relative), directory.Modified, directory.Accessed);
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            _committed = true;
+        } catch (Exception original) {
+            try { Rollback(); }
+            catch (Exception recovery) {
+                _retainRecovery = true;
+                throw new AggregateException("SCP publication and rollback failed. Recovery files are retained at " + _stage, original, recovery);
+            }
+            throw;
+        }
+    }
+
+    private void Rollback() {
+        foreach (Entry entry in _published.AsEnumerable().Reverse()) {
+            string target = Resolve(entry.Relative);
+            if (entry.Written) { File.Delete(target); }
+            if (entry.Backup != null && File.Exists(entry.Backup)) { File.Move(entry.Backup, target); }
+        }
+        foreach (string directory in _created.AsEnumerable().Reverse()) {
+            TransferFileSystem.EnsureNoLinkTraversal(directory, directory);
+            Directory.Delete(directory, recursive: false);
+        }
+        foreach (KeyValuePair<string, Times> previous in _previousTimes) { previous.Value.Restore(previous.Key); }
+    }
+
+    private void EnsureDirectory(string path) {
+        TransferFileSystem.EnsureNoLinkTraversal(path, path);
+        if (Directory.Exists(path)) {
+            if (!_created.Contains(path) && !_previousTimes.ContainsKey(path)) { _previousTimes.Add(path, new Times(path)); }
+            return;
+        }
+        string? parent = Path.GetDirectoryName(path);
+        if (parent == null || parent == path) { throw new DirectoryNotFoundException(path); }
+        EnsureDirectory(parent);
+        Directory.CreateDirectory(path);
+        _created.Add(path);
+    }
+
+    private string GetStage() {
+        if (_stage != null) { return _stage; }
+        // An existing root can itself be a mount point. Stage beneath it so moves
+        // and backups remain on that filesystem, irrespective of its parent's volume.
+        string parent = Directory.Exists(_root) ? _root : Path.GetDirectoryName(_root) ?? _root;
+        while (!Directory.Exists(parent)) {
+            if (File.Exists(parent)) { throw new IOException("The SCP destination parent is a file."); }
+            parent = Path.GetDirectoryName(parent) ?? throw new DirectoryNotFoundException(parent);
+        }
+        TransferFileSystem.EnsureNoLinkTraversal(parent, parent);
+        _stageParent = parent;
+        _stageParentTimes = new Times(parent);
+        _stage = Path.Combine(parent, ".transferetto-scp-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_stage);
+        return _stage;
+    }
+
+    private string Resolve(string relative) {
+        string target = TransferFileSystem.ResolveRelativePath(_root, relative, allowEmpty: true);
+        if (_stage != null) {
+            string identity = TransferFileSystem.GetPathIdentity(target);
+            string stageIdentity = TransferFileSystem.GetPathIdentity(_stage);
+            if (identity == stageIdentity || identity.StartsWith(stageIdentity + Path.DirectorySeparatorChar, StringComparison.Ordinal)) {
+                throw new InvalidDataException("An SCP member conflicts with the private staging directory.");
+            }
+        }
+        return target;
+    }
+
+    private static void ApplyTimes(string path, DateTime? modified, DateTime? accessed) {
+        if (Directory.Exists(path)) {
+            if (modified.HasValue) { Directory.SetLastWriteTimeUtc(path, modified.Value); }
+            if (accessed.HasValue) { Directory.SetLastAccessTimeUtc(path, accessed.Value); }
+        } else {
+            if (modified.HasValue) { File.SetLastWriteTimeUtc(path, modified.Value); }
+            if (accessed.HasValue) { File.SetLastAccessTimeUtc(path, accessed.Value); }
+        }
+    }
+
+    public void Dispose() {
+        if (_stage == null || _retainRecovery) { return; }
+        TransferFileSystem.EnsureNoLinkTraversal(_stage, _stage);
+        foreach (string file in Directory.EnumerateFileSystemEntries(_stage)) {
+            TransferFileSystem.EnsureNoLinkTraversal(_stage, file);
+        }
+        Directory.Delete(_stage, recursive: true);
+        if (!_committed) { _stageParentTimes!.Restore(_stageParent!); }
+        else if (_stageParent == _root) {
+            Entry root = _entries.First(entry => entry.Relative.Length == 0);
+            ApplyTimes(_root, root.Modified, root.Accessed);
+        }
+    }
+
+    private sealed class Entry {
+        internal Entry(string relative, string? staged, DateTime? modified, DateTime? accessed) {
+            Relative = relative; Staged = staged; Modified = modified; Accessed = accessed;
+        }
+        internal string Relative { get; }
+        internal string? Staged { get; }
+        internal bool IsDirectory => Staged == null;
+        internal DateTime? Modified { get; }
+        internal DateTime? Accessed { get; }
+        internal string? Backup { get; set; }
+        internal bool Written { get; set; }
+    }
+
+    private sealed class Times {
+        private readonly DateTime _modified;
+        private readonly DateTime _accessed;
+        internal Times(string path) { _modified = Directory.GetLastWriteTimeUtc(path); _accessed = Directory.GetLastAccessTimeUtc(path); }
+        internal void Restore(string path) => ApplyTimes(path, _modified, _accessed);
+    }
+}
