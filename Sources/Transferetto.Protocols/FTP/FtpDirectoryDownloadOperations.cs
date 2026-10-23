@@ -22,7 +22,7 @@ internal sealed class FtpDirectoryDownloadOperations : IFtpDirectoryDownloadOper
     public IReadOnlyList<FtpListItem> ListDirectory(string path) => TransferettoClient.GetFtpDirectoryListingItemsExact(_session, path);
     public FtpStatus DownloadFile(string localPath, string remotePath, FtpLocalExists existsMode,
         FtpVerify verifyOptions, Action<FtpProgress> progress) =>
-        _session.Client.DownloadFile(localPath, remotePath, existsMode, verifyOptions, progress);
+        TransferettoClient.DownloadFtpToStage(_session.Client, localPath, remotePath, existsMode, verifyOptions, progress);
     public bool DeleteExcluded => _session.Client.Config.DownloadDirectoryDeleteExcluded;
     public bool DownloadZeroByteFiles => _session.Client.Config.DownloadZeroByteFiles;
     public FtpDataType DownloadDataType => _session.Client.Config.DownloadDataType;

@@ -63,6 +63,12 @@ public static partial class TransferettoClient {
                     options.CancellationToken.ThrowIfCancellationRequested();
                     status = CompleteFtpReceive(staged, member.Remote, member.Metadata.Size,
                         operations.DownloadDataType, operations.DownloadZeroByteFiles, status);
+                    if (status == FtpStatus.Success && operations.DownloadDataType == FtpDataType.ASCII) {
+                        long bytes = new FileInfo(staged).Length;
+                        ReportFtpTransferProgress(options, "DownloadDirectory", TransferettoTransferDirection.Download,
+                            member.Local, member.Remote, bytes, bytes, lastReported, force: true);
+                        options.CancellationToken.ThrowIfCancellationRequested();
+                    }
                     return status == FtpStatus.Success;
                 }, seedExisting: existsMode != FtpLocalExists.Overwrite && existsMode != FtpLocalExists.Skip,
                     cancellationToken: options.CancellationToken);

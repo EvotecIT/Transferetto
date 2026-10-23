@@ -16,17 +16,22 @@ internal sealed class LoopbackFtpServer : IDisposable {
     private readonly bool _emptySecond;
     private readonly string _shortContent;
     private readonly bool _knownSize;
+    private readonly bool _asciiExpansion;
+    private readonly bool _badChecksum;
+    private bool _ascii;
     private int _restart;
     internal ConcurrentQueue<string> Commands { get; } = new();
     internal int Port { get; }
 
     internal LoopbackFtpServer(bool failSecond = true, bool shortSecond = false, bool emptySecond = false,
-        string shortContent = "n", bool knownSize = true) {
+        string shortContent = "n", bool knownSize = true, bool asciiExpansion = false, bool badChecksum = false) {
         _failSecond = failSecond;
         _shortSecond = shortSecond;
         _emptySecond = emptySecond;
         _shortContent = shortContent;
         _knownSize = knownSize;
+        _asciiExpansion = asciiExpansion;
+        _badChecksum = badChecksum;
         _control.Start();
         Port = ((IPEndPoint)_control.LocalEndpoint).Port;
         _run = RunAsync();
@@ -51,14 +56,18 @@ internal sealed class LoopbackFtpServer : IDisposable {
                     case "PASS": await output.WriteLineAsync("230 Logged in"); break;
                     case "SYST": await output.WriteLineAsync("215 UNIX Type: L8"); break;
                     case "FEAT":
-                        await output.WriteLineAsync("211-Features\r\n MLST type*;size*;modify*;\r\n UTF8\r\n SIZE\r\n211 End"); break;
+                        await output.WriteLineAsync("211-Features\r\n MLST type*;size*;modify*;\r\n UTF8\r\n SIZE\r\n" +
+                            (_badChecksum ? " XMD5\r\n" : "") + "211 End"); break;
                     case "PWD": await output.WriteLineAsync("257 \"" + directory + "\" is current directory"); break;
                     case "CWD": directory = argument.TrimEnd('/'); await output.WriteLineAsync("250 Directory changed"); break;
-                    case "TYPE": case "OPTS": case "NOOP": await output.WriteLineAsync("200 Accepted"); break;
+                    case "TYPE": _ascii = argument == "A"; await output.WriteLineAsync("200 Accepted"); break;
+                    case "OPTS": case "NOOP": await output.WriteLineAsync("200 Accepted"); break;
                     case "REST": _restart = int.Parse(argument, System.Globalization.CultureInfo.InvariantCulture);
                         await output.WriteLineAsync("350 Restart accepted"); break;
                     case "SIZE": await output.WriteLineAsync(!_knownSize ? "550 Size unavailable" :
-                        _emptySecond && argument.EndsWith("second", StringComparison.Ordinal) ? "213 0" : "213 3"); break;
+                        _emptySecond && argument.EndsWith("second", StringComparison.Ordinal) ? "213 0" :
+                        _asciiExpansion && argument.EndsWith("second", StringComparison.Ordinal) ? "213 4" : "213 3"); break;
+                    case "XMD5": await output.WriteLineAsync("213 00000000000000000000000000000000"); break;
                     case "EPSV": case "PASV":
                         _data?.Stop();
                         _data = new TcpListener(IPAddress.Loopback, 0); _data.Start();
@@ -67,13 +76,14 @@ internal sealed class LoopbackFtpServer : IDisposable {
                             : "227 Entering Passive Mode (127,0,0,1," + port / 256 + "," + port % 256 + ")"); break;
                     case "MLSD": case "LIST":
                         await SendDataAsync(output, verb == "MLSD"
-                            ? "type=file;size=3;modify=20200102030405; first\r\ntype=file;size=" + (_emptySecond ? "0" : "3") + ";modify=20200102030405; second\r\n"
-                            : "-rw-r--r-- 1 user group 3 Jan 02 2020 first\r\n-rw-r--r-- 1 user group " + (_emptySecond ? "0" : "3") + " Jan 02 2020 second\r\n"); break;
+                            ? "type=file;size=3;modify=20200102030405; first\r\ntype=file;size=" + (_emptySecond ? "0" : _asciiExpansion ? "4" : "3") + ";modify=20200102030405; second\r\n"
+                            : "-rw-r--r-- 1 user group 3 Jan 02 2020 first\r\n-rw-r--r-- 1 user group " + (_emptySecond ? "0" : _asciiExpansion ? "4" : "3") + " Jan 02 2020 second\r\n"); break;
                     case "RETR":
                         if (_failSecond && argument.EndsWith("second", StringComparison.Ordinal)) { _data?.Stop(); await output.WriteLineAsync("550 File unavailable"); }
                         else {
                             bool second = argument.EndsWith("second", StringComparison.Ordinal);
                             string content = second && _emptySecond ? "" : second && _shortSecond ? _shortContent : "new";
+                            if (second && _asciiExpansion) { content = _ascii ? "a\r\nb\r\n" : "a\nb\n"; }
                             content = content.Substring(Math.Min(_restart, content.Length));
                             _restart = 0; await SendDataAsync(output, content);
                         }

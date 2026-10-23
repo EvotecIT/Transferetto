@@ -71,7 +71,7 @@ public static partial class TransferettoClient {
                     ? ReceiveFtpFile(session, transaction, relatives[index], destinations[index], paths[index], localExists, verifyOptions, options)
                     : DownloadFtpFile(session, destinations[index], paths[index], localExists, verifyOptions, options);
             } catch (OperationCanceledException) { throw; }
-            catch (Exception exception) {
+            catch (Exception exception) when (!exception.Data.Contains("Transferetto.RollbackException")) {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 failure = exception;
                 result = FailedFtpDownload(FromDownloadStatus(destinations[index], paths[index], FtpStatus.Failed), exception.Message);
@@ -96,7 +96,16 @@ public static partial class TransferettoClient {
                     ? FailedFtpDownload(result, "The batch download was not published because another member failed.") : result).ToArray();
             }
             if (results.Any(result => result.IsSuccess && !result.IsSkipped)) {
-                transaction.CommitAsync(options.CancellationToken).GetAwaiter().GetResult();
+                try { transaction.CommitAsync(options.CancellationToken).GetAwaiter().GetResult(); }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception exception) when (!exception.Data.Contains("Transferetto.RollbackException")) {
+                    options.CancellationToken.ThrowIfCancellationRequested();
+                    if (errorHandling.HasFlag(FtpError.Throw)) {
+                        throw new FtpException("The batch download could not be published.", exception);
+                    }
+                    return results.Select(result => result.IsSkipped ? result : FailedFtpDownload(result,
+                        "The batch download was not published: " + exception.Message)).ToArray();
+                }
             }
         }
         return results;
@@ -120,7 +129,7 @@ public static partial class TransferettoClient {
         string? lengthFailure = null;
         try {
             transaction.AddFile(relative, staged => {
-                status = session.Client.DownloadFile(staged, remotePath, localExists, verifyOptions, progress => {
+                status = DownloadFtpToStage(session.Client, staged, remotePath, localExists, verifyOptions, progress => {
                     options.CancellationToken.ThrowIfCancellationRequested();
                     bytes = Math.Max(bytes, NormalizeTransferredBytes(progress.TransferredBytes));
                     lastReported = ReportFtpTransferProgress(options, "DownloadFile", TransferettoTransferDirection.Download,
@@ -140,6 +149,7 @@ public static partial class TransferettoClient {
             throw;
         }
         if (status == FtpStatus.Success) {
+            if (session.Client.Config.DownloadDataType == FtpDataType.ASCII) { total = bytes; }
             ReportFtpTransferProgress(options, "DownloadFile", TransferettoTransferDirection.Download,
                 localPath, remotePath, bytes, total, lastReported, force: true);
             options.CancellationToken.ThrowIfCancellationRequested();
@@ -147,6 +157,15 @@ public static partial class TransferettoClient {
         TransferettoTransferResult result = FromDownloadStatus(localPath, remotePath, status, bytes, total, started, DateTime.UtcNow);
         return lengthFailure != null ? FailedFtpDownload(result, lengthFailure) : result;
     }
+
+    /// <summary>Keeps the native transfer/verification engine while allowing ASCII data to reach EOF.</summary>
+    /// <remarks>FluentFTP 55 bounds reads by binary SIZE when a progress callback is supplied, even for
+    /// ASCII expansion. Use its unbounded native path for ASCII; callers check cancellation around receipt
+    /// and report the completed file's actual bytes instead of unsafe intermediate progress.</remarks>
+    internal static FtpStatus DownloadFtpToStage(FtpClient client, string staged, string remote,
+        FtpLocalExists existsMode, FtpVerify verifyOptions, Action<FtpProgress> progress) =>
+        client.DownloadFile(staged, remote, existsMode, verifyOptions,
+            client.Config.DownloadDataType == FtpDataType.ASCII ? null : progress);
 
     /// <summary>Checks native completion before publication and recognizes an intentionally omitted empty file.</summary>
     private static FtpStatus CompleteFtpReceive(string staged, string remote, long expectedSize,

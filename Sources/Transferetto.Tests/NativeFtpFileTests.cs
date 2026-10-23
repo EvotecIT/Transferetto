@@ -193,6 +193,131 @@ public sealed class NativeFtpFileTests : IDisposable {
         Assert.Single(Directory.GetFileSystemEntries(_parent));
     }
 
+    [Theory]
+    [InlineData("file", false)]
+    [InlineData("file", true)]
+    [InlineData("batch", true)]
+    [InlineData("directory", true)]
+    public void AsciiExpansionIsReadToEndAcrossFtpDownloadSurfaces(string surface, bool reportProgress) {
+        string target = Path.Combine(_parent, "second");
+        File.WriteAllText(target, "original");
+        List<TransferettoTransferProgress> events = new();
+        using LoopbackFtpServer server = new(failSecond: false, asciiExpansion: true);
+        using FtpClient client = Connect(server);
+        client.Config.DownloadDataType = FtpDataType.ASCII;
+        using TransferettoFtpSession session = new(client);
+        TransferettoTransferOptions? options = reportProgress ? new() { Progress = new InlineProgress(events.Add) } : null;
+        var results = surface == "directory" ? TransferettoClient.DownloadFtpDirectory(session, _parent, "/root",
+            FtpFolderSyncMode.Update, FtpLocalExists.Overwrite, FtpVerify.None, null, options)
+            : surface == "batch" ? TransferettoClient.DownloadFtpFiles(session, _parent, new[] { "/root/second" },
+                FtpLocalExists.Overwrite, FtpVerify.None, FtpError.DeleteProcessed | FtpError.Stop, options)
+            : new[] { TransferettoClient.DownloadFtpFile(session, target, "/root/second", FtpLocalExists.Overwrite, FtpVerify.None, options) };
+        Assert.Equal("a\r\nb\r\n", File.ReadAllText(target));
+        Assert.DoesNotContain(results, result => result.IsFailed);
+        if (reportProgress) { Assert.Contains(events, progress => progress.LocalPath == target && progress.BytesTransferred == 6); }
+        Assert.Contains("TYPE A", server.Commands);
+    }
+
+    [Theory]
+    [InlineData(FtpError.DeleteProcessed)]
+    [InlineData(FtpError.DeleteProcessed | FtpError.Stop)]
+    [InlineData(FtpError.DeleteProcessed | FtpError.Throw)]
+    public void FtpBatchPublicationFailureHonorsTheSelectedErrorPolicy(FtpError policy) {
+        string first = Path.Combine(_parent, "first"), second = Path.Combine(_parent, "second");
+        File.WriteAllText(first, "original-first"); File.WriteAllText(second, "original-second");
+        File.SetAttributes(second, FileAttributes.ReadOnly);
+        try {
+            using LoopbackFtpServer server = new(failSecond: false);
+            using FtpClient client = Connect(server);
+            using TransferettoFtpSession session = new(client);
+            IReadOnlyList<TransferettoTransferResult>? results = null;
+            void Receive() => results = TransferettoClient.DownloadFtpFiles(session, _parent,
+                new[] { "/root/first", "/root/second" }, FtpLocalExists.Overwrite, FtpVerify.None, policy);
+            if (policy.HasFlag(FtpError.Throw)) { Assert.IsType<UnauthorizedAccessException>(Assert.Throws<FtpException>(Receive).InnerException); }
+            else { Receive(); Assert.Equal(2, results!.Count); Assert.All(results, result => { Assert.True(result.IsFailed); Assert.False(result.IsSuccess); }); }
+            Assert.Equal("original-first", File.ReadAllText(first));
+            Assert.Equal("original-second", File.ReadAllText(second));
+            Assert.Equal(2, Directory.GetFileSystemEntries(_parent).Length);
+        } finally { File.SetAttributes(second, FileAttributes.Normal); }
+    }
+
+    [Theory]
+    [InlineData("file")]
+    [InlineData("batch")]
+    [InlineData("directory")]
+    public void AsciiCancellationAfterReceiptWithholdsPublication(string surface) {
+        string target = Path.Combine(_parent, "second");
+        File.WriteAllText(target, "original");
+        using CancellationTokenSource cancellation = new();
+        using LoopbackFtpServer server = new(failSecond: false, asciiExpansion: true);
+        using FtpClient client = Connect(server);
+        client.Config.DownloadDataType = FtpDataType.ASCII;
+        using TransferettoFtpSession session = new(client);
+        TransferettoTransferOptions options = new() { CancellationToken = cancellation.Token,
+            Progress = new InlineProgress(progress => { if (progress.RemotePath == "/root/second") { cancellation.Cancel(); } }) };
+        Assert.ThrowsAny<OperationCanceledException>(() => {
+            if (surface == "file") { TransferettoClient.DownloadFtpFile(session, target, "/root/second", FtpLocalExists.Overwrite, FtpVerify.None, options); }
+            else if (surface == "batch") { TransferettoClient.DownloadFtpFiles(session, _parent, new[] { "/root/second" }, FtpLocalExists.Overwrite,
+                FtpVerify.None, FtpError.DeleteProcessed, options); }
+            else { TransferettoClient.DownloadFtpDirectory(session, _parent, "/root", FtpFolderSyncMode.Update,
+                FtpLocalExists.Overwrite, FtpVerify.None, null, options); }
+        });
+        Assert.Equal("original", File.ReadAllText(target));
+        Assert.Single(Directory.GetFileSystemEntries(_parent));
+    }
+
+    [Theory]
+    [InlineData("file")]
+    [InlineData("batch")]
+    [InlineData("directory")]
+    public void NativeChecksumRetryDeleteAndThrowNeverTouchTheOriginal(string surface) {
+        string target = Path.Combine(_parent, "second");
+        File.WriteAllText(target, "original");
+        using LoopbackFtpServer server = new(failSecond: false, badChecksum: true);
+        using FtpClient client = Connect(server);
+        client.Config.RetryAttempts = 2;
+        Assert.True(client.HasFeature(FtpCapability.XMD5), string.Join(";", server.Commands));
+        using TransferettoFtpSession session = new(client);
+        FtpVerify verify = FtpVerify.Retry | FtpVerify.Delete | FtpVerify.Throw;
+        if (surface == "file") {
+            Assert.Throws<FtpException>(() => TransferettoClient.DownloadFtpFile(session, target, "/root/second", FtpLocalExists.Overwrite, verify));
+        } else {
+            var results = surface == "batch" ? TransferettoClient.DownloadFtpFiles(session, _parent, new[] { "/root/second" },
+                FtpLocalExists.Overwrite, verify, FtpError.Stop)
+                : TransferettoClient.DownloadFtpDirectory(session, _parent, "/root", FtpFolderSyncMode.Update, FtpLocalExists.Overwrite, verify, null, null);
+            Assert.Contains(results, result => result.IsFailed && result.RemotePath == "/root/second");
+        }
+        Assert.Equal(2, server.Commands.Count(command => command == "RETR /root/second"));
+        Assert.Equal(2, server.Commands.Count(command => command == "XMD5 /root/second"));
+        Assert.Equal("original", File.ReadAllText(target));
+        Assert.Single(Directory.GetFileSystemEntries(_parent));
+    }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public async Task FileOnlyTransactionDoesNotReportAFalseCleanupFailure() {
+        string scheme = "test-" + Guid.NewGuid().ToString("N");
+        long failures = 0;
+        using System.Diagnostics.Metrics.MeterListener listener = new();
+        listener.InstrumentPublished = (instrument, owner) => {
+            if (instrument.Meter.Name == Transferetto.Core.TransferDiagnostics.Name && instrument.Name == "transferetto.cleanup.failures") {
+                owner.EnableMeasurementEvents(instrument);
+            }
+        };
+        listener.SetMeasurementEventCallback<long>((instrument, value, tags, state) => {
+            foreach (var tag in tags) { if (tag.Key == "transfer.scheme" && Equals(tag.Value, scheme)) { Interlocked.Add(ref failures, value); } }
+        });
+        listener.Start();
+        using (LocalDirectoryTransaction transaction = new(_parent, scheme)) {
+            transaction.AddFile("file", staged => { File.WriteAllText(staged, "complete"); return true; });
+            await transaction.CommitAsync(CancellationToken.None);
+        }
+        Assert.Equal("complete", File.ReadAllText(Path.Combine(_parent, "file")));
+        Assert.Single(Directory.GetFileSystemEntries(_parent));
+        Assert.Equal(0, Interlocked.Read(ref failures));
+    }
+#endif
+
     private sealed class InlineProgress : IProgress<TransferettoTransferProgress> {
         private readonly Action<TransferettoTransferProgress> _report;
         internal InlineProgress(Action<TransferettoTransferProgress> report) { _report = report; }

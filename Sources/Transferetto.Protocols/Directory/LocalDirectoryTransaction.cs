@@ -235,8 +235,8 @@ internal sealed class LocalDirectoryTransaction : IDisposable {
         try {
             if (!_committed) { _stageParentTimes!.Restore(_stageParent!); }
             else if (_stageParent == _root) {
-                Entry root = _entries.First(entry => entry.Relative.Length == 0);
-                ApplyTimes(_root, root.Modified, root.Accessed);
+                Entry? root = _entries.FirstOrDefault(entry => entry.Relative.Length == 0);
+                if (root != null) { ApplyTimes(_root, root.Modified, root.Accessed); }
             }
         } catch (Exception cleanup) {
             TransferDiagnostics.RecordCleanupFailure(_scheme, cleanup);
