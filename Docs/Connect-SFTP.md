@@ -35,7 +35,7 @@ Supports clear-text credentials, PSCredential objects, private keys, keyboard-in
 
 ### EXAMPLE 1
 ```powershell
-Connect-SFTP -Server 'Value' -Credential Get-Credential
+Connect-SFTP -Server 'Value' -Credential (Get-Credential)
 ```
 
 

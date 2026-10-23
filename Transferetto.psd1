@@ -9,7 +9,7 @@
     FunctionsToExport    = @()
     GUID                 = '7d61db15-9efe-41d1-a1c0-81d738975dec'
     HelpInfoURI          = 'https://github.com/EvotecIT/Transferetto/blob/master/README.md'
-    ModuleVersion        = '2.0.1'
+    ModuleVersion        = '2.0.2'
     PowerShellVersion    = '5.1'
     PrivateData          = @{
         PSData = @{
@@ -22,5 +22,4 @@
     }
     RequiredModules      = @()
     RootModule           = 'Transferetto.psm1'
-    ScriptsToProcess     = @()
 }

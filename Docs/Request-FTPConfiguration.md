@@ -30,7 +30,13 @@ Runs Transferetto’s FTP configuration detection against a target server, optio
 
 ### EXAMPLE 1
 ```powershell
-Request-FTPConfiguration -Credential Get-Credential
+Request-FTPConfiguration -Credential (Get-Credential)
+```
+
+
+### EXAMPLE 2
+```powershell
+Request-FTPConfiguration -FirstOnly
 ```
 
 

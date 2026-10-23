@@ -21,7 +21,7 @@ Gets one item from any Transferetto endpoint.
 
 ### EXAMPLE 1
 ```powershell
-Get-TransferItem -Path 'C:\Path'
+Get-TransferItem -Endpoint 'Value' -Path 'C:\Path'
 ```
 
 

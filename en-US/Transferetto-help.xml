@@ -3900,7 +3900,7 @@
     <command:examples>
       <command:example>
         <maml:title>EXAMPLE 1</maml:title>
-        <dev:code>Connect-SCP -Server 'Value' -Credential Get-Credential</dev:code>
+        <dev:code>Connect-SCP -Server 'Value' -Credential (Get-Credential)</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -4837,7 +4837,7 @@
     <command:examples>
       <command:example>
         <maml:title>EXAMPLE 1</maml:title>
-        <dev:code>Connect-SFTP -Server 'Value' -Credential Get-Credential</dev:code>
+        <dev:code>Connect-SFTP -Server 'Value' -Credential (Get-Credential)</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -5774,7 +5774,7 @@
     <command:examples>
       <command:example>
         <maml:title>EXAMPLE 1</maml:title>
-        <dev:code>Connect-SSH -Server 'Value' -Credential Get-Credential</dev:code>
+        <dev:code>Connect-SSH -Server 'Value' -Credential (Get-Credential)</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -7933,7 +7933,7 @@
     <command:examples>
       <command:example>
         <maml:title>EXAMPLE 1</maml:title>
-        <dev:code>Get-TransferChildItem -Path 'C:\Path'</dev:code>
+        <dev:code>Get-TransferChildItem -Endpoint 'Value'</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -8030,7 +8030,7 @@
     <command:examples>
       <command:example>
         <maml:title>EXAMPLE 1</maml:title>
-        <dev:code>Get-TransferItem -Path 'C:\Path'</dev:code>
+        <dev:code>Get-TransferItem -Endpoint 'Value' -Path 'C:\Path'</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -11101,7 +11101,7 @@
     <command:examples>
       <command:example>
         <maml:title>EXAMPLE 1</maml:title>
-        <dev:code>New-TransferSftpEndpoint -OwnSession</dev:code>
+        <dev:code>New-TransferSftpEndpoint -SftpSession 'Value'</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -13838,7 +13838,7 @@
     <command:examples>
       <command:example>
         <maml:title>EXAMPLE 1</maml:title>
-        <dev:code>Receive-TransferItem -Path 'C:\Path'</dev:code>
+        <dev:code>Receive-TransferItem -Endpoint 'Value' -Path 'C:\Path' -LocalPath 'C:\Path'</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -14409,7 +14409,7 @@
     <command:examples>
       <command:example>
         <maml:title>EXAMPLE 1</maml:title>
-        <dev:code>Remove-TransferItem -Path 'C:\Path'</dev:code>
+        <dev:code>Remove-TransferItem -Endpoint 'Value' -Path 'C:\Path'</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -14895,7 +14895,14 @@
     <command:examples>
       <command:example>
         <maml:title>EXAMPLE 1</maml:title>
-        <dev:code>Request-FTPConfiguration -Credential Get-Credential</dev:code>
+        <dev:code>Request-FTPConfiguration -Credential (Get-Credential)</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>EXAMPLE 2</maml:title>
+        <dev:code>Request-FTPConfiguration -FirstOnly</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -16796,7 +16803,7 @@
     <command:examples>
       <command:example>
         <maml:title>EXAMPLE 1</maml:title>
-        <dev:code>Send-TransferItem -Path 'C:\Path'</dev:code>
+        <dev:code>Send-TransferItem -Endpoint 'Value' -LocalPath 'C:\Path'</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -22049,7 +22056,7 @@
     <command:examples>
       <command:example>
         <maml:title>EXAMPLE 1</maml:title>
-        <dev:code>Test-TransferItem -Path 'C:\Path'</dev:code>
+        <dev:code>Test-TransferItem -Endpoint 'Value' -Path 'C:\Path'</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>

@@ -21,7 +21,7 @@ Uploads a local file to any writable Transferetto endpoint.
 
 ### EXAMPLE 1
 ```powershell
-Send-TransferItem -Path 'C:\Path'
+Send-TransferItem -Endpoint 'Value' -LocalPath 'C:\Path'
 ```
 
 

@@ -21,7 +21,7 @@ Downloads an item from any readable Transferetto endpoint.
 
 ### EXAMPLE 1
 ```powershell
-Receive-TransferItem -Path 'C:\Path'
+Receive-TransferItem -Endpoint 'Value' -Path 'C:\Path' -LocalPath 'C:\Path'
 ```
 
 

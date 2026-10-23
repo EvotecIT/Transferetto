@@ -35,7 +35,7 @@ Supports password, PSCredential, and private-key authentication together with ke
 
 ### EXAMPLE 1
 ```powershell
-Connect-SSH -Server 'Value' -Credential Get-Credential
+Connect-SSH -Server 'Value' -Credential (Get-Credential)
 ```
 
 

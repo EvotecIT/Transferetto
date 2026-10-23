@@ -21,7 +21,7 @@ Lists items beneath a path on any Transferetto endpoint.
 
 ### EXAMPLE 1
 ```powershell
-Get-TransferChildItem -Path 'C:\Path'
+Get-TransferChildItem -Endpoint 'Value'
 ```
 
 

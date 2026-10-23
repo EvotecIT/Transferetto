@@ -25,7 +25,7 @@ Reuses a session created by Connect-SFTP so provider-neutral commands such as Co
 
 ### EXAMPLE 1
 ```powershell
-New-TransferSftpEndpoint -OwnSession
+New-TransferSftpEndpoint -SftpSession 'Value'
 ```
 
 

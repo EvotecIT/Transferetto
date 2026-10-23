@@ -35,7 +35,7 @@ Uses the same SSH trust and authentication model as the SFTP and SSH cmdlets, ma
 
 ### EXAMPLE 1
 ```powershell
-Connect-SCP -Server 'Value' -Credential Get-Credential
+Connect-SCP -Server 'Value' -Credential (Get-Credential)
 ```
 
 

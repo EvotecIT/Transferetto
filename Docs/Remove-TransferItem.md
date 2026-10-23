@@ -21,7 +21,7 @@ Deletes an item from any writable Transferetto endpoint.
 
 ### EXAMPLE 1
 ```powershell
-Remove-TransferItem -Path 'C:\Path'
+Remove-TransferItem -Endpoint 'Value' -Path 'C:\Path'
 ```
 
 

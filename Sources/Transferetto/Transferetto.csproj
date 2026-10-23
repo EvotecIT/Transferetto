@@ -9,9 +9,9 @@
     <AssemblyName>Transferetto</AssemblyName>
     <Title>Transferetto</Title>
     <Description>Umbrella package for the Transferetto core engine and supported transfer providers.</Description>
-    <VersionPrefix>2.0.1</VersionPrefix>
-    <AssemblyVersion>2.0.1</AssemblyVersion>
-    <FileVersion>2.0.1</FileVersion>
+    <VersionPrefix>2.0.2</VersionPrefix>
+    <AssemblyVersion>2.0.2</AssemblyVersion>
+    <FileVersion>2.0.2</FileVersion>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <PackageId>Transferetto</PackageId>
     <PackageProjectUrl>https://github.com/EvotecIT/Transferetto</PackageProjectUrl>

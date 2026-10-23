@@ -62,6 +62,7 @@ Import-Module Transferetto -Force
         $Result.S3DisplayName | Should -Be 's3://evidence/'
         $Result.BlobScheme | Should -Be 'azureblob'
         $Result.BlobDisplayName | Should -Be 'https://account.blob.core.windows.net/evidence/'
-        $Result.ModuleVersion | Should -Be '2.0.1'
+        $ReleaseProject = [xml](Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\Sources\Transferetto\Transferetto.csproj') -Raw)
+        $Result.ModuleVersion | Should -Be $ReleaseProject.SelectSingleNode('/Project/PropertyGroup/VersionPrefix').InnerText
     }
 }

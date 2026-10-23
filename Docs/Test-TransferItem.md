@@ -21,7 +21,7 @@ Tests whether an item exists on any Transferetto endpoint.
 
 ### EXAMPLE 1
 ```powershell
-Test-TransferItem -Path 'C:\Path'
+Test-TransferItem -Endpoint 'Value' -Path 'C:\Path'
 ```
 
 
