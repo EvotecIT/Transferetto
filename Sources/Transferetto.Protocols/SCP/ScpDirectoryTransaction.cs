@@ -98,7 +98,8 @@ internal sealed class ScpDirectoryTransaction : IDisposable {
             try { Rollback(); }
             catch (Exception recovery) {
                 _retainRecovery = true;
-                throw new AggregateException("SCP publication and rollback failed. Recovery files are retained at " + _stage, original, recovery);
+                original.Data["Transferetto.RollbackException"] = recovery;
+                if (_stage != null) { original.Data["Transferetto.RecoveryDirectory"] = _stage; }
             }
             throw;
         }
@@ -148,7 +149,11 @@ internal sealed class ScpDirectoryTransaction : IDisposable {
         _stageParentTimes = new Times(parent);
         string stage = Path.Combine(parent, ".transferetto-scp-" + Guid.NewGuid().ToString("N"));
         try { TransferFileSystem.CreatePrivateStagingDirectory(stage); }
-        catch { _stageParentTimes.Restore(parent); throw; }
+        catch {
+            try { _stageParentTimes.Restore(parent); }
+            catch (Exception cleanup) { TransferDiagnostics.RecordCleanupFailure("scp", cleanup); }
+            throw;
+        }
         _stage = stage;
         return _stage;
     }
@@ -177,15 +182,25 @@ internal sealed class ScpDirectoryTransaction : IDisposable {
 
     public void Dispose() {
         if (_stage == null || _retainRecovery) { return; }
-        TransferFileSystem.EnsureNoLinkTraversal(_stage, _stage);
-        foreach (string file in Directory.EnumerateFileSystemEntries(_stage)) {
-            TransferFileSystem.EnsureNoLinkTraversal(_stage, file);
+        try {
+            TransferFileSystem.EnsureNoLinkTraversal(_stage, _stage);
+            foreach (string file in Directory.EnumerateFileSystemEntries(_stage)) {
+                TransferFileSystem.EnsureNoLinkTraversal(_stage, file);
+            }
+            Directory.Delete(_stage, recursive: true);
+        } catch (Exception cleanup) {
+            TransferDiagnostics.RecordCleanupFailure("scp", cleanup);
         }
-        Directory.Delete(_stage, recursive: true);
-        if (!_committed) { _stageParentTimes!.Restore(_stageParent!); }
-        else if (_stageParent == _root) {
-            Entry root = _entries.First(entry => entry.Relative.Length == 0);
-            ApplyTimes(_root, root.Modified, root.Accessed);
+        // Timestamp restoration must still run when stage cleanup fails, and neither
+        // cleanup failure may replace a receive error or turn publication into failure.
+        try {
+            if (!_committed) { _stageParentTimes!.Restore(_stageParent!); }
+            else if (_stageParent == _root) {
+                Entry root = _entries.First(entry => entry.Relative.Length == 0);
+                ApplyTimes(_root, root.Modified, root.Accessed);
+            }
+        } catch (Exception cleanup) {
+            TransferDiagnostics.RecordCleanupFailure("scp", cleanup);
         }
     }
 

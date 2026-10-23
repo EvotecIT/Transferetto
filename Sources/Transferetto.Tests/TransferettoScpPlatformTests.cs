@@ -176,6 +176,38 @@ public sealed class TransferettoScpPlatformTests : IDisposable {
     }
 #endif
 
+    [WindowsFact]
+    public async Task RollbackMetadataFailurePreservesThePublicationErrorAndRecoveryDirectory() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) { throw new PlatformNotSupportedException(); }
+        string selected = Path.Combine(_parent, "download");
+        Directory.CreateDirectory(selected);
+        string target = Path.Combine(selected, "target");
+        File.WriteAllText(target, "original");
+        DirectoryInfo directory = new(selected);
+        DirectorySecurity originalRules = directory.GetAccessControl();
+        DirectorySecurity deniedRules = directory.GetAccessControl();
+        // Real filesystem failure: implicit content updates remain allowed, but both
+        // publication and rollback are denied explicit directory timestamp updates.
+        deniedRules.AddAccessRule(new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!,
+            FileSystemRights.WriteAttributes, AccessControlType.Deny));
+        using ScpDirectoryTransaction transaction = new(selected);
+        transaction.AddDirectory("", DateTime.UtcNow.AddDays(-1), null);
+        using MemoryStream content = new(Encoding.UTF8.GetBytes("new"));
+        await transaction.AddFileAsync("target", content, content.Length, null, null, CancellationToken.None);
+        try {
+            directory.SetAccessControl(deniedRules);
+            UnauthorizedAccessException actual = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => transaction.CommitAsync(CancellationToken.None));
+            Assert.IsType<UnauthorizedAccessException>(actual.Data["Transferetto.RollbackException"]);
+            string recovery = Assert.IsType<string>(actual.Data["Transferetto.RecoveryDirectory"]);
+            Assert.Equal(Assert.Single(Directory.GetDirectories(selected, ".transferetto-scp-*")), recovery);
+            transaction.Dispose();
+            Assert.True(Directory.Exists(recovery));
+            Assert.Equal("original", File.ReadAllText(target));
+        } finally {
+            directory.SetAccessControl(originalRules);
+        }
+    }
+
     private sealed class WindowsFactAttribute : FactAttribute {
         public WindowsFactAttribute() { if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) { Skip = "Requires Windows file access rules."; } }
     }

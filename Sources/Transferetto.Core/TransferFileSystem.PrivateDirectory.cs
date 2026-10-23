@@ -25,7 +25,8 @@ public static partial class TransferFileSystem {
 #endif
                 if ((mode & 63) != 0) { throw new IOException("The staging filesystem does not preserve private Unix permissions."); }
             } catch {
-                Directory.Delete(full, recursive: false);
+                try { Directory.Delete(full, recursive: false); }
+                catch (Exception cleanup) { TransferDiagnostics.RecordCleanupFailure("file", cleanup); }
                 throw;
             }
             return;
@@ -41,7 +42,8 @@ public static partial class TransferFileSystem {
             VerifyPrivateDirectoryProtection(nativePath);
         } catch {
             // No content has been placed in this exclusively created directory yet.
-            Directory.Delete(full, recursive: false);
+            try { Directory.Delete(full, recursive: false); }
+            catch (Exception cleanup) { TransferDiagnostics.RecordCleanupFailure("file", cleanup); }
             throw;
         }
     }

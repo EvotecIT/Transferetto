@@ -182,6 +182,46 @@ public sealed class TransferettoScpTransactionTests : IDisposable {
 
     private static MemoryStream Wire() => new(Encoding.UTF8.GetBytes("D0755 0 root\nC0644 3 target\nnew\0E\n"));
 
+    [Fact]
+    public async Task MissingCleanupStagePreservesTheReceiveErrorAndRestoresParentTime() {
+        string selected = Path.Combine(_parent, "download");
+        Directory.CreateDirectory(selected);
+        DateTime modified = new(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        Directory.SetLastWriteTimeUtc(selected, modified);
+        IOException expected = new("Remote command failed");
+        using MemoryStream records = Wire();
+        using MemoryStream acks = new();
+        IOException actual = await Assert.ThrowsAsync<IOException>(() =>
+            new ScpDirectoryReceiver(records, acks, selected).ReceiveAsync(CancellationToken.None, () => {
+                // An external cleanup can remove our stage before the receiver disposes it.
+                Directory.Delete(Assert.Single(Directory.GetDirectories(selected, ".transferetto-scp-*")), recursive: true);
+                Directory.SetLastWriteTimeUtc(selected, modified.AddDays(1));
+                throw expected;
+            }));
+        Assert.Same(expected, actual);
+        Assert.Empty(Directory.GetFileSystemEntries(selected));
+        Assert.Equal(modified, Directory.GetLastWriteTimeUtc(selected));
+    }
+
+    [Fact]
+    public async Task MissingCleanupStageDoesNotFailPublicationOrSkipRemoteDirectoryTime() {
+        string selected = Path.Combine(_parent, "download");
+        Directory.CreateDirectory(selected);
+        DateTime modified = new(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        using ScpDirectoryTransaction transaction = new(selected);
+        transaction.AddDirectory("", modified, null);
+        using MemoryStream content = new(Encoding.UTF8.GetBytes("new"));
+        await transaction.AddFileAsync("target", content, content.Length, null, null, CancellationToken.None);
+        string stage = Assert.Single(Directory.GetDirectories(selected, ".transferetto-scp-*"));
+        await transaction.CommitAsync(CancellationToken.None);
+        Directory.Delete(stage, recursive: true);
+        Directory.SetLastWriteTimeUtc(selected, modified.AddDays(1));
+        transaction.Dispose();
+        Assert.Equal("new", File.ReadAllText(Path.Combine(selected, "target")));
+        Assert.Equal(modified, Directory.GetLastWriteTimeUtc(selected));
+        Assert.Equal(new[] { Path.Combine(selected, "target") }, Directory.GetFileSystemEntries(selected));
+    }
+
     private sealed class FailingAcknowledgements : MemoryStream {
         internal int Writes { get; private set; }
         public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
