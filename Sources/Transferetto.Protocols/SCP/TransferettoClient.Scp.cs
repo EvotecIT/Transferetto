@@ -326,13 +326,8 @@ public static partial class TransferettoClient {
         options?.CancellationToken.ThrowIfCancellationRequested();
 
         EnsureSafeLocalDirectoryTree(localPath, options?.CancellationToken ?? default);
-        DirectoryInfo directoryInfo = new(localPath);
-        if (!directoryInfo.Exists) {
-            directoryInfo.Create();
-        }
-
-        Dictionary<string, long> transferredByFile = new(StringComparer.OrdinalIgnoreCase);
-        Dictionary<string, long> totalByFile = new(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, long> transferredByFile = new(StringComparer.Ordinal);
+        Dictionary<string, long> totalByFile = new(StringComparer.Ordinal);
         long bytesTransferred = 0;
         long totalBytes = 0;
         long lastReportedBytes = 0;

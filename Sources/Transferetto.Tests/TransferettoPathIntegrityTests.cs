@@ -33,7 +33,7 @@ public sealed class TransferettoPathIntegrityTests : IDisposable {
     }
 
     [Fact]
-    public async Task ScpCaseCollisionsNeverOverwriteTheFirstRemoteMember() {
+    public async Task ScpCaseCollisionsLeaveNoDirectoryAndDistinctNamesRoundTrip() {
         bool insensitive = IsCaseInsensitive();
         string selected = Path.Combine(_root, "selected");
         using MemoryStream records = new(Encoding.UTF8.GetBytes(
@@ -43,8 +43,7 @@ public sealed class TransferettoPathIntegrityTests : IDisposable {
 
         if (insensitive) {
             await Assert.ThrowsAsync<InvalidDataException>(() => receiver.ReceiveAsync(CancellationToken.None));
-            Assert.Equal("one", File.ReadAllText(Path.Combine(selected, "a.txt")));
-            Assert.Single(Directory.GetFiles(selected));
+            Assert.False(Directory.Exists(selected));
         } else {
             await receiver.ReceiveAsync(CancellationToken.None);
             Assert.Equal("one", File.ReadAllText(Path.Combine(selected, "a.txt")));

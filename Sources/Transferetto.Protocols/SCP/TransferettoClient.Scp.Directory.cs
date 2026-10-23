@@ -26,11 +26,13 @@ public static partial class TransferettoClient {
         try {
             using (Stream input = command.CreateInputStream()) {
                 ScpDirectoryReceiver receiver = new(command.OutputStream, input, localPath, progress);
-                await receiver.ReceiveAsync(cancellationToken).ConfigureAwait(false);
+                await receiver.ReceiveAsync(cancellationToken, async () => {
+                    input.Dispose();
+                    await execution.ConfigureAwait(false);
+                    await stderr.ConfigureAwait(false);
+                    if (command.ExitStatus != 0) { throw new IOException("The SCP server did not complete the directory transfer successfully."); }
+                }).ConfigureAwait(false);
             }
-            await execution.ConfigureAwait(false);
-            await stderr.ConfigureAwait(false);
-            if (command.ExitStatus != 0) { throw new IOException("The SCP server did not complete the directory transfer successfully."); }
         } catch {
             TryCancelSshCommand(command);
             transport.Disconnect();
