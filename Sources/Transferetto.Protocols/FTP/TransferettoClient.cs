@@ -100,6 +100,9 @@ public static partial class TransferettoClient {
             .Select(TransferettoRemoteItem.FromFtpListItem)
             .ToArray();
     }
+
+    internal static IReadOnlyList<FtpListItem> GetFtpDirectoryListingItemsExact(TransferettoFtpSession session, string path) =>
+        GetFtpDirectoryListing(session, NormalizeExactDirectoryPath(path), FtpListOption.Size);
     /// <summary>
     /// Uploads one or more files to an FTP or FTPS server.
     /// </summary>

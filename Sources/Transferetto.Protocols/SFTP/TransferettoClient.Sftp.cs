@@ -349,15 +349,9 @@ public static partial class TransferettoClient {
             throw new DirectoryNotFoundException($"Remote directory {normalizedRemotePath} does not exist.");
         }
 
-        List<TransferettoTransferResult> results = new();
-        TransferFileSystem.EnsureNoLinkTraversal(localPath, localPath);
-        ValidateLocalSyncNames(BuildSftpRemoteSyncManifest(session, normalizedRemotePath, localPath,
-            resolvedOptions.CancellationToken), localPath);
-        Directory.CreateDirectory(localPath);
-        results.Add(CreateDirectoryTransferResult(localPath, normalizedRemotePath));
-        DownloadSftpDirectoryInternal(session, normalizedRemotePath, localPath, allowOverride, resolvedOptions, results,
-            new TransferPathRegistry(localPath), string.Empty);
-        return results;
+        return DownloadSftpDirectoryCore(path => GetSftpListing(session, path),
+            (remote, staged, logical, transfer) => DownloadSftpFileCoreAsync(session, remote, staged, transfer, logical).GetAwaiter().GetResult(),
+            normalizedRemotePath, localPath, allowOverride, resolvedOptions);
     }
     /// <summary>
     /// Removes a remote SFTP file.
@@ -773,53 +767,6 @@ public static partial class TransferettoClient {
             string remoteChildPath = CombineRemotePath(remoteDirectoryPath, directory.Name);
             EnsureSftpDirectoryExists(session, remoteChildPath, results, options);
             UploadSftpDirectoryInternal(session, directory, remoteChildPath, allowOverride, options, results);
-        }
-    }
-
-    private static void DownloadSftpDirectoryInternal(
-        TransferettoSftpSession session,
-        string remoteDirectoryPath,
-        string localDirectoryPath,
-        bool allowOverride,
-        TransferettoTransferOptions options,
-        ICollection<TransferettoTransferResult> results,
-        TransferPathRegistry paths,
-        string relativeDirectory) {
-        options.CancellationToken.ThrowIfCancellationRequested();
-        IReadOnlyList<TransferettoSftpItem> items = GetSftpListing(session, remoteDirectoryPath);
-        foreach (TransferettoSftpItem item in items.Where(static item => !IsSpecialSftpDirectory(item))) {
-            options.CancellationToken.ThrowIfCancellationRequested();
-            if (item.Name.IndexOf('/') >= 0) { throw new InvalidDataException("An SFTP member name must be a single component."); }
-            string relative = relativeDirectory.Length == 0 ? item.Name : relativeDirectory + "/" + item.Name;
-            if (item.IsDirectory) {
-                string localChildPath = paths.Add(relative);
-                Directory.CreateDirectory(localChildPath);
-                results.Add(CreateDirectoryTransferResult(localChildPath, item.FullName));
-                DownloadSftpDirectoryInternal(session, item.FullName, localChildPath, allowOverride, options, results, paths, relative);
-                continue;
-            }
-
-            if (!item.IsRegularFile) {
-                continue;
-            }
-
-            string localFilePath = paths.Add(relative);
-            if (File.Exists(localFilePath) && !allowOverride) {
-                results.Add(new TransferettoTransferResult {
-                    Action = "DownloadFile",
-                    Status = true,
-                    IsSuccess = true,
-                    IsSkipped = true,
-                    IsSkippedByRule = false,
-                    IsFailed = false,
-                    LocalPath = localFilePath,
-                    RemotePath = item.FullName,
-                    Message = "Skipped"
-                });
-                continue;
-            }
-
-            results.Add(DownloadSftpFile(session, item.FullName, localFilePath, options));
         }
     }
 

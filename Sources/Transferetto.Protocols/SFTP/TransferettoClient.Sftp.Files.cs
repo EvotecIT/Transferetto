@@ -125,12 +125,14 @@ public static partial class TransferettoClient {
     }
 
     private static async Task<TransferettoTransferResult> DownloadSftpFileCoreAsync(
-        TransferettoSftpSession session, string remotePath, string localPath, TransferettoTransferOptions? options) {
+        TransferettoSftpSession session, string remotePath, string localPath, TransferettoTransferOptions? options,
+        string? progressLocalPath = null) {
         EnsureNotNull(session, nameof(session));
         EnsureNotNullOrWhiteSpace(remotePath, nameof(remotePath));
         EnsureNotNullOrWhiteSpace(localPath, nameof(localPath));
 
         TransferettoTransferOptions resolvedOptions = options ?? new TransferettoTransferOptions();
+        string reportedPath = progressLocalPath ?? localPath;
         resolvedOptions.CancellationToken.ThrowIfCancellationRequested();
         long totalBytes = (await session.Client.GetAttributesAsync(remotePath, resolvedOptions.CancellationToken).ConfigureAwait(false)).Size;
         DateTime startedUtc = DateTime.UtcNow;
@@ -148,7 +150,7 @@ public static partial class TransferettoClient {
                     "DownloadFile",
                     "SFTP",
                     TransferettoTransferDirection.Download,
-                    localPath,
+                    reportedPath,
                     remotePath,
                     transferredBytes,
                     totalBytes,
@@ -164,7 +166,7 @@ public static partial class TransferettoClient {
                 "DownloadFile",
                 "SFTP",
                 TransferettoTransferDirection.Download,
-                localPath,
+                reportedPath,
                 remotePath,
                 (ulong) totalBytes,
                 totalBytes,
@@ -180,7 +182,7 @@ public static partial class TransferettoClient {
             IsSkipped = false,
             IsSkippedByRule = false,
             IsFailed = false,
-            LocalPath = localPath,
+            LocalPath = reportedPath,
             RemotePath = remotePath,
             BytesTransferred = bytesTransferred,
             TotalBytes = totalBytes,

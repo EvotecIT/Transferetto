@@ -321,28 +321,8 @@ public static partial class TransferettoClient {
         EnsureNotNullOrWhiteSpace(remotePath, nameof(remotePath));
         options?.CancellationToken.ThrowIfCancellationRequested();
 
-        long lastReportedBytes = 0;
-        Action<FtpProgress>? progress = options is null
-            ? null
-            : ftpProgress => {
-                lastReportedBytes = ReportFtpTransferProgress(
-                    options,
-                    "DownloadDirectory",
-                    TransferettoTransferDirection.Download,
-                    localPath,
-                    remotePath,
-                    ftpProgress,
-                    null,
-                    lastReportedBytes);
-            };
-
-        EnsureSafeLocalDirectoryTree(localPath, options?.CancellationToken ?? default);
-        // Validate the same remote namespace before handing recursion to FluentFTP.
-        ValidateLocalSyncNames(BuildFtpRemoteSyncManifest(session, NormalizeRemotePath(remotePath), localPath,
-            options?.CancellationToken ?? default), localPath);
-        options?.CancellationToken.ThrowIfCancellationRequested();
-        List<FtpResult> results = session.Client.DownloadDirectory(localPath, remotePath, folderSyncMode, localExists, verifyOptions, rules?.ToList(), progress);
-        return results.Select(result => FromFtpResult("DownloadDirectory", localPath, result)).ToArray();
+        return DownloadFtpDirectoryCore(new FtpDirectoryDownloadOperations(session), localPath, remotePath,
+            folderSyncMode, localExists, verifyOptions, rules, options ?? new TransferettoTransferOptions());
     }
     /// <summary>
     /// Tests whether an FXP transfer is ready to run.

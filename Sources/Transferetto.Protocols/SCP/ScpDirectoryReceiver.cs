@@ -31,7 +31,7 @@ internal sealed class ScpDirectoryReceiver {
         Stack<string> directories = new();
         DateTime? modified = null;
         DateTime? accessed = null;
-        using ScpDirectoryTransaction destination = new(_root);
+        using LocalDirectoryTransaction destination = new(_root);
         await AcknowledgeAsync(cancellationToken).ConfigureAwait(false);
         while (true) {
             cancellationToken.ThrowIfCancellationRequested();
