@@ -190,7 +190,7 @@ public sealed class TransferettoScpPlatformTests : IDisposable {
         // publication and rollback are denied explicit directory timestamp updates.
         deniedRules.AddAccessRule(new FileSystemAccessRule(WindowsIdentity.GetCurrent().User!,
             FileSystemRights.WriteAttributes, AccessControlType.Deny));
-        using ScpDirectoryTransaction transaction = new(selected);
+        using LocalDirectoryTransaction transaction = new(selected);
         transaction.AddDirectory("", DateTime.UtcNow.AddDays(-1), null);
         using MemoryStream content = new(Encoding.UTF8.GetBytes("new"));
         await transaction.AddFileAsync("target", content, content.Length, null, null, CancellationToken.None);

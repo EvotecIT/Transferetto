@@ -100,6 +100,9 @@ public static partial class TransferettoClient {
             .Select(TransferettoRemoteItem.FromFtpListItem)
             .ToArray();
     }
+
+    internal static IReadOnlyList<FtpListItem> GetFtpDirectoryListingItemsExact(TransferettoFtpSession session, string path) =>
+        GetFtpDirectoryListing(session, NormalizeExactDirectoryPath(path), FtpListOption.Size);
     /// <summary>
     /// Uploads one or more files to an FTP or FTPS server.
     /// </summary>
@@ -203,157 +206,6 @@ public static partial class TransferettoClient {
             : session.Client.UploadFiles(resolvedPaths, remotePath, remoteExists, createRemoteDirectory, verifyOptions, errorHandling, multiProgress, null);
 
         return results.Select(FromFtpResultUpload).ToArray();
-    }
-    /// <summary>
-    /// Downloads a file from an FTP or FTPS server.
-    /// </summary>
-
-    public static TransferettoTransferResult DownloadFtpFile(
-        TransferettoFtpSession session,
-        string localPath,
-        string remotePath,
-        FtpLocalExists localExists = FtpLocalExists.Skip,
-        FtpVerify verifyOptions = FtpVerify.None) {
-        return DownloadFtpFile(session, localPath, remotePath, localExists, verifyOptions, null);
-    }
-    /// <summary>
-    /// Downloads a file from an FTP or FTPS server.
-    /// </summary>
-
-    public static TransferettoTransferResult DownloadFtpFile(
-        TransferettoFtpSession session,
-        string localPath,
-        string remotePath,
-        FtpLocalExists localExists,
-        FtpVerify verifyOptions,
-        TransferettoTransferOptions? options) {
-        EnsureNotNull(session, nameof(session));
-        EnsureNotNullOrWhiteSpace(localPath, nameof(localPath));
-        EnsureNotNullOrWhiteSpace(remotePath, nameof(remotePath));
-        options?.CancellationToken.ThrowIfCancellationRequested();
-
-        EnsureSafeLocalFilePath(localPath);
-        long remoteSize = GetFtpFileSize(session, remotePath, -1);
-        long? totalBytes = remoteSize >= 0 ? remoteSize : null;
-        long bytesTransferred = 0;
-        DateTime startedUtc = DateTime.UtcNow;
-        long lastReportedBytes = 0;
-        Action<FtpProgress>? progress = options is null
-            ? null
-            : ftpProgress => {
-                bytesTransferred = Math.Max(bytesTransferred, NormalizeTransferredBytes(ftpProgress.TransferredBytes));
-                lastReportedBytes = ReportFtpTransferProgress(
-                    options,
-                    "DownloadFile",
-                    TransferettoTransferDirection.Download,
-                    localPath,
-                    remotePath,
-                    ftpProgress,
-                    totalBytes,
-                    lastReportedBytes);
-            };
-
-        string downloadPath = localExists == FtpLocalExists.Overwrite ? CreateTemporaryLocalTransferPath(localPath) : localPath;
-        FtpStatus status;
-        try {
-            status = session.Client.DownloadFile(downloadPath, remotePath, localExists, verifyOptions, progress);
-            if (status == FtpStatus.Success && downloadPath != localPath) {
-                options?.CancellationToken.ThrowIfCancellationRequested();
-                Transferetto.Core.TransferFileSystem.CommitStagedFile(downloadPath, localPath);
-            }
-        } finally {
-            if (downloadPath != localPath) { TryDeleteLocalFile(downloadPath); }
-        }
-        if (status == FtpStatus.Success) {
-            if (File.Exists(localPath)) {
-                bytesTransferred = Math.Max(bytesTransferred, new FileInfo(localPath).Length);
-            }
-
-            if (totalBytes.HasValue) {
-                lastReportedBytes = ReportFtpTransferProgress(
-                    options,
-                    "DownloadFile",
-                    TransferettoTransferDirection.Download,
-                    localPath,
-                    remotePath,
-                    bytesTransferred,
-                    totalBytes,
-                    lastReportedBytes,
-                    force: true);
-            }
-        }
-
-        DateTime completedUtc = DateTime.UtcNow;
-        return FromDownloadStatus(localPath, remotePath, status, bytesTransferred, totalBytes, startedUtc, completedUtc);
-    }
-    /// <summary>
-    /// Downloads multiple files from an FTP or FTPS server.
-    /// </summary>
-
-    public static IReadOnlyList<TransferettoTransferResult> DownloadFtpFiles(
-        TransferettoFtpSession session,
-        string localPath,
-        IEnumerable<string> remotePaths,
-        FtpLocalExists localExists = FtpLocalExists.Skip,
-        FtpVerify verifyOptions = FtpVerify.None,
-        FtpError errorHandling = FtpError.Stop) {
-        return DownloadFtpFiles(session, localPath, remotePaths, localExists, verifyOptions, errorHandling, null);
-    }
-    /// <summary>
-    /// Downloads multiple files from an FTP or FTPS server.
-    /// </summary>
-
-    public static IReadOnlyList<TransferettoTransferResult> DownloadFtpFiles(
-        TransferettoFtpSession session,
-        string localPath,
-        IEnumerable<string> remotePaths,
-        FtpLocalExists localExists,
-        FtpVerify verifyOptions,
-        FtpError errorHandling,
-        TransferettoTransferOptions? options) {
-        EnsureNotNull(session, nameof(session));
-        EnsureNotNullOrWhiteSpace(localPath, nameof(localPath));
-        EnsureNotNull(remotePaths, nameof(remotePaths));
-        options?.CancellationToken.ThrowIfCancellationRequested();
-
-        string[] resolvedPaths = remotePaths.Where(static path => !string.IsNullOrWhiteSpace(path)).ToArray();
-        if (resolvedPaths.Length == 0) {
-            return Array.Empty<TransferettoTransferResult>();
-        }
-
-        long lastReportedBytes = 0;
-        Action<FtpProgress>? progress = options is null
-            ? null
-            : ftpProgress => {
-                lastReportedBytes = ReportFtpTransferProgress(
-                    options,
-                    "DownloadFile",
-                    TransferettoTransferDirection.Download,
-                    localPath,
-                    null,
-                    ftpProgress,
-                    null,
-                    lastReportedBytes);
-            };
-
-        Transferetto.Core.TransferFileSystem.EnsureNoLinkTraversal(localPath, localPath);
-        Transferetto.Core.TransferPathRegistry destinationNames = new(localPath);
-        foreach (string remotePath in resolvedPaths) {
-            string name = remotePath.Substring(remotePath.LastIndexOf('/') + 1);
-            destinationNames.Add(name);
-        }
-        List<FtpResult> results = session.Client.DownloadFiles(localPath, resolvedPaths, localExists, verifyOptions, errorHandling, progress, null);
-        return results.Select(result => new TransferettoTransferResult {
-            Action = "DownloadFile",
-            Status = result.IsSuccess,
-            IsSuccess = result.IsSuccess,
-            IsSkipped = result.IsSkipped,
-            IsSkippedByRule = result.IsSkippedByRule,
-            IsFailed = result.IsFailed,
-            LocalPath = localPath,
-            RemotePath = result.RemotePath,
-            Message = result.Exception?.Message ?? (result.IsSkipped ? "Skipped" : "Success")
-        }).ToArray();
     }
     /// <summary>
     /// Opens a streamed FTP or FTPS file session.

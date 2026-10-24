@@ -160,7 +160,7 @@ public sealed class TransferettoScpTransactionTests : IDisposable {
     public async Task StagingDirectoryCannotBeSelectedAsAnIncomingMember() {
         string selected = Path.Combine(_parent, "download");
         Directory.CreateDirectory(selected);
-        using (ScpDirectoryTransaction transaction = new(selected)) {
+        using (LocalDirectoryTransaction transaction = new(selected)) {
             using MemoryStream content = new(new byte[] { 1 });
             await transaction.AddFileAsync("other", content, 1, null, null, CancellationToken.None);
             string ownStage = Assert.Single(Directory.GetDirectories(selected, ".transferetto-scp-*"));
@@ -208,7 +208,7 @@ public sealed class TransferettoScpTransactionTests : IDisposable {
         string selected = Path.Combine(_parent, "download");
         Directory.CreateDirectory(selected);
         DateTime modified = new(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
-        using ScpDirectoryTransaction transaction = new(selected);
+        using LocalDirectoryTransaction transaction = new(selected);
         transaction.AddDirectory("", modified, null);
         using MemoryStream content = new(Encoding.UTF8.GetBytes("new"));
         await transaction.AddFileAsync("target", content, content.Length, null, null, CancellationToken.None);

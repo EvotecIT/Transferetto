@@ -8,11 +8,12 @@ using Transferetto.Core;
 
 namespace Transferetto;
 
-/// <summary>Stages an SCP directory without changing its destination, then publishes with rollback.</summary>
+/// <summary>Stages a protocol directory download, then publishes files and mirror deletions with rollback.</summary>
 /// <remarks>The caller controls the destination and its ancestors, as required by TransferFileSystem.
 /// This is not crash recovery or isolation from concurrent local writers.</remarks>
-internal sealed class ScpDirectoryTransaction : IDisposable {
+internal sealed class LocalDirectoryTransaction : IDisposable {
     private readonly string _root;
+    private readonly string _scheme;
     private readonly List<Entry> _entries = new();
     private readonly List<Entry> _published = new();
     private readonly List<string> _created = new();
@@ -23,7 +24,8 @@ internal sealed class ScpDirectoryTransaction : IDisposable {
     private bool _committed;
     private bool _retainRecovery;
 
-    internal ScpDirectoryTransaction(string root) {
+    internal LocalDirectoryTransaction(string root, string scheme = "scp") {
+        _scheme = scheme;
         _root = Path.GetFullPath(root);
         if (_root.Length > Path.GetPathRoot(_root)!.Length) {
             _root = _root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
@@ -32,6 +34,30 @@ internal sealed class ScpDirectoryTransaction : IDisposable {
 
     internal void AddDirectory(string relative, DateTime? modified, DateTime? accessed) =>
         _entries.Add(new Entry(relative, null, modified, accessed));
+
+    /// <summary>Receives through a path-based transport into private staging; only successful receives are published.</summary>
+    internal bool AddFile(string relative, Func<string, bool> receive, bool seedExisting = false,
+        CancellationToken cancellationToken = default) {
+        string target = Resolve(relative);
+        string staged = Path.Combine(GetStage(), Guid.NewGuid().ToString("N"));
+        if (seedExisting && File.Exists(target)) {
+            // Copy bytes without importing the original's potentially broad access rules
+            // into private incoming staging. Publication preserves the real target's rules.
+            using FileStream source = new(target, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using FileStream destination = new(staged, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            TransferContent.CopyToAsync(source, destination, source.Length, cancellationToken).GetAwaiter().GetResult();
+        }
+        if (!receive(staged)) { return false; }
+        if (!File.Exists(staged)) { throw new IOException("The directory receive did not produce its staged file."); }
+        _entries.Add(new Entry(relative, staged, null, null));
+        return true;
+    }
+
+    /// <summary>Defers removal of a mirror extra until receipt succeeds; keeps its original for rollback.</summary>
+    internal void DeleteFile(string relative) {
+        Resolve(relative);
+        _entries.Add(new Entry(relative, null, null, null) { IsDeletion = true });
+    }
 
     internal async Task AddFileAsync(string relative, Stream content, long length, DateTime? modified,
         DateTime? accessed, CancellationToken cancellationToken) {
@@ -51,10 +77,10 @@ internal sealed class ScpDirectoryTransaction : IDisposable {
             cancellationToken.ThrowIfCancellationRequested();
             string target = Resolve(entry.Relative);
             if (entry.IsDirectory ? File.Exists(target) : Directory.Exists(target)) {
-                throw new IOException("An SCP member conflicts with an existing destination type: " + entry.Relative);
+                throw new IOException("A directory member conflicts with an existing destination type: " + entry.Relative);
             }
             if (!entry.IsDirectory && File.Exists(target) && (File.GetAttributes(target) & FileAttributes.ReadOnly) != 0) {
-                throw new UnauthorizedAccessException("The SCP destination is read-only: " + entry.Relative);
+                throw new UnauthorizedAccessException("The directory destination is read-only: " + entry.Relative);
             }
         }
         try {
@@ -63,6 +89,16 @@ internal sealed class ScpDirectoryTransaction : IDisposable {
                 string target = Resolve(entry.Relative);
                 if (entry.IsDirectory) {
                     EnsureDirectory(target);
+                } else if (entry.IsDeletion) {
+                    if (!File.Exists(target)) { continue; }
+                    EnsureDirectory(Path.GetDirectoryName(target)!);
+                    _published.Add(entry);
+                    string backup = Path.Combine(GetStage(), Guid.NewGuid().ToString("N"));
+                    File.Copy(target, backup);
+                    entry.Backup = backup;
+                    TransferFileSystem.PreserveStagingPermissions(backup, target);
+                    File.Delete(target);
+                    entry.Written = true;
                 } else {
                     EnsureDirectory(Path.GetDirectoryName(target)!);
                     _published.Add(entry);
@@ -109,7 +145,10 @@ internal sealed class ScpDirectoryTransaction : IDisposable {
         foreach (Entry entry in _published.AsEnumerable().Reverse()) {
             string target = Resolve(entry.Relative);
             if (entry.Written) { File.Delete(target); }
-            if (entry.Backup != null && File.Exists(entry.Backup)) { File.Move(entry.Backup, target); }
+            if (entry.Backup != null && File.Exists(entry.Backup)) {
+                if (entry.IsDeletion && !entry.Written) { File.Delete(entry.Backup); }
+                else { File.Move(entry.Backup, target); }
+            }
             if (entry.PublishStage != null) {
                 TransferFileSystem.EnsureNoLinkTraversal(_root, entry.PublishStage);
                 File.Delete(entry.PublishStage);
@@ -141,17 +180,17 @@ internal sealed class ScpDirectoryTransaction : IDisposable {
         // and backups remain on that filesystem, irrespective of its parent's volume.
         string parent = Directory.Exists(_root) ? _root : Path.GetDirectoryName(_root) ?? _root;
         while (!Directory.Exists(parent)) {
-            if (File.Exists(parent)) { throw new IOException("The SCP destination parent is a file."); }
+            if (File.Exists(parent)) { throw new IOException("The directory destination parent is a file."); }
             parent = Path.GetDirectoryName(parent) ?? throw new DirectoryNotFoundException(parent);
         }
         TransferFileSystem.EnsureNoLinkTraversal(parent, parent);
         _stageParent = parent;
         _stageParentTimes = new Times(parent);
-        string stage = Path.Combine(parent, ".transferetto-scp-" + Guid.NewGuid().ToString("N"));
+        string stage = Path.Combine(parent, ".transferetto-" + _scheme + "-" + Guid.NewGuid().ToString("N"));
         try { TransferFileSystem.CreatePrivateStagingDirectory(stage); }
         catch {
             try { _stageParentTimes.Restore(parent); }
-            catch (Exception cleanup) { TransferDiagnostics.RecordCleanupFailure("scp", cleanup); }
+            catch (Exception cleanup) { TransferDiagnostics.RecordCleanupFailure(_scheme, cleanup); }
             throw;
         }
         _stage = stage;
@@ -164,7 +203,7 @@ internal sealed class ScpDirectoryTransaction : IDisposable {
             string identity = TransferFileSystem.GetPathIdentity(target);
             string stageIdentity = TransferFileSystem.GetPathIdentity(_stage);
             if (identity == stageIdentity || identity.StartsWith(stageIdentity + Path.DirectorySeparatorChar, StringComparison.Ordinal)) {
-                throw new InvalidDataException("An SCP member conflicts with the private staging directory.");
+                throw new InvalidDataException("A directory member conflicts with the private staging directory.");
             }
         }
         return target;
@@ -189,18 +228,18 @@ internal sealed class ScpDirectoryTransaction : IDisposable {
             }
             Directory.Delete(_stage, recursive: true);
         } catch (Exception cleanup) {
-            TransferDiagnostics.RecordCleanupFailure("scp", cleanup);
+            TransferDiagnostics.RecordCleanupFailure(_scheme, cleanup);
         }
         // Timestamp restoration must still run when stage cleanup fails, and neither
         // cleanup failure may replace a receive error or turn publication into failure.
         try {
             if (!_committed) { _stageParentTimes!.Restore(_stageParent!); }
             else if (_stageParent == _root) {
-                Entry root = _entries.First(entry => entry.Relative.Length == 0);
-                ApplyTimes(_root, root.Modified, root.Accessed);
+                Entry? root = _entries.FirstOrDefault(entry => entry.Relative.Length == 0);
+                if (root != null) { ApplyTimes(_root, root.Modified, root.Accessed); }
             }
         } catch (Exception cleanup) {
-            TransferDiagnostics.RecordCleanupFailure("scp", cleanup);
+            TransferDiagnostics.RecordCleanupFailure(_scheme, cleanup);
         }
     }
 
@@ -210,7 +249,8 @@ internal sealed class ScpDirectoryTransaction : IDisposable {
         }
         internal string Relative { get; }
         internal string? Staged { get; }
-        internal bool IsDirectory => Staged == null;
+        internal bool IsDeletion { get; set; }
+        internal bool IsDirectory => Staged == null && !IsDeletion;
         internal DateTime? Modified { get; }
         internal DateTime? Accessed { get; }
         internal string? Backup { get; set; }
