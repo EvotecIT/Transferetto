@@ -9,9 +9,9 @@
     <AssemblyName>Transferetto.AzureBlob</AssemblyName>
     <Title>Transferetto Azure Blob Provider</Title>
     <Description>Azure Blob Storage data transfer provider for Transferetto.</Description>
-    <VersionPrefix>2.0.3</VersionPrefix>
-    <AssemblyVersion>2.0.3</AssemblyVersion>
-    <FileVersion>2.0.3</FileVersion>
+    <VersionPrefix>2.0.4</VersionPrefix>
+    <AssemblyVersion>2.0.4</AssemblyVersion>
+    <FileVersion>2.0.4</FileVersion>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <PackageId>Transferetto.AzureBlob</PackageId>
     <PackageProjectUrl>https://github.com/EvotecIT/Transferetto</PackageProjectUrl>
