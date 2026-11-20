@@ -2,6 +2,20 @@ version: 2
 updates:
   - package-ecosystem: nuget
     directory: /
+    # Keep this runtime family compatible with .NET 8 and the PowerShell module.
+    ignore:
+      - dependency-name: Microsoft.Bcl.AsyncInterfaces
+        update-types: [version-update:semver-major]
+      - dependency-name: System.Diagnostics.DiagnosticSource
+        update-types: [version-update:semver-major]
+      - dependency-name: System.Formats.Asn1
+        update-types: [version-update:semver-major]
+      - dependency-name: System.Text.Encoding.CodePages
+        update-types: [version-update:semver-major]
+      - dependency-name: System.Text.Encodings.Web
+        update-types: [version-update:semver-major]
+      - dependency-name: System.Text.Json
+        update-types: [version-update:semver-major]
     schedule:
       interval: daily
     cooldown:
